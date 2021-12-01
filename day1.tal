@@ -50,20 +50,27 @@
 
   #00 EQU ,&done JCN
 
-  ;current-number LDA2 ;print-short-decimal JSR2 
+  ( print current and current sum )
+  ;current-number LDA2 ;print-short-decimal JSR2
+  #20 EMIT
+  ;current-number LDA2 ;previous-number LDA2 ;preprevious-number LDA2 ADD2 ADD2 ;print-short-decimal JSR2
 
-  ;current-number LDA2 ;previous-number LDA2 ( current previous )
-  LTH2 ,&no-increment JCN
+  ;current-number LDA2 ;prepreprevious-number LDA2 ( current prepreprevious )
+  GTH2 ( [1 if current > prepreprevious] )
+    #00 EQU ( [1 if current <= prepreprevious] ) ,&no-increment JCN
       ;increment-count LDA2 INC2 ;increment-count STA2
       LIT '^ EMIT
-  &no-increment
+    &no-increment
 
   #0a EMIT
 
+  ;preprevious-number LDA2 ;prepreprevious-number STA2
+  ;previous-number LDA2 ;preprevious-number STA2
   ;current-number LDA2 ;previous-number STA2
+
   #0000 ;current-number STA2
 
-  ,&next-digit JMP
+  ;&next-digit JMP2
 
   &done
 
@@ -76,6 +83,7 @@ BRK
 @filename "day1.txt 00
 @current-number 00 00
 @previous-number ff ff
+@preprevious-number ff ff
+@prepreprevious-number ff ff
 @increment-count 00 00
 @contents
-
