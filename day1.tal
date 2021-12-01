@@ -1,0 +1,81 @@
+%EMIT { #18 DEO }
+%DBGBYTE { DUP ;print-byte JSR2 #0a EMIT }
+%DBGSHORT { DUP2 ;print-short JSR2 #0a EMIT }
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( init )
+
+|0100 @program
+
+  ( load contents from file )
+  #3000 .File/length DEO2
+  ;filename .File/name DEO2
+  ;contents .File/read DEO2
+
+  ( .File/success DEI2 ;print-short JSR2 #0a EMIT )
+
+  ;contents ( contents )
+
+  &next-digit
+
+    DUP2 INC2 SWP2 ( contents+1 contents )
+    LDA ( contents+1 next-byte )
+
+    DUP #0b LTH ,&next-number JCN
+
+    ( DBGBYTE )
+
+    #30 SUB #00 SWP ( contents+1 next-digit-as-short )
+
+    ( DBGSHORT )
+
+    ;current-number LDA2 #000a MUL2 ( contents+1 digit-as-short num*10 )
+
+    ( DBGSHORT )
+
+    ADD2 ( contents+1 num*10+digit )
+
+    ( DBGSHORT )
+
+    ;current-number STA2 ( contents+1 )
+
+    ,&next-digit JMP
+
+  &next-number
+
+  #00 EQU ,&done JCN
+
+  ;current-number LDA2 ;print-short-decimal JSR2 
+
+  ;current-number LDA2 ;previous-number LDA2 ( current previous )
+  LTH2 ,&no-increment JCN
+      ;increment-count LDA2 INC2 ;increment-count STA2
+      LIT '^ EMIT
+  &no-increment
+
+  #0a EMIT
+
+  ;current-number LDA2 ;previous-number STA2
+  #0000 ;current-number STA2
+
+  ,&next-digit JMP
+
+  &done
+
+  ;increment-count LDA2 ;print-short-decimal JSR2 #0a EMIT
+
+BRK
+
+~library/console.lib.tal
+
+@filename "day1.txt 00
+@current-number 00 00
+@previous-number ff ff
+@increment-count 00 00
+@contents
+
