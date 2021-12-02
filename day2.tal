@@ -15,6 +15,7 @@
 %DBGCHAR { DUP EMIT LF }
 %DBGSTACK { #0101 #0e DEO2 }
 %BREAKPOINT { DBGSTACK BRK }
+%! { BREAKPOINT }
 
 ( devices )
 
@@ -29,10 +30,32 @@
 ( init )
 
 |0100 @program
+  ;on-arg-char .Console/vector DEO2
+  BRK !
+
+@on-arg-char
+  .Console/read DEI ( char )
+  DUP #0a EQU ,&complete JCN
+  ;&arg-line #00 ,&fnptr LDR ADD2 STA
+  ,&fnptr LDR INC ,&fnptr STR
+  BRK !
+
+  &complete
+  POP
+  ;&arg-line ;arg-received JMP2
+
+  &fnptr $1
+  &arg-line $64
+
+( filename* -- )
+@arg-received
+  LIT ': EMIT
+  DUP2 ;print JSR2
+  LF
 
   ( setup reading from file )
+  .File/name DEO2
   #0001 .File/length DEO2
-  ;filename .File/name DEO2
 
   &read-order
 
@@ -123,7 +146,7 @@ BREAKPOINT
 
 ( -- next-byte )
 @read-byte
-  #00 ;&byte STA
+  #00 ;&byte STA ( clear byte so that EOF reads as zero )
   ;&byte .File/read DEO2
   LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
   JMP2r
@@ -143,7 +166,6 @@ BREAKPOINT
 ~library/console.lib.tal
 ~library/math.tal
 
-@filename "day2.txt 00
 @order 00
 @position $8
 @depth $8
