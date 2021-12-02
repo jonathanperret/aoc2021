@@ -1,8 +1,10 @@
 %EMIT { #18 DEO }
+%SP { #20 EMIT }
 %LF { #0a EMIT }
 %DBGBYTE { DUP ;print-byte JSR2 LF }
 %DBGSHORT { DUP2 ;print-short JSR2 LF }
-%DBGSHORTDEC { DUP2 ;print-short-decimal JSR2 LF }
+%DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
+%DBGSHORTDEC { DBGSHORTDECn LF }
 %DBGCHAR { DUP EMIT LF }
 
 ( devices )
@@ -27,13 +29,12 @@
   &read-order
 
     LIT '- EMIT #0a EMIT
-    DBGSHORT
 
     ;read-byte JSR2 ( contents order-char )
 
     DUP #00 EQU ;&orders-done JCN2
 
-    DBGCHAR
+    DUP EMIT SP
 
     #00 ;order STA2
 
@@ -52,25 +53,44 @@
     DUP LIT 'f NEQ ,&not-forward JCN
       POP
       LIT '> EMIT
-      ;position LDA2 ADD2 ( contents position )
-      DBGSHORTDEC
-      ;position STA2
+      DUP2 ;position LDA2 ADD2 ( contents X position+X )
+      DBGSHORTDECn SP
+      ;position STA2 ( contents X )
+
+      ;print-depth JSR2
+
+      SP LIT '+ EMIT
+
+      ;aim LDA2 ( contents X aim )
+      MUL2 ( contents aim*X ) DBGSHORTDECn SP
+      ;depth LDA2 ( contents aim*X depth )
+      ADD2 ( contents depth+aim*X )
+      ( contents newdepth )
+      DUP2 #2710 ( newdepth newdepth 10000d )
+      LTH2 ( newdepth newdepth<10k? ) ,&no-overflow JCN
+        ;depth10k LDA2 INC2 ;depth10k STA2 ( newdepth )
+        #2710 SUB2 ( newdepth-10k )
+      &no-overflow ( newdepth%10k )
+      ;depth STA2 ( contents )
+
+      LIT '= EMIT ;print-depth JSR2 LF
+
       ,&order-done JMP
 
     &not-forward DUP LIT 'd NEQ ,&not-down JCN
       POP
       LIT 'v EMIT
-      ;depth LDA2 ADD2 ( depth )
+      ;aim LDA2 ADD2 ( aim )
       DBGSHORTDEC
-      ;depth STA2
+      ;aim STA2
       ,&order-done JMP
 
     &not-down
       POP
       LIT '^ EMIT
-      ;depth LDA2 SWP2 SUB2 ( depth )
+      ;aim LDA2 SWP2 SUB2 ( aim )
       DBGSHORTDEC
-      ;depth STA2
+      ;aim STA2
 
     &order-done
 
@@ -82,8 +102,8 @@
 
   POP
 
-  LIT 'p EMIT LIT '=' EMIT ;position LDA2 ;print-short-decimal JSR2 #0a EMIT
-  LIT 'd EMIT LIT '=' EMIT ;depth LDA2 ;print-short-decimal JSR2 #0a EMIT
+  LIT 'p EMIT LIT '=' EMIT ;position LDA2 ;print-short-decimal JSR2 LF
+  LIT 'd EMIT LIT '=' EMIT ;print-depth JSR2 LF
   LIT '* EMIT LIT '=' EMIT
 
   ;position LDA2 ;depth LDA2 MUL2 ;print-short-decimal JSR2 #0a EMIT
@@ -91,10 +111,36 @@
 BRK
 
 @read-byte
+  DUP2 INC2 SWP2 ( contents+1 contents )
+  LDA ( contents+1 next-byte )
+  JMP2r
 
-    DUP2 INC2 SWP2 ( contents+1 contents )
-    LDA ( contents+1 next-byte )
-    JMP2r
+@print-depth
+  ;depth10k LDA2 DUP2 #0000 EQU2 ,&no-10k JCN
+    DUP2 ;print-short-decimal JSR2
+  &no-10k
+  POP2
+  ;depth10k LDA2 #0000 NEQ2 .number/started STZ
+  ;depth LDA2 ;print-short-decimal-low JSR2
+  JMP2r
+
+@print-short-decimal-low ( short -- )
+	DUP2 #03e8 DIV2 DUP2 ,&digit JSR #03e8 MUL2 SUB2
+	DUP2 #0064 DIV2 DUP2 ,&digit JSR #0064 MUL2 SUB2
+	DUP2 #000a DIV2 DUP2 ,&digit JSR #000a MUL2 SUB2
+	                     ,&digit JSR
+	.number/started LDZ ,&end JCN
+	LIT '0 .Console/write DEO
+	&end
+JMP2r
+
+	&digit
+	NIP
+	DUP .number/started LDZ ORA #02 JCN
+	POP JMP2r
+	LIT '0 ADD .Console/write DEO
+	#01 .number/started STZ
+JMP2r
 
 ~library/console.lib.tal
 
@@ -103,5 +149,7 @@ BRK
 @order 00 00
 @position 00 00
 @depth 00 00
+@depth10k 00 00
+@aim 00 00
 |8000
 @contents
