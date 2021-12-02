@@ -1,21 +1,4 @@
-%EMIT { .Console/write DEO }
-%SP { #20 EMIT }
-%LF { #0a EMIT }
-
-%DBGBYTE { DBGBYTEn LF }
-%DBGBYTEn { DUP ;print-byte JSR2 }
-
-%DBGBYTEDEC { DBGBYTEDECn LF }
-%DBGBYTEDECn { DUP #00 SWP ;print-short-decimal JSR2 }
-
-%DBGSHORT { DUP2 ;print-short JSR2 LF }
-%DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
-%DBGSHORTDEC { DBGSHORTDECn LF }
-
-%DBGCHAR { DUP EMIT LF }
-%DBGSTACK { #0101 #0e DEO2 }
-%BREAKPOINT { DBGSTACK BRK }
-%! { BREAKPOINT }
+~library/macros.tal
 
 ( devices )
 
@@ -146,9 +129,7 @@
   ;position ;depth ;mul64 JSR2 ;result ;mul64/get-lo JSR2
   ;result ;print64 JSR2 LF
 
-BRK
-
-BREAKPOINT
+  BRK !
 
 ( -- next-byte )
 @read-byte

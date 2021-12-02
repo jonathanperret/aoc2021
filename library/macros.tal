@@ -1,0 +1,77 @@
+( From https://wiki.xxiivv.com/site/uxntal_macros.html )
+
+( Generics )
+
+( Fast Arithmetic )
+
+%2*  { #10 SFT } %2/  { #01 SFT }
+%4*  { #20 SFT } %4/  { #02 SFT }
+%8*  { #30 SFT } %8/  { #03 SFT }
+%10* { #40 SFT } %10/ { #04 SFT }
+%20* { #50 SFT } %20/ { #05 SFT }
+
+%2**  { #10 SFT2 } %2//  { #01 SFT2 }
+%4**  { #20 SFT2 } %4//  { #02 SFT2 }
+%8**  { #30 SFT2 } %8//  { #03 SFT2 }
+%10** { #40 SFT2 } %10// { #04 SFT2 }
+%20** { #50 SFT2 } %20// { #05 SFT2 }
+
+%2MOD  { #01 AND } %2MOD2  { #0001 AND2 }
+%4MOD  { #03 AND } %4MOD2  { #0003 AND2 }
+%8MOD  { #07 AND } %8MOD2  { #0007 AND2 }
+%10MOD { #0f AND } %10MOD2 { #000f AND2 }
+
+( Buttons )
+
+%B_UP { #10 } %B_DOWN { #20 } %B_LEFT   { #40 } %B_RIGHT { #80 }
+%B_A  { #01 } %B_B    { #02 } %B_SELECT { #04 } %B_START { #08 }
+
+( Binary Opcodes )
+
+%ROL { DUP #07 SFT SWP #10 SFT + }
+%ROR { DUP #70 SFT SWP #01 SFT + }
+
+( Signed Opcodes )
+
+%LTS2 { #8000 ++ SWP2 #8000 ++ >> }
+%GTS2 { #8000 ++ SWP2 #8000 ++ << }
+%ABS2 { DUP2 #0f SFT2 = #05 JCN #0000 SWP2 -- }
+
+( Modulo/MinMax )
+
+%MOD  { DIVk MUL SUB }
+%MOD2 { DIV2k MUL2 SUB2 }
+%MIN2 { LTH2k JMP SWP2 POP2 }
+%MAX2 { GTH2k JMP SWP2 POP2 }
+
+( ASCII )
+
+( To test for character types. )
+
+%IS-SPACER   { #21 < } ( char -- flag )
+%IS-LABEL    { STHk #40 = STHr #26 = #0000 !! } ( char -- flag )
+%IS-ALPHA-LC { STHk #60 > STHr #7b < #0101 == } ( char -- flag )
+%IS-ALPHA-UC { STHk #40 > STHr #5b < #0101 == } ( char -- flag )
+%IS-ALPHA    { DUP IS-ALPHA-UC SWP IS-ALPHA-LC #0000 !! } ( char -- flag )
+%IS-NUMBER   { STHk #2f > STHr #3a < #0101 == } ( char -- flag )
+%IS-ALPHANUM { DUP IS-ALPHA SWP IS-NUMBER #0000 !! } ( char -- flag )
+
+%EMIT { .Console/write DEO }
+%SP { #20 EMIT }
+%LF { #0a EMIT }
+
+%DBGBYTE { DBGBYTEn LF }
+%DBGBYTEn { DUP ;print-byte JSR2 }
+
+%DBGBYTEDEC { DBGBYTEDECn LF }
+%DBGBYTEDECn { DUP #00 SWP ;print-short-decimal JSR2 }
+
+%DBGSHORT { DUP2 ;print-short JSR2 LF }
+%DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
+%DBGSHORTDEC { DBGSHORTDECn LF }
+
+%DBGCHAR { DUP EMIT LF }
+%DBGSTACK { #0101 #0e DEO2 }
+%BREAKPOINT { DBGSTACK BRK }
+%! { BREAKPOINT }
+
