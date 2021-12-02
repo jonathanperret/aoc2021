@@ -1,0 +1,148 @@
+%EMIT { .Console/write DEO }
+%SP { #20 EMIT }
+%LF { #0a EMIT }
+
+%DBGBYTE { DBGBYTEn LF }
+%DBGBYTEn { DUP ;print-byte JSR2 }
+
+%DBGBYTEDEC { DBGBYTEDECn LF }
+%DBGBYTEDECn { DUP #00 SWP ;print-short-decimal JSR2 }
+
+%DBGSHORT { DUP2 ;print-short JSR2 LF }
+%DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
+%DBGSHORTDEC { DBGSHORTDECn LF }
+
+%DBGCHAR { DUP EMIT LF }
+%DBGSTACK { #0101 #0e DEO2 }
+%BREAKPOINT { DBGSTACK BRK }
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( init )
+
+|0100 @program
+
+  ;on-input .Console/vector DEO2
+
+  BRK
+  BREAKPOINT
+
+@on-input
+
+  .Console/read DEI
+
+  ;state LDA #00 EQU ,&first-letter JCN
+  ;state LDA #01 EQU ,&skip-to-space JCN
+  ;state LDA #02 EQU ,&digit JCN
+  ;state LDA #03 EQU ,&line-feed JCN
+  BRK
+
+  &first-letter
+    DUP LIT '. EQU ;&orders-done JCN2
+    ;order STA
+    #01 ;state STA
+    BRK
+
+  &skip-to-space
+    #20 NEQ ,&not-space JCN
+    #02 ;state STA
+    &not-space
+    BRK
+
+  &line-feed
+    POP
+    #00 ;state STA
+    BRK
+
+  &digit
+    #03 ;state STA
+
+    LIT '0 SUB ( X )
+
+    ;order LDA ( X order-char )
+
+    DUP LIT 'f NEQ ,&not-forward JCN
+      POP
+      LIT '> EMIT
+      ( X )
+
+      DUP ;position ROT ( X position* X )
+      ;add64-byte JSR2 ( X )
+      ;position ;print64 JSR2 SP
+
+      ;depth ;print64 JSR2
+
+      SP LIT '+ EMIT
+
+      ( X )
+      ;depth-delta ;aim ( X depth-delta* aim* )
+      ( ;depth-delta ;print64 JSR2 ;aim ;print64 JSR2 )
+      ;copy64 JSR2 ( X )
+      ;depth-delta ROT ( depth-delta=aim* X )
+      ;mul64-byte JSR2 ( )
+
+      ;depth-delta ;print64 JSR2
+
+      ;depth ;depth-delta ;add64 JSR2 ( )
+
+      SP LIT '= EMIT ;depth ;print64 JSR2 LF
+
+      ,&order-done JMP
+
+    &not-forward DUP LIT 'd NEQ ,&not-down JCN
+      POP
+      LIT 'v EMIT
+      ( X )
+      ;aim ROT ;add64-byte JSR2 ( )
+      ;aim ;print64 JSR2 LF
+      ,&order-done JMP
+
+    &not-down
+      POP
+      LIT '^ EMIT
+      ;aim ROT ;sub64-byte JSR2
+      ;aim ;print64 JSR2 LF
+
+  &order-done
+  BRK
+
+  &orders-done
+  POP
+  LIT 'p EMIT LIT '=' EMIT ;position ;print64 JSR2 LF
+  LIT 'd EMIT LIT '=' EMIT ;depth ;print64 JSR2 LF
+  LIT '* EMIT LIT '=' EMIT
+
+  ;position ;depth ;mul64 JSR2 ;result ;mul64/get-lo JSR2
+  ;result ;print64 JSR2 LF
+  BRK
+
+  BREAKPOINT
+
+@print64
+  ;string64-decimal JSR2 ;string64-decimal/str ;print JSR2
+  JMP2r
+
+( r* b -> )
+@sub64-byte
+  STH
+  DUP2 ;invert64 JSR2
+  DUP2 STHr ;add64-byte JSR2
+  ;invert64 JSR2
+  JMP2r
+
+~library/console.lib.tal
+~library/math.tal
+
+@filename "day2.txt 00
+@state 00
+@order 00
+@position $8
+@depth $8
+@aim $8
+@depth-delta @result $8
+|8000
+@contents

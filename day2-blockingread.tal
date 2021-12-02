@@ -1,0 +1,138 @@
+%EMIT { .Console/write DEO }
+%SP { #20 EMIT }
+%LF { #0a EMIT }
+
+%DBGBYTE { DBGBYTEn LF }
+%DBGBYTEn { DUP ;print-byte JSR2 }
+
+%DBGBYTEDEC { DBGBYTEDECn LF }
+%DBGBYTEDECn { DUP #00 SWP ;print-short-decimal JSR2 }
+
+%DBGSHORT { DUP2 ;print-short JSR2 LF }
+%DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
+%DBGSHORTDEC { DBGSHORTDECn LF }
+
+%DBGCHAR { DUP EMIT LF }
+%DBGSTACK { #0101 #0e DEO2 }
+%BREAKPOINT { DBGSTACK BRK }
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( init )
+
+|0100 @program
+
+  &read-order
+
+    LIT '- EMIT #0a EMIT
+
+    ;read-byte JSR2 ( order-char )
+
+    DUP LIT '. EQU ;&orders-done JCN2
+
+    DUP EMIT SP
+
+    ;order STA
+
+    &skip-until-space
+      ;read-byte JSR2
+      #20 NEQ ,&skip-until-space JCN
+
+    ;read-byte JSR2 ( digit )
+
+    DBGCHAR
+
+    LIT '0 SUB ( X )
+
+    ;order LDA ( X order-char )
+
+    DUP LIT 'f NEQ ,&not-forward JCN
+      POP
+      LIT '> EMIT
+      ( X )
+
+      DUP ;position ROT ( X position* X )
+      ;add64-byte JSR2 ( X )
+      ;position ;print64 JSR2 SP
+
+      ;depth ;print64 JSR2
+
+      SP LIT '+ EMIT
+
+      ( X )
+      ;depth-delta ;aim ( X depth-delta* aim* )
+      ( ;depth-delta ;print64 JSR2 ;aim ;print64 JSR2 )
+      ;copy64 JSR2 ( X )
+      ;depth-delta ROT ( depth-delta=aim* X )
+      ;mul64-byte JSR2 ( )
+
+      ;depth-delta ;print64 JSR2
+
+      ;depth ;depth-delta ;add64 JSR2 ( )
+
+      SP LIT '= EMIT ;depth ;print64 JSR2 LF
+
+      ,&order-done JMP
+
+    &not-forward DUP LIT 'd NEQ ,&not-down JCN
+      POP
+      LIT 'v EMIT
+      ( X )
+      ;aim ROT ;add64-byte JSR2 ( )
+      ;aim ;print64 JSR2 LF
+      ,&order-done JMP
+
+    &not-down
+      POP
+      LIT '^ EMIT
+      ;aim ROT ;sub64-byte JSR2
+      ;aim ;print64 JSR2 LF
+
+    &order-done
+
+    ;read-byte JSR2 ( lf ) POP
+
+    ;&read-order JMP2
+
+  &orders-done
+
+  POP
+
+  LIT 'p EMIT LIT '=' EMIT ;position ;print64 JSR2 LF
+  LIT 'd EMIT LIT '=' EMIT ;depth ;print64 JSR2 LF
+  LIT '* EMIT LIT '=' EMIT
+
+  ;position ;depth ;mul64 JSR2 ;result ;mul64/get-lo JSR2
+  ;result ;print64 JSR2 LF
+
+BRK
+
+@read-byte
+  BRK
+  .Console/read DEI
+  JMP2r
+
+@print64
+  ;string64-decimal JSR2 ;string64-decimal/str ;print JSR2
+  JMP2r
+
+( r* b -> )
+@sub64-byte
+  STH
+  DUP2 ;invert64 JSR2
+  DUP2 STHr ;add64-byte JSR2
+  ;invert64 JSR2
+  JMP2r
+
+~library/console.lib.tal
+~library/math.tal
+
+@order 00
+@position $8
+@depth $8
+@aim $8
+@depth-delta @result $8
