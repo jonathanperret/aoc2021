@@ -22,24 +22,23 @@
 |10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
 |a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
 
+(variables)
+
+|00 
+
 ( init )
 
 |0100 @program
 
-  ( load contents from file )
-  #3000 .File/length DEO2
+  ( setup reading from file )
+  #0001 .File/length DEO2
   ;filename .File/name DEO2
-  ;contents .File/read DEO2
-
-  ( .File/success DEI2 ;print-short JSR2 #0a EMIT )
-
-  ;contents ( contents )
 
   &read-order
 
     LIT '- EMIT #0a EMIT
 
-    ;read-byte JSR2 ( contents order-char )
+    ;read-byte JSR2 ( order-char )
 
     DUP #00 EQU ;&orders-done JCN2
 
@@ -51,37 +50,37 @@
       ;read-byte JSR2
       #20 NEQ ,&skip-until-space JCN
 
-    ;read-byte JSR2 ( contents digit )
+    ;read-byte JSR2 ( digit )
 
     DBGCHAR
 
-    LIT '0 SUB ( contents X )
+    LIT '0 SUB ( X )
 
-    ;order LDA ( contents X order-char )
+    ;order LDA ( X order-char )
 
     DUP LIT 'f NEQ ,&not-forward JCN
       POP
       LIT '> EMIT
-      ( contents X )
+      ( X )
 
-      DUP ;position ROT ( contents X position* X )
-      ;add64-byte JSR2 ( contents X )
+      DUP ;position ROT ( X position* X )
+      ;add64-byte JSR2 ( X )
       ;position ;print64 JSR2 SP
 
       ;depth ;print64 JSR2
 
       SP LIT '+ EMIT
 
-      ( contents X )
-      ;depth-delta ;aim ( contents X depth-delta* aim* )
+      ( X )
+      ;depth-delta ;aim ( X depth-delta* aim* )
       ( ;depth-delta ;print64 JSR2 ;aim ;print64 JSR2 )
-      ;copy64 JSR2 ( contents X )
-      ;depth-delta ROT ( contents depth-delta=aim* X )
-      ;mul64-byte JSR2 ( contents )
+      ;copy64 JSR2 ( X )
+      ;depth-delta ROT ( depth-delta=aim* X )
+      ;mul64-byte JSR2 ( )
 
       ;depth-delta ;print64 JSR2
 
-      ;depth ;depth-delta ;add64 JSR2 ( contents )
+      ;depth ;depth-delta ;add64 JSR2 ( )
 
       SP LIT '= EMIT ;depth ;print64 JSR2 LF
 
@@ -90,8 +89,8 @@
     &not-forward DUP LIT 'd NEQ ,&not-down JCN
       POP
       LIT 'v EMIT
-      ( contents X )
-      ;aim ROT ;add64-byte JSR2 ( contents )
+      ( X )
+      ;aim ROT ;add64-byte JSR2 ( )
       ;aim ;print64 JSR2 LF
       ,&order-done JMP
 
@@ -120,9 +119,13 @@
 
 BRK
 
+BREAKPOINT
+
+( -- next-byte )
 @read-byte
-  DUP2 INC2 SWP2 ( contents+1 contents )
-  LDA ( contents+1 next-byte )
+  #00 ;byte-read STA
+  ;byte-read .File/read DEO2
+  ;byte-read LDA
   JMP2r
 
 @print64
@@ -141,10 +144,9 @@ BRK
 ~library/math.tal
 
 @filename "day2.txt 00
+@byte-read 00
 @order 00
 @position $8
 @depth $8
 @aim $8
 @depth-delta @result $8
-|8000
-@contents
