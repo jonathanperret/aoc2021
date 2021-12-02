@@ -1,11 +1,20 @@
 %EMIT { #18 DEO }
 %SP { #20 EMIT }
 %LF { #0a EMIT }
-%DBGBYTE { DUP ;print-byte JSR2 LF }
+
+%DBGBYTE { DBGBYTEn LF }
+%DBGBYTEn { DUP ;print-byte JSR2 }
+
+%DBGBYTEDEC { DBGBYTEDECn LF }
+%DBGBYTEDECn { DUP #00 SWP ;print-short-decimal JSR2 }
+
 %DBGSHORT { DUP2 ;print-short JSR2 LF }
 %DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
 %DBGSHORTDEC { DBGSHORTDECn LF }
+
 %DBGCHAR { DUP EMIT LF }
+%DBGSTACK { #0101 #0e DEO2 }
+%BREAKPOINT { DBGSTACK BRK }
 
 ( devices )
 
@@ -36,7 +45,7 @@
 
     DUP EMIT SP
 
-    #00 ;order STA2
+    ;order STA
 
     &skip-until-space
       ;read-byte JSR2
@@ -46,51 +55,51 @@
 
     DBGCHAR
 
-    #30 SUB #00 SWP ( contents digit-val )
+    LIT '0 SUB ( contents X )
 
-    ;order LDA2 POP ( contents digit-val order-char )
+    ;order LDA ( contents X order-char )
 
     DUP LIT 'f NEQ ,&not-forward JCN
       POP
       LIT '> EMIT
-      DUP2 ;position LDA2 ADD2 ( contents X position+X )
-      DBGSHORTDECn SP
-      ;position STA2 ( contents X )
+      ( contents X )
 
-      ;print-depth JSR2
+      DUP ;position ROT ( contents X position* X )
+      ;add64-byte JSR2 ( contents X )
+      ;position ;print64 JSR2 SP
+
+      ;depth ;print64 JSR2
 
       SP LIT '+ EMIT
 
-      ;aim LDA2 ( contents X aim )
-      MUL2 ( contents aim*X ) DBGSHORTDECn SP
-      ;depth LDA2 ( contents aim*X depth )
-      ADD2 ( contents depth+aim*X )
-      ( contents newdepth )
-      DUP2 #2710 ( newdepth newdepth 10000d )
-      LTH2 ( newdepth newdepth<10k? ) ,&no-overflow JCN
-        ;depth10k LDA2 INC2 ;depth10k STA2 ( newdepth )
-        #2710 SUB2 ( newdepth-10k )
-      &no-overflow ( newdepth%10k )
-      ;depth STA2 ( contents )
+      ( contents X )
+      ;depth-delta ;aim ( contents X depth-delta* aim* )
+      ( ;depth-delta ;print64 JSR2 ;aim ;print64 JSR2 )
+      ;copy64 JSR2 ( contents X )
+      ;depth-delta ROT ( contents depth-delta=aim* X )
+      ;mul64-byte JSR2 ( contents )
 
-      LIT '= EMIT ;print-depth JSR2 LF
+      ;depth-delta ;print64 JSR2
+
+      ;depth ;depth-delta ;add64 JSR2 ( contents )
+
+      SP LIT '= EMIT ;depth ;print64 JSR2 LF
 
       ,&order-done JMP
 
     &not-forward DUP LIT 'd NEQ ,&not-down JCN
       POP
       LIT 'v EMIT
-      ;aim LDA2 ADD2 ( aim )
-      DBGSHORTDEC
-      ;aim STA2
+      ( contents X )
+      ;aim ROT ;add64-byte JSR2 ( contents )
+      ;aim ;print64 JSR2 LF
       ,&order-done JMP
 
     &not-down
       POP
       LIT '^ EMIT
-      ;aim LDA2 SWP2 SUB2 ( aim )
-      DBGSHORTDEC
-      ;aim STA2
+      ;aim ROT ;sub64-byte JSR2
+      ;aim ;print64 JSR2 LF
 
     &order-done
 
@@ -102,11 +111,12 @@
 
   POP
 
-  LIT 'p EMIT LIT '=' EMIT ;position LDA2 ;print-short-decimal JSR2 LF
-  LIT 'd EMIT LIT '=' EMIT ;print-depth JSR2 LF
+  LIT 'p EMIT LIT '=' EMIT ;position ;print64 JSR2 LF
+  LIT 'd EMIT LIT '=' EMIT ;depth ;print64 JSR2 LF
   LIT '* EMIT LIT '=' EMIT
 
-  ;position LDA2 ;depth LDA2 MUL2 ;print-short-decimal JSR2 #0a EMIT
+  ;position ;depth ;mul64 JSR2 ;result ;mul64/get-lo JSR2
+  ;result ;print64 JSR2 LF
 
 BRK
 
@@ -115,41 +125,26 @@ BRK
   LDA ( contents+1 next-byte )
   JMP2r
 
-@print-depth
-  ;depth10k LDA2 DUP2 #0000 EQU2 ,&no-10k JCN
-    DUP2 ;print-short-decimal JSR2
-  &no-10k
-  POP2
-  ;depth10k LDA2 #0000 NEQ2 .number/started STZ
-  ;depth LDA2 ;print-short-decimal-low JSR2
+@print64
+  ;string64-decimal JSR2 ;string64-decimal/str ;print JSR2
   JMP2r
 
-@print-short-decimal-low ( short -- )
-	DUP2 #03e8 DIV2 DUP2 ,&digit JSR #03e8 MUL2 SUB2
-	DUP2 #0064 DIV2 DUP2 ,&digit JSR #0064 MUL2 SUB2
-	DUP2 #000a DIV2 DUP2 ,&digit JSR #000a MUL2 SUB2
-	                     ,&digit JSR
-	.number/started LDZ ,&end JCN
-	LIT '0 .Console/write DEO
-	&end
-JMP2r
-
-	&digit
-	NIP
-	DUP .number/started LDZ ORA #02 JCN
-	POP JMP2r
-	LIT '0 ADD .Console/write DEO
-	#01 .number/started STZ
-JMP2r
+( r* b -> )
+@sub64-byte
+  STH
+  DUP2 ;invert64 JSR2
+  DUP2 STHr ;add64-byte JSR2
+  ;invert64 JSR2
+  JMP2r
 
 ~library/console.lib.tal
+~library/math.tal
 
 @filename "day2.txt 00
-@current-number 00 00
-@order 00 00
-@position 00 00
-@depth 00 00
-@depth10k 00 00
-@aim 00 00
+@order 00
+@position $8
+@depth $8
+@aim $8
+@depth-delta @result $8
 |8000
 @contents

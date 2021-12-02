@@ -1,0 +1,427 @@
+(
+ Math library
+ Source: https://git.sr.ht/~cabrendan/starling/tree/main/item/src/math.tal
+)
+
+( ensure n >= 2 )
+( r* n -> )
+@zero-n
+	DUP #01 AND
+	( r* n odd : )
+	#00 EQU ,&even JCN
+		( r* n : )
+		#01 SUB STH ( decr n )
+		( r* : n )
+		#0000 OVR2 STA POP ( write zero )
+		( r* : n )
+		#0001 ADD2 ( incr r* )
+		( restore stacks )
+		STHr
+		( r* n : )
+	&even
+	STH
+	LITr 00
+	STH2 #0000 STH2r
+	( 0000 r* : i n )
+	( zero two bytes at a time )
+	&loop
+		STA2k
+		#0002 ADD2
+		LITr 02 ADDr
+		GTHkr STHr ,&loop JCN
+	( 0000 r* : i n )
+	POP2r
+	( 0000 r* : )
+	POP2 POP2
+JMP2r
+
+( copy contents of a into b )
+( b* a* -> )
+@copy64
+	STH2k LIT2r 0008 ADD2r ( store end address )
+	( b* a* : a_* )
+	&loop
+		LDA2k
+		( b* a* v^ : ... )
+		ROT2
+		( a* v^ b* : ... )
+		STA2k
+		#0002 ADD2
+		NIP2 SWP2
+		( b* a* : ... )
+		#0002 ADD2
+		DUP2 STH2kr
+		NEQ2 ,&loop JCN
+	POP2 POP2 POP2r
+JMP2r
+
+( stores {a - b} in result buffer )
+( r* a* b* -- )
+@sub64
+	( create and store inverted b )
+	;&invB SWP2 ;copy64 JSR2
+	( r* a* : )
+	OVR2 SWP2
+	( r* r* a* : )
+	;copy64 JSR2
+	( r* : )
+	;&invB ;invert64 JSR2
+	( r* : )
+	STH2 #01 STH2r ;&invB #08
+	( 01 r* invB* 08 : )
+	;add-le JSR2
+	( co : )
+	POP
+JMP2r
+[ &invB $8 ]
+
+( n* -> )
+@invert64
+	STH2k LIT2r 0008 ADD2r ( stash end address )
+	( n* : n_* )
+	&loop
+		LDA2k
+		( n* n{i}^ : n_* )
+		#ffff EOR2
+		OVR2 STA2
+		( n* : n_* )
+		#0002 ADD2 ( increment n* )
+		DUP2 STH2kr NEQ2
+		( n* f : n_* )
+		,&loop JCN
+	POP2 POP2r
+JMP2r
+
+( r* b -> )
+@add64-byte
+	STH
+	( b becomes ci )
+	LITr 00
+	( r* : i ci )
+	&loop
+		( r* : i ci )
+		( r{i}* : i ci )
+		LDAk SWPr
+		( r{i}* r{i} : ci i )
+		#00 SWP #00 STHr ADD2
+		( r{i}* s1 s0 : i )
+		OVR2 STA
+		( r{i}* s1 : i )
+		( s1 becomes next ci )
+		LITr 01 ADDr ( incr i )
+		#08 STHkr GTH
+		( r{i}* ci f : i )
+		SWP STH SWPr
+		( r{i}* f : i ci )
+		STH #0001 ADD2 STHr
+		( r{i}* f : i ci )
+		,&loop JCN
+	POP2
+	POP2r
+JMP2r
+
+( stores r+a in r )
+( r* b* -> )
+@add64
+	STH2 STH2
+	#00 STH2r STH2r #08
+	;add-le JSR2
+	POP
+JMP2r
+
+( stores result in a* )
+( big number format is least significant byte first )
+@add-le ( carryin a* b* c -- carryout )
+	#00
+	( carry a* b* c i ) 
+	&start ( load contents onto stack ) 
+		EQUk ,&end JCN
+		STH2 STH2 STH2 ( carry )
+		#00 SWP ( carry^ )
+		STH2kr LDA #00 SWP ADD2 ( carry^+a[i]^ )
+		SWP2r
+		STH2kr LDA #00 SWP ADD2 ( carry^+a[i]^+b[i] )
+		SWP2r
+		STH2kr STA ( hi ) ( store lo in a* )
+		( hi a*+1 b*+1 c i+1 )
+		STH2r #0001 ADD2 STH2r #0001 ADD2 ( advance pointers ) 
+		STH2r #01 ADD ,&start JMP
+	&end
+	( carry a* b* c i ) 
+	POP2 POP2 POP2
+JMP2r
+
+( stores result in its own buffers )
+( call mul64/get-lo or mul64/get-hi to fetch the result )
+( a* b* -- )
+@mul64
+	( zero the buffers )
+	;&addbuffer #09 ;zero-n JSR2
+	;&rbuffer #10 ;zero-n JSR2
+	LIT2r 0800
+	( a* b* : i 08 )
+	( multiply all of b by parts of a and add the results together )
+	&loop
+		( a* b* : i 08 )
+		;&addbuffer OVR2 ;copy64 JSR2 ( copy b into target )
+		( a* b* : i 08 )
+		( get i_th byte of a )
+		OVR2 LDA
+		( a* b* a{i} : i 08 )
+		;&addbuffer ROT
+		( a* b* addbuf* a{i} : i 08 )
+		;mul64-byte JSR2
+		( a* b* : i 08 )
+		( include carry at MSB )
+		;mul64-byte/get-carry JSR2
+		( a* b* c : i 08 )
+		,&addbufLast STR
+		( a* b* : i 08 )
+		( add into rbuffer )
+		#00
+		;&rbuffer #00 STHkr ADD2
+		;&addbuffer #09 ;add-le JSR2
+		POP ( ignore carry-out, should be empty )
+		( a* b* : i 08 )
+		SWP2 #0001 ADD2 SWP2 ( increment a* )
+		LITr 01 ADDr ( increment i )
+		GTHkr STHr ,&loop JCN
+	POP2r POP2 POP2 ( restore stack )
+JMP2r
+[ &rbuffer &rlo $8 &rhi $8 &addbuffer $8 &addbufLast $1 ]
+( copy the low 8 bytes of the most recent result )
+( buffer* -> )
+&get-lo
+	;&rlo ;copy64 JSR2
+JMP2r
+( fetch the high bytes of the most recent multiply )
+( buffer* -> )
+&get-hi
+	;&rhi ;copy64 JSR2
+JMP2r
+
+( converts dividend into quotient )
+( pushes remainder as byte on stack )
+( a* n -> r )
+@div-le-ten
+	STHk #00 SWP ADD2 ( start at the end )
+	( a* : n )
+	LITr 00 ( init counter i )
+	#00 ( remainder )
+	( a* r : i n )
+	&loop
+		STH
+		#0001 SUB2
+		( create divisor value from remainder )
+		LDAk STHr SWP
+		( a* v^ : i n )
+		#000a DIV2k
+		( a* v^ ten^ q^ : i n )
+		STH2k MUL2 SUB2
+		( a* r^ : q^ i n )
+		SWP POP STHr POPr
+		( a* r q : i n )
+		( store quotient back into a* )
+		OVR2 STA
+		( a* r : i n )
+		LITr 01 ADDr
+		GTHkr STHr ,&loop JCN
+	( a* r : i n )
+	POP2r STH POP2 STHr
+	( r : )
+JMP2r
+
+( TODO: NYI )
+( quotient remainder dividend divisor )
+( q* r* a* b* -- )
+@div64
+	( prepare short to divide from MSB of divisor )
+	( prepare short from MSB of dividend, )
+	( shift short divisor right until it divides or runs out of room )
+	( multiply whole divisor by result )
+	( subtract partial quotient from dividend to create remainder )
+	( shift in remainder )
+	( shift in most significant byte )
+	( short division )
+	POP2 POP2 POP2
+JMP2r
+
+( r* b -- )
+@mul64-byte
+	#00 ,&carry STR
+	#00 ,&phigh STR
+	STH
+	LITr 00
+	( r* : i b )
+	&loop
+		LDAk
+		#00 SWP #00 OVRr STHr MUL2
+		( r* m1 m0 : i b )
+		#00 SWP
+		( r* m1 00 m0 : i b )
+		#00 ,&carry LDR ADD2
+		#00 ,&phigh LDR ADD2
+		( r* m1 s1 s0 : i b )
+		STH
+		,&carry STR
+		,&phigh STR
+		( r* : s0 i b )
+		STHr ROT ROT STAk
+		STH2 POP STH2r
+		( r* : i b )
+		LITr 01 ADDr ( increment i )
+		#0001 ADD2 ( increment r* )
+		STHkr #08 LTH ,&loop JCN
+	POP2 POP2r
+JMP2r
+( -> c )
+&get-carry
+	,&carry LDR
+	,&phigh LDR
+	ADD ( should be impossible to overflow )
+JMP2r
+[ &carry $1 &phigh $1 ]
+
+
+
+( r* n* p -> )
+@pow64
+	( zero result )
+	STH
+	STH2
+	( r* : n* p )
+	DUP2 #08 ;zero-n JSR2
+	#0001 OVR2 STA POP ( init result to 1 )
+	( r* : n* p )
+	STH2r
+	( r* n* : p )
+	( repeated squaring )
+	&pow64h
+		STHkr #00 NEQ ,&not0 JCN
+			( return with current result )
+			POPr POP2 POP2
+			JMP2r ( result is written )
+		&not0
+		STHkr #01 NEQ ,&not1 JCN
+		    	( return with r*n )
+			POPr STH2 DUP2 STH2r
+			( r* r* n* : )
+			;mul64 JSR2
+			( r* : )
+			;mul64/rlo ;copy64 JSR2
+			JMP2r
+		&not1
+		( square n )
+		STHkr #01 AND #01 NEQ ,&notOdd JCN
+		    	OVR2 OVR2 STH2 DUP2 STH2r
+			( r* n* r* r* n* : p )
+			;mul64 JSR2 ( mul result )
+			;mul64/rlo ;copy64 JSR2
+    			&notOdd
+			( r* n* : p )
+			DUP2 DUP2 DUP2
+			( r* n* n* n* n* : p )
+			;mul64 JSR2 ( square n )
+			;mul64/rlo ;copy64 JSR2
+			( r* n* : p )
+			LITr 01 SFTr ( divide p by 2 )
+			( r* n* : p )
+			,&pow64h JMP ( recurse )
+BRK ( should never hit this )
+
+
+( string requires 22 spaces to fit any 64bit number with sign and null terminator )
+( retrive result from string64-decimal/str )
+( num* -> )
+@string64-decimal
+	( repeatedly divide by 10 )
+	( and store the character for the remainder )
+	( copy into num )
+	;&num SWP2 ;copy64 JSR2
+	( : )
+	#01 ( isPositive : )
+	;&num ;is-positive64 JSR2 ,&positive JCN
+		( indicate sign and convert to positive before base10 )
+		;&num ;invert64 JSR2
+		;&num #01 ;add64-byte JSR2
+		POP #00 ( change 01 to 00 )
+	&positive
+	,&isPositive STR
+	( : )
+	( initialize string to all spaces with null terminator )
+	LITr 00
+	( : i )
+	&str-init-loop
+		#2020 ( two space characters )
+		;&str #00 STHkr ADD2 STA2
+		LITr 02 ADDr
+		#16 STHkr GTH ,&str-init-loop JCN
+	POPr
+	#00 ,&str-last STR ( null terminate )
+
+	LIT2r :&str-last
+	&convert
+		LIT2r 0001 SUB2r
+		( : str* )
+		;&num #08 ;div-le-ten JSR2
+		( r : str* )
+		LIT '0 ADD ( produce character for remainder )
+		( c : str* )
+		STH2kr STA
+		( check if num is zero? )
+		;&num ;is-non-zero64 JSR2
+		,&convert JCN
+	( : str* )
+	,&isPositive LDR ,&skipNegSign JCN
+		LIT2r 0001 SUB2r
+		LIT '-
+		STH2kr STA
+	&skipNegSign
+	POP2r
+JMP2r
+&str $15 &str-last $1
+&isPositive $1 &num $8
+
+( n* -> f )
+@is-positive64
+	#0007 ADD2 LDA
+	( v : )
+	#80 AND #00 EQU
+JMP2r
+
+( n* -> f )
+@is-non-zero64
+	LIT2r 0800 ( n* : i 08 )
+	&loop
+		LDA2k
+		( n* v^ : i 08 )
+		#0000 NEQ2 ,&non-zero JCN
+		#0002 ADD2
+		LITr 02 ADDr
+		GTHkr STHr ,&loop JCN
+	( n* : i 08 )
+	POP2 POP2r
+	#00
+JMP2r
+&non-zero
+	( n* : i 08 )
+	POP2 POP2r
+	#01
+JMP2r
+
+( r* c -> )
+( multiplies result by 10 and adds decimal conversion of c )
+@parse-int64-decimal-char
+	STH
+	( r* : c )
+	DUP2 #0a
+	( r* r* ten : c )
+	;mul64-byte JSR2
+	( r* : c )
+	( convert c to v )
+	LITr '0 SUBr
+	( r* : v )
+	STHr
+	( r* v : )
+	;add64-byte JSR2
+RTN
