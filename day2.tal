@@ -1,4 +1,4 @@
-%EMIT { #18 DEO }
+%EMIT { .Console/write DEO }
 %SP { #20 EMIT }
 %LF { #0a EMIT }
 
