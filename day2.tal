@@ -123,9 +123,9 @@ BREAKPOINT
 
 ( -- next-byte )
 @read-byte
-  #00 ;byte-read STA
-  ;byte-read .File/read DEO2
-  ;byte-read LDA
+  #00 ;&byte STA
+  ;&byte .File/read DEO2
+  LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
   JMP2r
 
 @print64
@@ -144,7 +144,6 @@ BREAKPOINT
 ~library/math.tal
 
 @filename "day2.txt 00
-@byte-read 00
 @order 00
 @position $8
 @depth $8
