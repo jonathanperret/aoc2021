@@ -1,0 +1,107 @@
+%EMIT { #18 DEO }
+%LF { #0a EMIT }
+%DBGBYTE { DUP ;print-byte JSR2 LF }
+%DBGSHORT { DUP2 ;print-short JSR2 LF }
+%DBGSHORTDEC { DUP2 ;print-short-decimal JSR2 LF }
+%DBGCHAR { DUP EMIT LF }
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( init )
+
+|0100 @program
+
+  ( load contents from file )
+  #3000 .File/length DEO2
+  ;filename .File/name DEO2
+  ;contents .File/read DEO2
+
+  ( .File/success DEI2 ;print-short JSR2 #0a EMIT )
+
+  ;contents ( contents )
+
+  &read-order
+
+    LIT '- EMIT #0a EMIT
+    DBGSHORT
+
+    ;read-byte JSR2 ( contents order-char )
+
+    DUP #00 EQU ;&orders-done JCN2
+
+    DBGCHAR
+
+    #00 ;order STA2
+
+    &skip-until-space
+      ;read-byte JSR2
+      #20 NEQ ,&skip-until-space JCN
+
+    ;read-byte JSR2 ( contents digit )
+
+    DBGCHAR
+
+    #30 SUB #00 SWP ( contents digit-val )
+
+    ;order LDA2 POP ( contents digit-val order-char )
+
+    DUP LIT 'f NEQ ,&not-forward JCN
+      POP
+      LIT '> EMIT
+      ;position LDA2 ADD2 ( contents position )
+      DBGSHORTDEC
+      ;position STA2
+      ,&order-done JMP
+
+    &not-forward DUP LIT 'd NEQ ,&not-down JCN
+      POP
+      LIT 'v EMIT
+      ;depth LDA2 ADD2 ( depth )
+      DBGSHORTDEC
+      ;depth STA2
+      ,&order-done JMP
+
+    &not-down
+      POP
+      LIT '^ EMIT
+      ;depth LDA2 SWP2 SUB2 ( depth )
+      DBGSHORTDEC
+      ;depth STA2
+
+    &order-done
+
+    ;read-byte JSR2 ( lf ) POP
+
+    ;&read-order JMP2
+
+  &orders-done
+
+  POP
+
+  LIT 'p EMIT LIT '=' EMIT ;position LDA2 ;print-short-decimal JSR2 #0a EMIT
+  LIT 'd EMIT LIT '=' EMIT ;depth LDA2 ;print-short-decimal JSR2 #0a EMIT
+  LIT '* EMIT LIT '=' EMIT
+
+  ;position LDA2 ;depth LDA2 MUL2 ;print-short-decimal JSR2 #0a EMIT
+
+BRK
+
+@read-byte
+
+    DUP2 INC2 SWP2 ( contents+1 contents )
+    LDA ( contents+1 next-byte )
+    JMP2r
+
+~library/console.lib.tal
+
+@filename "day2.txt 00
+@current-number 00 00
+@order 00 00
+@position 00 00
+@depth 00 00
+|8000
+@contents
