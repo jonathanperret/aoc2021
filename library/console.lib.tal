@@ -2,10 +2,6 @@
 
 %BR { #0a .Console/write DEO }
 
-( variables )
-
-@number [ &started $1 ]
-
 @print ( addr* -- )
 	
 	&loop
@@ -42,24 +38,25 @@ RTN
 RTN
 
 @print-short-decimal ( short -- )
-	#00 .number/started STZ
+	#00 ,&started STR
 	DUP2 #2710 DIV2 DUP2 ,&digit JSR #2710 MUL2 SUB2
 	DUP2 #03e8 DIV2 DUP2 ,&digit JSR #03e8 MUL2 SUB2
 	DUP2 #0064 DIV2 DUP2 ,&digit JSR #0064 MUL2 SUB2
 	DUP2 #000a DIV2 DUP2 ,&digit JSR #000a MUL2 SUB2
 	                     ,&digit JSR
-	.number/started LDZ ,&end JCN
+	,&started LDR ,&end JCN
 	LIT '0 .Console/write DEO
 	&end
 RTN
 
 	&digit
 	NIP
-	DUP .number/started LDZ ORA #02 JCN
+	DUP ,&started LDR ORA #02 JCN
 	POP JMP2r
 	LIT '0 ADD .Console/write DEO
-	#01 .number/started STZ
+	#01 ,&started STR
 RTN
+  [ &started $1 ]
 
 @char-txt "char: 20 $1
 @byte-txt "byte: 20 $1
