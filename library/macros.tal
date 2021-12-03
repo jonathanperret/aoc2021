@@ -85,3 +85,8 @@
 
 %GEQ { LTH NOT } %GEQ2 { LTH2 NOT }
 %LEQ { GTH NOT } %LEQ2 { GTH2 NOT }
+
+( Fun with strings )
+
+%S< { ;inline-str JSR2 } %>S { 00 }
+%P< { S< }               %>P { >S ;print JSR2 }

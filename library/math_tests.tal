@@ -1,0 +1,24 @@
+~library/macros.tal
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+
+( variables )
+
+|0000
+@i           $1
+
+|0100 @program
+
+  ;x S< "1234 >S ;parse64 JSR2
+  ;x ;print64 JSR2 LF
+
+  BRK !
+
+~library/console.lib.tal
+~library/math.tal
+~library/string.tal
+
+@x aa bb cc dd ee ff 77 88

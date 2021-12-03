@@ -444,3 +444,22 @@ RTN
   DUP2 #08 ;zero-n JSR2 ( sl sh r* )
   STA2
   JMP2r
+
+( r* s* -> )
+@parse64
+  STH2
+  DUP2 #08 ;zero-n JSR2
+  ( r* : s* )
+  &loop
+    DUP2 ( r* r* : s* )
+    STH2kr LDA ( r* r* b : s* )
+    DUP #00 EQU ,&done JCN
+    ( r* r* b : s* )
+    ;parse-int64-decimal-char JSR2
+    ( r* : s* )
+    STH2r INC2 STH2
+    ,&loop JMP
+    &done
+    ( r* r* b : s* )
+    POP POP2 POP2 POP2r
+  RTN

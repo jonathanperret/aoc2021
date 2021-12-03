@@ -26,3 +26,16 @@
 	POP2 STH2r
 	JMP2r
 
+( scans bytes following its call location for a null byte,
+  and returns to the instruction following that byte, leaving
+  the start of the string on the stack )
+( -- s* )
+@inline-str
+  STH2r ( s* )
+  DUP2 ( s* s'* )
+  &loop
+    LDAk ( s* s'* b )
+    STH INC2 STHr ( s* s'*+1 b )
+    #00 NEQ ,&loop JCN
+  ( s* s'* )
+  STH2k JMP2

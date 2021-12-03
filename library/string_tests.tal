@@ -1,0 +1,23 @@
+~library/macros.tal
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  S< "using 20 "the 20 "S< 20 "macro >S PRINT LF
+
+  P< "or 20 "the 20 "P< 20 "macro 0a >P
+
+  BRK !
+
+~library/console.lib.tal
+~library/string.tal
+
+@x 10 20 00 00 00 00 00 00
