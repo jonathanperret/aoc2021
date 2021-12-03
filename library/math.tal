@@ -438,4 +438,9 @@ RTN
   ;invert64 JSR2
   JMP2r
 
-
+( r* sh sl -> )
+@short-to-64
+  SWP SWP2 ( sl sh r* r* )
+  DUP2 #08 ;zero-n JSR2 ( sl sh r* )
+  STA2
+  JMP2r

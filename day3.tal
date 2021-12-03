@@ -48,14 +48,13 @@
   ;argv ;print JSR2
   LF
 
-  ( setup reading from file )
-  ;argv .File/name DEO2
-  #0001 .File/length DEO2
-
   ;read-numbers JSR2
 
   ( ;dump-numbers JSR2 )
 
+  ;compute-stats JSR2
+
+  ;read-numbers JSR2
   ;compute-stats JSR2
 
   BRK !
@@ -64,7 +63,12 @@
 
 ( read binary numbers from file )
 @read-numbers
+  ;argv .File/name DEO2
+  #0001 .File/length DEO2
+
   #0000 .n STZ2
+  #00 .bit-count STZ
+  #0000 .line-count STZ2
 
   &read-line
 
@@ -145,6 +149,8 @@
 
 @compute-stats
   .line-count LDZ2 2// .half-count STZ2
+  #0000 .gamma STZ2
+  #0000 .epsilon STZ2
 
   LIT 'h EMIT LIT '= EMIT .half-count LDZ2 DBGSHORTDEC POP
 
@@ -182,8 +188,8 @@
   LIT 'g EMIT LIT '= EMIT .gamma LDZ2 DBGSHORTDECn POP2 LF
   LIT 'e EMIT LIT '= EMIT .epsilon LDZ2 DBGSHORTDECn POP2 LF
 
-  .gamma LDZ2 SWP .gamma64 STZ2
-  .epsilon LDZ2 SWP .epsilon64 STZ2
+  ;gamma64 .gamma LDZ2 ;short-to-64 JSR2
+  ;epsilon64 .epsilon LDZ2 ;short-to-64 JSR2
 
   ;result-txt ;print JSR2
   ;gamma64 ;epsilon64 ;mul64 JSR2
