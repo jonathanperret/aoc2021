@@ -23,6 +23,8 @@
 %8MOD  { #07 AND } %8MOD2  { #0007 AND2 }
 %10MOD { #0f AND } %10MOD2 { #000f AND2 }
 
+%DEC { #01 SUB } %DEC2 { #0001 SUB2 }
+
 ( Buttons )
 
 %B_UP { #10 } %B_DOWN { #20 } %B_LEFT   { #40 } %B_RIGHT { #80 }
@@ -77,3 +79,5 @@
 %BREAKPOINT { DBGSTACK BRK }
 %! { BREAKPOINT }
 
+%RTN { JMP2r }
+%PRINT { ;print JSR2 }

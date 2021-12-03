@@ -9,10 +9,10 @@
 ( variables )
 
 |0000
-@one-counts  $32
+@counts  $32
 @i           $1
-@max-i       $1
-@digit-count $1
+@n           $2
+@bit-count   $1
 @line-count  $2
 @half-count  $2
 @gamma       $2
@@ -51,9 +51,22 @@
   .File/name DEO2
   #0001 .File/length DEO2
 
+  ;read-numbers JSR2
+
+  ;dump-numbers JSR2
+
+  ;compute-stats JSR2
+
+  BRK !
+
+@result-txt "e*g= 00
+
+@read-numbers
+  #0000 .n STZ2
+
   &read-line
 
-    LIT '- EMIT #0a EMIT
+    LIT '- EMIT SP
 
     #00 .i STZ
 
@@ -64,26 +77,21 @@
       DUP #00 EQU ;&lines-done JCN2
       DUP #30 LTH ;&line-done JCN2
 
-      DUP EMIT LIT ': EMIT
+      #30 SUB #00 SWP ( 00 bit )
 
-      #30 SUB #00 SWP ( 00 X )
-      .one-counts .i LDZ ADD STHk ( 00 X count[i]* : count[i]* )
-      LDZ2 ADD2 ( count[i]+X : count[i]* )
-      DBGSHORTDECn SP
-      STHr STZ2 ( )
+      ;numbers .n LDZ2 2** ADD2 STH2k ( numbers[n]* : numbers[n]* )
+      LDA2 2** ADD2 STH2r STA2 ( )
 
-      .i LDZ INC INC .i STZ
-
+      .i LDZ INC .i STZ
       ,&next-digit JMP
 
     &line-done
 
     POP
 
-    .i LDZ .max-i STZ
-    .i LDZ 2/ .digit-count STZ
+    .i LDZ .bit-count STZ
 
-    .line-count LDZ2 INC2 .line-count STZ2
+    .n LDZ2 INC2  DUP2 .n STZ2 .line-count STZ2
 
     SP LIT '/' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2 LF
 
@@ -94,16 +102,64 @@
   POP
 
   LIT '* EMIT LIT '=' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2
-  LIT 'x EMIT #00 .digit-count LDZ DBGSHORTDECn POP2
+  LIT 'x EMIT #00 .bit-count LDZ DBGSHORTDECn POP2
   LF
+  RTN
 
-  ( compute stats )
+@dump-numbers
+  #0000 .n STZ2
+  &dump-loop
+    ;numbers .n LDZ2 2** ADD2 LDA2 ( number )
 
+    DBGSHORTDEC
+
+    POP2
+
+    .n LDZ2 INC2 DUP2 .n STZ2 ( n+1 )
+    .line-count LDZ2 LTH2 ,&dump-loop JCN
+  LF
+  RTN
+
+@count-bits
+  #0000 .n STZ2
+  &number-loop
+    ;numbers .n LDZ2 2** ADD2 LDA2 ( number )
+
+    DBGSHORTDECn SP
+
+    #00 .i STZ
+    &bit-loop
+      STH2k 2// STH2r NIP #01 AND ( number>>1 bit )
+
+      DUP #30 ADD EMIT LIT ': EMIT
+
+      #00 SWP ( 00 bit )
+      .counts .i LDZ 2* ADD STHk ( 00 bit counts[i]* : counts[i]* )
+      LDZ2 ADD2 ( counts[i]+bit : counts[i]* )
+      DBGSHORTDECn SP
+      STHr STZ2 ( )
+
+      .i LDZ INC DUP .i STZ ( i+1 )
+      .bit-count LDZ LTH ,&bit-loop JCN
+    LF
+    POP2
+    .n LDZ2 INC2 DUP2 .n STZ2 ( n+1 )
+    .line-count LDZ2 LTH2 ,&number-loop JCN
+  LF
+  RTN
+
+@compute-stats
+  ;count-bits JSR2
+
+  LIT 'h EMIT LIT '= EMIT
   .line-count LDZ2 2// DBGSHORTDEC .half-count STZ2
 
-  #00 .i STZ
+  .bit-count LDZ .i STZ
   &stats-loop
-    .one-counts .i LDZ ADD LDZ2 ( count )
+    ( decrement i )
+    .i LDZ DEC .i STZ
+
+    .counts .i LDZ 2* ADD LDZ2 ( counts[i] )
 
     DBGSHORTDECn LIT ': EMIT
 
@@ -124,10 +180,10 @@
     ( add to epsilon )
     #00 SWP .epsilon LDZ2 2** ADD2 .epsilon STZ2
 
-    .i LDZ INC INC DUP .i STZ ( i+2 )
-    .max-i LDZ LTH ,&stats-loop JCN
+    ( loop if i != 0 )
+    .i LDZ ,&stats-loop JCN
 
-  LF 
+    LF
 
   LIT 'g EMIT LIT '= EMIT .gamma LDZ2 DBGSHORTDECn POP2 LF
   LIT 'e EMIT LIT '= EMIT .epsilon LDZ2 DBGSHORTDECn POP2 LF
@@ -139,10 +195,7 @@
   ;gamma64 ;epsilon64 ;mul64 JSR2
   ;result64 ;mul64/get-lo JSR2
   ;result64 ;print64 JSR2 LF
-
-  BRK !
-
-@result-txt "e*g= 00
+  RTN
 
 ( -- next-byte )
 @read-byte
@@ -154,3 +207,4 @@
 ~library/console.lib.tal
 ~library/math.tal
 
+@numbers $2000

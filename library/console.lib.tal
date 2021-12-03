@@ -1,7 +1,5 @@
 ( dev/console )
 
-%RTN { JMP2r }
-%PRINT { ;print JSR2 }
 %BR { #0a .Console/write DEO }
 
 ( variables )
