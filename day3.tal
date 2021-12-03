@@ -29,25 +29,27 @@
 @on-arg-char
   .Console/read DEI ( char )
   DUP #0a EQU ,&complete JCN
-  ;&arg-line #00 ,&fnptr LDR ADD2 STA
-  ,&fnptr LDR INC ,&fnptr STR
+  ;argv #00 ,&argptr LDR ADD2 STA
+  ,&argptr LDR INC ,&argptr STR
   BRK !
 
   &complete
   POP
-  ;&arg-line ;arg-received JMP2
 
-  &fnptr $1
-  &arg-line $64
+  ;arg-received JMP2
 
-( filename* -- )
+  &argptr $1
+
+@argv        $20
+
+( arg is in @argv )
 @arg-received
   LIT ': EMIT
-  DUP2 ;print JSR2
+  ;argv ;print JSR2
   LF
 
   ( setup reading from file )
-  .File/name DEO2
+  ;argv .File/name DEO2
   #0001 .File/length DEO2
 
   ;read-numbers JSR2
