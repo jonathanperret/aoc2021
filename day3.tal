@@ -13,12 +13,12 @@
 @n           $2
 @bit-count   $1
 @line-count  $2
-@half-count  $2
-@gamma       $2
-@epsilon     $2
-@gamma64     $8
-@epsilon64   $8
+@oxygen      $2
+@co2         $2
+@oxygen64    $8
+@co264       $8
 @result64    $8
+@out-n       $2
 
 ( init )
 
@@ -49,17 +49,18 @@
   LF
 
   ;read-numbers JSR2
-
   ( ;dump-numbers JSR2 )
-
-  ;compute-stats JSR2
+  ;compute-oxygen JSR2
 
   ;read-numbers JSR2
-  ;compute-stats JSR2
+  ( ;dump-numbers JSR2 )
+  ;compute-co2 JSR2
+
+  ;compute-result JSR2
 
   BRK !
 
-@result-txt "e*g= 00
+@result-txt "O*C= 00
 
 ( read binary numbers from file )
 @read-numbers
@@ -75,33 +76,38 @@
     LIT '- EMIT SP
 
     #00 .i STZ
+    #0000 ( number )
 
     &next-digit
 
-      ;read-byte JSR2 ( digit )
+      ;read-byte JSR2 ( number digit )
 
       DUP #00 EQU ;&lines-done JCN2
       DUP #30 LTH ;&line-done JCN2
 
       DUP EMIT
 
-      #30 SUB #00 SWP ( 00 bit )
+      #30 SUB #00 SWP ( number 00 bit )
 
-      ;numbers .n LDZ2 2** ADD2 STH2k ( numbers[n]* : numbers[n]* )
-      LDA2 2** ADD2 STH2r STA2 ( )
+      SWP2 2** ADD2 ( number*2+bit )
 
       .i LDZ INC .i STZ
       ,&next-digit JMP
 
     &line-done
 
-    POP
+    POP ( number )
 
+    SP DBGSHORTDECn SP
+
+    ( append number to list )
+    ;numbers .n LDZ2 2** ADD2 STA2 ( )
+    .n LDZ2 INC2 DUP2 .n STZ2 .line-count STZ2
+
+    ( remember bit count )
     .i LDZ .bit-count STZ
 
-    .n LDZ2 INC2  DUP2 .n STZ2 .line-count STZ2
-
-    SP LIT '/' EMIT SP .line-count LDZ2 POP2 LF
+    LIT '/' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2 LF
 
     ;&read-line JMP2
 
@@ -119,13 +125,31 @@
   &dump-loop
     ;numbers .n LDZ2 2** ADD2 LDA2 ( number )
 
-    DBGSHORTDEC
+    DBGSHORTn SP DBGSHORTDECn SP
 
-    POP2
+    .bit-count LDZ ;print-short-binary JSR2 LF
 
     .n LDZ2 INC2 DUP2 .n STZ2 ( n+1 )
     .line-count LDZ2 LTH2 ,&dump-loop JCN
-  LF
+  RTN
+
+( number width -- )
+@print-short-binary
+  STH ( number : bit-pos=width )
+  &bit-loop
+    ( decrement bit-pos )
+    STHr DEC STH ( number : bit-pos )
+
+
+    DUP2 STHrk ( number number bit-pos : bit-pos )
+    SFT2 NIP #01 AND ( number bit : bit-pos )
+    #30 ADD EMIT ( number : bit-pos )
+
+    ( loop if bit-pos != 0 )
+    STHrk ,&bit-loop JCN
+
+  POPr ( number : )
+  POP2 ( : )
   RTN
 
 ( bit-pos -- count )
@@ -147,54 +171,108 @@
   ( count )
   RTN
 
-@compute-stats
-  .line-count LDZ2 2// .half-count STZ2
-  #0000 .gamma STZ2
-  #0000 .epsilon STZ2
+@compute-oxygen
+  #00 ;compute-rating JSR2
+  .oxygen STZ2
 
-  LIT 'h EMIT LIT '= EMIT .half-count LDZ2 DBGSHORTDEC POP
+  LIT 'O EMIT LIT '= EMIT .oxygen LDZ2 DBGSHORTDECn POP2 LF
+  RTN
 
+@compute-co2
+  #01 ;compute-rating JSR2
+  .co2 STZ2
+
+  LIT 'C EMIT LIT '= EMIT .co2 LDZ2 DBGSHORTDECn POP2 LF
+  RTN
+
+( invert-match -- )
+@compute-rating
+  STH ( : invert-match )
   .bit-count LDZ .i STZ
-  &stats-loop
+  &bit-loop
     ( decrement i )
     .i LDZ DEC .i STZ
 
+    LIT 'i EMIT LIT '= EMIT #00 .i LDZ DBGSHORTDECn POP SP
+    LIT 'l EMIT LIT '= EMIT .line-count LDZ2 DBGSHORTDECn POP SP
+
     .i LDZ ;count-bit JSR2 ( counts[i] )
 
-    DBGSHORTDECn LIT ': EMIT
+    LIT 'c EMIT LIT '= EMIT DBGSHORTDECn SP
 
-    ( update gamma )
-    DUP2 .half-count LDZ2 LTH2 NOT ( gamma-digit )
+    ( compare 2*count with list length: if 2*c >= l then 1 wins )
+    DUP2 2** .line-count LDZ2 GEQ2 ( match )
 
-    DUP #30 ADD EMIT
+    LIT 'm EMIT LIT '= EMIT DUP #30 ADD EMIT SP
 
-    ( add to gamma )
-    #00 SWP .gamma LDZ2 2** ADD2 .gamma STZ2
+    STHrk ( match invert-match : invert-match )
 
-    ( update epsilon )
-    .half-count LDZ2 GTH2 NOT ( epsilon-digit )
+    LIT 'v EMIT LIT '= EMIT DUP #30 ADD EMIT SP
 
-    LIT ', EMIT
-    DUP #30 ADD EMIT SP
+    EOR ( match )
 
-    ( add to epsilon )
-    #00 SWP .epsilon LDZ2 2** ADD2 .epsilon STZ2
-
-    ( loop if i != 0 )
-    .i LDZ ,&stats-loop JCN
-
+    LIT 'm EMIT LIT '= EMIT DUP #30 ADD EMIT SP
     LF
 
-  LIT 'g EMIT LIT '= EMIT .gamma LDZ2 DBGSHORTDECn POP2 LF
-  LIT 'e EMIT LIT '= EMIT .epsilon LDZ2 DBGSHORTDECn POP2 LF
+    ( match )
+    .i LDZ SWP ( bit-pos match )
+    ;filter-numbers JSR2
 
-  ;gamma64 .gamma LDZ2 ;short-to-64 JSR2
-  ;epsilon64 .epsilon LDZ2 ;short-to-64 JSR2
+    ;dump-numbers JSR2
+
+    ( loop if line-count > 1 )
+    .line-count LDZ2 #0001 GTH2 ;&bit-loop JCN2
+  POPr
+  ;numbers LDA2 ( rating )
+  RTN
+
+@compute-result
+  ;oxygen64 .oxygen LDZ2 ;short-to-64 JSR2
+  ;co264 .co2 LDZ2 ;short-to-64 JSR2
 
   ;result-txt ;print JSR2
-  ;gamma64 ;epsilon64 ;mul64 JSR2
+  ;oxygen64 ;co264 ;mul64 JSR2
   ;result64 ;mul64/get-lo JSR2
   ;result64 ;print64 JSR2 LF
+  RTN
+
+( bit-pos match )
+@filter-numbers
+  STH STH ( : bit-pos match )
+  #0000 .n STZ2
+  #0000 .out-n STZ2
+  &loop
+    ;numbers .n LDZ2 2** ADD2 LDA2 ( number : bit-pos match )
+
+    LIT '? EMIT DUP2 .bit-count LDZ ;print-short-binary JSR2 SP
+
+    DUP2 STHrk ( number number bit-pos : bit-pos match )
+    SFT2 NIP #01 AND ( number bit : bit-pos match )
+    DUP #30 ADD EMIT SP
+
+    OVRr STHr ( number bit match : bit-pos match )
+    NEQ ,&skip JCN
+      LIT '! EMIT
+
+      ( number : bit-pos match )
+      DUP2 ( number number : bit-pos match )
+
+      ;numbers .out-n LDZ2 2** ADD2 ( number number numbers[out-n]* : bit-pos match )
+      STA2 ( number : bit-pos match )
+
+      ( increment out-n )
+      .out-n LDZ2 INC2 .out-n STZ2
+    &skip
+    POP2 ( : bit-pos match )
+    LF
+
+    ( increment n )
+    .n LDZ2 INC2 DUP2 .n STZ2
+    .line-count LDZ2 LTH2 ;&loop JCN2
+  POP2r ( : )
+  ( update line-count from out-n )
+  .out-n LDZ2 .line-count STZ2
+
   RTN
 
 ( -- next-byte )

@@ -70,7 +70,8 @@
 %DBGBYTEDEC { DBGBYTEDECn LF }
 %DBGBYTEDECn { DUP #00 SWP ;print-short-decimal JSR2 }
 
-%DBGSHORT { DUP2 ;print-short JSR2 LF }
+%DBGSHORTn { DUP2 ;print-short JSR2 }
+%DBGSHORT { DBGSHORTn LF }
 %DBGSHORTDECn { DUP2 ;print-short-decimal JSR2 }
 %DBGSHORTDEC { DBGSHORTDECn LF }
 
@@ -81,3 +82,6 @@
 
 %RTN { JMP2r }
 %PRINT { ;print JSR2 }
+
+%GEQ { LTH NOT } %GEQ2 { LTH2 NOT }
+%LEQ { GTH NOT } %LEQ2 { GTH2 NOT }
