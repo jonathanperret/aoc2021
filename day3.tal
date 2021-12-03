@@ -1,0 +1,156 @@
+~library/macros.tal
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( variables )
+
+|0000
+@one-counts  $32
+@i           $1
+@max-i       $1
+@digit-count $1
+@line-count  $2
+@half-count  $2
+@gamma       $2
+@epsilon     $2
+@gamma64     $8
+@epsilon64   $8
+@result64    $8
+
+( init )
+
+|0100 @program
+  ;on-arg-char .Console/vector DEO2
+  BRK !
+
+@on-arg-char
+  .Console/read DEI ( char )
+  DUP #0a EQU ,&complete JCN
+  ;&arg-line #00 ,&fnptr LDR ADD2 STA
+  ,&fnptr LDR INC ,&fnptr STR
+  BRK !
+
+  &complete
+  POP
+  ;&arg-line ;arg-received JMP2
+
+  &fnptr $1
+  &arg-line $64
+
+( filename* -- )
+@arg-received
+  LIT ': EMIT
+  DUP2 ;print JSR2
+  LF
+
+  ( setup reading from file )
+  .File/name DEO2
+  #0001 .File/length DEO2
+
+  &read-line
+
+    LIT '- EMIT #0a EMIT
+
+    #00 .i STZ
+
+    &next-digit
+
+      ;read-byte JSR2 ( digit )
+
+      DUP #00 EQU ;&lines-done JCN2
+      DUP #30 LTH ;&line-done JCN2
+
+      DUP EMIT LIT ': EMIT
+
+      #30 SUB #00 SWP ( 00 X )
+      .one-counts .i LDZ ADD STHk ( 00 X count[i]* : count[i]* )
+      LDZ2 ADD2 ( count[i]+X : count[i]* )
+      DBGSHORTDECn SP
+      STHr STZ2 ( )
+
+      .i LDZ INC INC .i STZ
+
+      ,&next-digit JMP
+
+    &line-done
+
+    POP
+
+    .i LDZ .max-i STZ
+    .i LDZ 2/ .digit-count STZ
+
+    .line-count LDZ2 INC2 .line-count STZ2
+
+    SP LIT '/' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2 LF
+
+    ;&read-line JMP2
+
+  &lines-done
+
+  POP
+
+  LIT '* EMIT LIT '=' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2
+  LIT 'x EMIT #00 .digit-count LDZ DBGSHORTDECn POP2
+  LF
+
+  ( compute stats )
+
+  .line-count LDZ2 2// DBGSHORTDEC .half-count STZ2
+
+  #00 .i STZ
+  &stats-loop
+    .one-counts .i LDZ ADD LDZ2 ( count )
+
+    DBGSHORTDECn LIT ': EMIT
+
+    ( update gamma )
+    DUP2 .half-count LDZ2 LTH2 NOT ( gamma-digit )
+
+    DUP #30 ADD EMIT
+
+    ( add to gamma )
+    #00 SWP .gamma LDZ2 2** ADD2 .gamma STZ2
+
+    ( update epsilon )
+    .half-count LDZ2 GTH2 NOT ( epsilon-digit )
+
+    LIT ', EMIT
+    DUP #30 ADD EMIT SP
+
+    ( add to epsilon )
+    #00 SWP .epsilon LDZ2 2** ADD2 .epsilon STZ2
+
+    .i LDZ INC INC DUP .i STZ ( i+2 )
+    .max-i LDZ LTH ,&stats-loop JCN
+
+  LF 
+
+  LIT 'g EMIT LIT '= EMIT .gamma LDZ2 DBGSHORTDECn POP2 LF
+  LIT 'e EMIT LIT '= EMIT .epsilon LDZ2 DBGSHORTDECn POP2 LF
+
+  .gamma LDZ2 SWP .gamma64 STZ2
+  .epsilon LDZ2 SWP .epsilon64 STZ2
+
+  ;result-txt ;print JSR2
+  ;gamma64 ;epsilon64 ;mul64 JSR2
+  ;result64 ;mul64/get-lo JSR2
+  ;result64 ;print64 JSR2 LF
+
+  BRK !
+
+@result-txt "e*g= 00
+
+( -- next-byte )
+@read-byte
+  #00 ;&byte STA ( clear byte so that EOF reads as zero )
+  ;&byte .File/read DEO2
+  LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
+  JMP2r
+
+~library/console.lib.tal
+~library/math.tal
+

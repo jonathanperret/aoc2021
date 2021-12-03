@@ -2,6 +2,8 @@
 
 ( Generics )
 
+%NOT { #00 EQU }
+
 ( Fast Arithmetic )
 
 %2*  { #10 SFT } %2/  { #01 SFT }

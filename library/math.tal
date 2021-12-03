@@ -425,3 +425,17 @@ JMP2r
 	( r* v : )
 	;add64-byte JSR2
 RTN
+
+@print64
+  ;string64-decimal JSR2 ;string64-decimal/str ;print JSR2
+  JMP2r
+
+( r* b -> )
+@sub64-byte
+  STH
+  DUP2 ;invert64 JSR2
+  DUP2 STHr ;add64-byte JSR2
+  ;invert64 JSR2
+  JMP2r
+
+
