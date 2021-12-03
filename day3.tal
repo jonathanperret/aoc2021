@@ -9,7 +9,6 @@
 ( variables )
 
 |0000
-@counts  $32
 @i           $1
 @n           $2
 @bit-count   $1
@@ -53,7 +52,7 @@
 
   ;read-numbers JSR2
 
-  ;dump-numbers JSR2
+  ( ;dump-numbers JSR2 )
 
   ;compute-stats JSR2
 
@@ -61,6 +60,7 @@
 
 @result-txt "e*g= 00
 
+( read binary numbers from file )
 @read-numbers
   #0000 .n STZ2
 
@@ -76,6 +76,8 @@
 
       DUP #00 EQU ;&lines-done JCN2
       DUP #30 LTH ;&line-done JCN2
+
+      DUP EMIT
 
       #30 SUB #00 SWP ( 00 bit )
 
@@ -93,7 +95,7 @@
 
     .n LDZ2 INC2  DUP2 .n STZ2 .line-count STZ2
 
-    SP LIT '/' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2 LF
+    SP LIT '/' EMIT SP .line-count LDZ2 POP2 LF
 
     ;&read-line JMP2
 
@@ -120,46 +122,36 @@
   LF
   RTN
 
-@count-bits
+( bit-pos -- count )
+@count-bit
+  STH ( : bit-pos )
+  #0000 ( count )
   #0000 .n STZ2
-  &number-loop
-    ;numbers .n LDZ2 2** ADD2 LDA2 ( number )
+  &loop
+    ;numbers .n LDZ2 2** ADD2 LDA2 ( count number : bit-pos )
 
-    DBGSHORTDECn SP
+    STHrk ( count number bit-pos )
+    SFT2 #0001 AND2 ( count bit )
 
-    #00 .i STZ
-    &bit-loop
-      STH2k 2// STH2r NIP #01 AND ( number>>1 bit )
+    ADD2 ( count+bit )
 
-      DUP #30 ADD EMIT LIT ': EMIT
-
-      #00 SWP ( 00 bit )
-      .counts .i LDZ 2* ADD STHk ( 00 bit counts[i]* : counts[i]* )
-      LDZ2 ADD2 ( counts[i]+bit : counts[i]* )
-      DBGSHORTDECn SP
-      STHr STZ2 ( )
-
-      .i LDZ INC DUP .i STZ ( i+1 )
-      .bit-count LDZ LTH ,&bit-loop JCN
-    LF
-    POP2
-    .n LDZ2 INC2 DUP2 .n STZ2 ( n+1 )
-    .line-count LDZ2 LTH2 ,&number-loop JCN
-  LF
+    .n LDZ2 INC2 DUP2 .n STZ2 ( increment n )
+    .line-count LDZ2 LTH2 ,&loop JCN
+  POPr
+  ( count )
   RTN
 
 @compute-stats
-  ;count-bits JSR2
+  .line-count LDZ2 2// .half-count STZ2
 
-  LIT 'h EMIT LIT '= EMIT
-  .line-count LDZ2 2// DBGSHORTDEC .half-count STZ2
+  LIT 'h EMIT LIT '= EMIT .half-count LDZ2 DBGSHORTDEC POP
 
   .bit-count LDZ .i STZ
   &stats-loop
     ( decrement i )
     .i LDZ DEC .i STZ
 
-    .counts .i LDZ 2* ADD LDZ2 ( counts[i] )
+    .i LDZ ;count-bit JSR2 ( counts[i] )
 
     DBGSHORTDECn LIT ': EMIT
 
