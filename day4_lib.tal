@@ -1,0 +1,92 @@
+( parses 1,2,3\n into 31 32 33 ff )
+( get-byte list -- )
+@parse-byte-list
+  ;&list STA2
+  ( patch call site )
+  ;&get-byte STA2
+
+  #00 ,&started STR
+  #00 STH ( : num )
+  &next-byte
+    LIT2 [ &get-byte $2 ] JSR2 ( b )
+    DUP #0a EQU ,&done JCN
+    DUP #30 LTH ,&next-number JCN
+
+    #01 ,&started STR
+    #30 SUB
+    STHr #0a MUL ADD STH
+    ,&next-byte JMP
+
+    &next-number
+    POP
+    STHr ,&append_if_started JSR
+    #00 ,&started STR
+    #00 STH  ( : num )
+    ,&next-byte JMP
+
+  &done
+  POP
+  ( append final number )
+  STHr ,&append_if_started JSR
+  ( append terminator )
+  #ff ,&append JSR
+  RTN
+
+  &list $2
+
+  &started $1
+  ( num -- )
+  &append_if_started
+    ,&started LDR ,&append JCN
+    POP
+    RTN
+  ( num -- )
+  &append
+    ,&list LDR2 STA
+    ,&list LDR2 INC2 ,&list STR2
+    RTN
+
+( list -- )
+@dump-byte-list
+  &loop
+    DUP2 LDA
+    DUP #ff EQU ,&done JCN
+    #00 SWP ;print-short-decimal JSR2 SP
+    INC2
+    ,&loop JMP
+  &done
+  POP POP2
+  LF
+  RTN
+
+( get-byte board* -- )
+@parse-board
+  ,&board STR2
+  ,&get-byte STR2
+  ,&get-byte LDR2 ,&board LDR2 ;parse-byte-list JSR2
+  ,&get-byte LDR2 ,&board LDR2 #0005 ADD2 ;parse-byte-list JSR2
+  ,&get-byte LDR2 ,&board LDR2 #000a ADD2 ;parse-byte-list JSR2
+  ,&get-byte LDR2 ,&board LDR2 #000f ADD2 ;parse-byte-list JSR2
+  ,&get-byte LDR2 ,&board LDR2 #0014 ADD2 ;parse-byte-list JSR2
+  RTN
+  &board $2
+  &get-byte $2
+
+( board* -- )
+@dump-board
+  #05 STH
+  &row-loop
+    #05 STH
+    &num-loop
+      DUP2 LDA
+      #00 SWP ;print-short-decimal JSR2 SP
+      INC2
+      STHr DEC STHk ,&num-loop JCN
+      POPr
+    LF
+    STHr DEC STHk ,&row-loop JCN
+  POP2
+  RTN
+
+~library/console.lib.tal
+~library/string.tal

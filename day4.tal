@@ -1,0 +1,130 @@
+~library/macros.tal
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( variables )
+
+|0000
+@i           $1
+@n           $2
+@bit-count   $1
+@line-count  $2
+@oxygen      $2
+@co2         $2
+@oxygen64    $8
+@co264       $8
+@result64    $8
+@out-n       $2
+
+( init )
+
+|0100 @program
+  ;on-arg-char .Console/vector DEO2
+  BRK !
+
+@on-arg-char
+  .Console/read DEI ( char )
+  DUP #0a EQU ,&complete JCN
+  ;argv #00 ,&argptr LDR ADD2 STA
+  ,&argptr LDR INC ,&argptr STR
+  BRK !
+
+  &complete
+  POP
+
+  ;arg-received JMP2
+
+  &argptr $1
+
+@argv        $20
+
+( arg is in @argv )
+@arg-received
+  LIT ': EMIT
+  ;argv ;print JSR2
+  LF
+
+  ;open-file JSR2
+
+  ;read-byte ;picks ;parse-byte-list JSR2
+  ;picks ;dump-byte-list JSR2
+
+  BRK !
+
+@open-file
+  ;argv .File/name DEO2
+  #0001 .File/length DEO2
+  RTN
+
+( read binary numbers from file )
+@read-numbers
+  ;open-file JSR2
+
+  #0000 .n STZ2
+  #00 .bit-count STZ
+  #0000 .line-count STZ2
+
+  &read-line
+
+    LIT '- EMIT SP
+
+    #00 .i STZ
+    #0000 ( number )
+
+    &next-digit
+
+      ;read-byte JSR2 ( number digit )
+
+      DUP #00 EQU ;&lines-done JCN2
+      DUP #30 LTH ;&line-done JCN2
+
+      DUP EMIT
+
+      #30 SUB #00 SWP ( number 00 bit )
+
+      SWP2 2** ADD2 ( number*2+bit )
+
+      .i LDZ INC .i STZ
+      ,&next-digit JMP
+
+    &line-done
+
+    POP ( number )
+
+    SP DBGSHORTDECn SP
+
+    ( append number to list )
+    ;numbers .n LDZ2 2** ADD2 STA2 ( )
+    .n LDZ2 INC2 DUP2 .n STZ2 .line-count STZ2
+
+    ( remember bit count )
+    .i LDZ .bit-count STZ
+
+    LIT '/' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2 LF
+
+    ;&read-line JMP2
+
+  &lines-done
+
+  POP
+
+  LIT '* EMIT LIT '=' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2
+  LIT 'x EMIT #00 .bit-count LDZ DBGSHORTDECn POP2
+  LF
+  RTN
+
+( -- next-byte )
+@read-byte
+  #00 ;&byte STA ( clear byte so that EOF reads as zero )
+  ;&byte .File/read DEO2
+  LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
+  JMP2r
+
+~day4_lib.tal
+
+@picks $ff
+@numbers

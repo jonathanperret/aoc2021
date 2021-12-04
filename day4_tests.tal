@@ -1,0 +1,56 @@
+~library/macros.tal
+
+( devices )
+
+|00 @System     [ &vector $2 &wst  $1 &rst    $1 &pad   $4 &r $2 &g $2 &b $2   &debug $1 &halt $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+|a0 @File       [ &vector $2 &success $2 &stat $2 &delete $1 &append $1 &name $2 &length $2 &read $2 &write $2 ]
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "number_list: >P S< "12,13,14 0a >S ;test-parse-list JSR2
+  P< "empty_line: >P S< 0a >S ;test-parse-list JSR2
+  P< "repeated_separator: >P S< "1,,23,,,45 0a >S ;test-parse-list JSR2
+
+  P< "parse_board: >P ;test-board ;test-parse-board JSR2
+
+  BRK !
+
+~day4_lib.tal
+
+( s* -- )
+@test-parse-list
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-byte-list JSR2
+  ;list ;dump-byte-list JSR2
+  RTN
+
+( s* -- )
+@test-parse-board
+  ;input STA2
+  ;get-byte-from-input ;board ;parse-board JSR2
+  ;board ;dump-board JSR2
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+@input $2
+@list $ff
+
+@test-board 
+  "1,2,3,4,5 0a
+  "6,7,8,9,10 0a
+  "11,12,13,14,15 0a
+  "16,17,18,19,20 0a
+  "21,22,23,24,25 0a
+
+@board $25

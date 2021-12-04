@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-for mod in math string; do
-  uxnasm ./library/${mod}_tests.{tal,rom} 2>&1 | grep -v 'Unused label'
+for testfile in $(find . -name '*_tests.tal'); do
+  uxnasm $testfile ${testfile%.tal}.rom 2>&1 | (egrep -v 'Unused label|^Assembled' ||:)
 
-  diff -U 2 <(</dev/null uxncli ./library/${mod}_tests.rom) ./library/${mod}_tests.expected
+  diff -U 2 <(</dev/null uxncli ${testfile%.tal}.rom) ${testfile%.tal}.expected
 done
+
+echo "All OK!"
