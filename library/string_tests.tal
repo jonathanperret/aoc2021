@@ -12,8 +12,10 @@
 |0100 @program
 
   S< "using 20 "the 20 "S< 20 "macro >S PRINT LF
+  ( EXPECT using the S< macro )
 
   P< "or 20 "the 20 "P< 20 "macro 0a >P
+  ( EXPECT or the P< macro )
 
   BRK !
 
