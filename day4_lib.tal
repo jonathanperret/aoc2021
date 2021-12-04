@@ -85,8 +85,134 @@
       POPr
     LF
     STHr DEC STHk ,&row-loop JCN
+  POPr
   POP2
   RTN
 
+( board* pick -- )
+@play-turn
+  STH ( board* : pick )
+  DUP2 ( board* p* : pick )
+  &find-loop
+    DUP2 LDA ( board* p* num : pick )
+    STHrk NEQ ,&next JCN
+      ( board* p* : pick )
+      #00ff OVR2 STA POP
+    &next
+    ( board* p* : pick )
+    INC2
+    OVR2 OVR2 SWP2 SUB2 #0019 LTH2 ,&find-loop JCN
+
+  POPr POP2 POP2
+  RTN
+
+( board* -- win )
+@check-board
+  ;&col-ctrs #05 ;zero-n JSR2
+  #05 STH ( : row )
+  &row-loop
+    #00 ,&row-ctr STR
+    #05 STH ( : col row )
+    &col-loop
+      DUP2 LDA
+
+      #ff NEQ ,&next JCN
+        ,&row-ctr LDR INC ,&row-ctr STR
+        ( : col row )
+        ;&col-ctrs #00 STHrk DEC ADD2 ( col-ctr*=col-ctrs+col-1* )
+        DUP2 LDA INC ( col-ctr* col-ctr+1 )
+        DUP #05 NEQ ,&no-col-full JCN
+          ( col-ctr* col-ctr+1 : col row )
+          POP POP2 POP2r #01 ,&done JMP
+        &no-col-full
+        ROT ROT ( col-ctr+1 col-ctr* )
+        STA ( )
+      &next
+
+      INC2
+      STHr DEC STHk ,&col-loop JCN
+      POPr
+    ,&row-ctr LDR #05 NEQ ,&no-row-full JCN
+      POPr #01 ,&done JMP
+    &no-row-full
+    STHr DEC STHk ,&row-loop JCN
+  POPr
+  #00
+  &done
+  ( board* win )
+  STH POP2 STHr
+  RTN
+  [ &row-ctr $1 &col-ctrs $5 ]
+
+( board* -- score )
+@score-board
+  #0000 ,&score STR2
+  #05 STH
+  &row-loop
+    #05 STH
+    &col-loop
+      ( board* )
+      DUP2 LDA ( board* num )
+
+      DUP #ff EQU ,&skip JCN
+        ( board* num )
+        #00 OVR ,&score LDR2 ADD2 ,&score STR2
+      &skip
+      POP ( board* )
+
+      INC2
+      STHr DEC STHk ,&col-loop JCN
+      POPr
+    STHr DEC STHk ,&row-loop JCN
+  POPr
+  POP2
+  ,&score LDR2
+  RTN
+  [ &score $2 ]
+
+( board* picks* -- score last-pick turn )
+@eval-board
+  DUP2 ;&picks STA2 ;&next-pick STA2
+  ;&board STA2
+
+  &pick-loop
+    ;&next-pick LDA2 LDA ( pick )
+    DUP #ff EQU ,&ran-out-of-picks JCN
+    DUP ( pick pick )
+    STH ;&board LDA2 STHr ( pick board* pick )
+    ;play-turn JSR2 ( pick )
+
+    ;&board LDA2 ( pick board )
+    ;check-board JSR2 ( pick win )
+    ,&win JCN
+
+    ( pick ) POP
+
+    ;&next-pick LDA2 INC2 ;&next-pick STA2
+    ,&pick-loop JMP
+
+  &ran-out-of-picks
+  ( pick )
+  POP
+
+  ( push null score, pick, max turn )
+  #0000 #ff #ffff
+  RTN
+
+  &win
+  ( pick )
+  STH ( : pick )
+
+  ( compute score )
+  ;&board LDA2 ;score-board JSR2 ( score : pick )
+  ( push last pick )
+  STHr ( score pick : )
+  ( compute turn )
+  ;&next-pick LDA2 ;&picks LDA2 SUB2 ( score pick turn )
+  RTN
+
+  [ &picks $2 &board $2 &next-pick $2 ]
+
 ~library/console.lib.tal
 ~library/string.tal
+~library/math.tal

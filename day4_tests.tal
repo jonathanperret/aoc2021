@@ -13,10 +13,79 @@
 |0100 @program
 
   P< "number_list: >P S< "12,13,14 0a >S ;test-parse-list JSR2
+  ( EXPECT number_list:12 13 14  )
   P< "empty_line: >P S< 0a >S ;test-parse-list JSR2
+  ( EXPECT empty_line: )
   P< "repeated_separator: >P S< "1,,23,,,45 0a >S ;test-parse-list JSR2
+  ( EXPECT repeated_separator:1 23 45  )
 
   P< "parse_board: >P ;test-board ;test-parse-board JSR2
+  ( EXPECT parse_board:1 2 3 4 5  )
+  ( EXPECT 6 7 8 9 5  )
+  ( EXPECT 11 12 13 14 15  )
+  ( EXPECT 16 17 18 19 20  )
+  ( EXPECT 21 22 23 24 25  )
+
+  P< "play_turn: >P ;test-board #05 ;test-play-turn JSR2
+  ( EXPECT play_turn:1 2 3 4 255  )
+  ( EXPECT 6 7 8 9 255  )
+  ( EXPECT 11 12 13 14 15  )
+  ( EXPECT 16 17 18 19 20  )
+  ( EXPECT 21 22 23 24 25  )
+
+  P< "check_not_complete: >P S<
+    01 01 01 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+  >S ;test-check-board JSR2
+  ( EXPECT check_not_complete:0x00 )
+
+  P< "check_row_complete: >P S<
+    01 01 01 01 01
+    01 01 01 01 01
+    ff ff ff ff ff
+    01 01 01 01 01
+    01 01 01 01 01
+  >S ;test-check-board JSR2
+  ( EXPECT check_row_complete:0x01 )
+
+  P< "check_col_1_complete: >P S<
+    ff 01 01 01 01
+    ff 01 01 01 01
+    ff 01 01 01 01
+    ff 01 01 01 01
+    ff 01 01 01 01
+  >S ;test-check-board JSR2
+  ( EXPECT check_col_1_complete:0x01 )
+
+  P< "check_col_2_complete: >P S<
+    01 ff 01 01 01
+    01 ff 01 01 01
+    01 ff 01 01 01
+    01 ff 01 01 01
+    01 ff 01 01 01
+  >S ;test-check-board JSR2
+  ( EXPECT check_col_2_complete:0x01 )
+
+  P< "score_board: >P S<
+    10 ff 10 10 10
+    10 ff 10 10 10
+    10 ff 10 10 10
+    10 ff 10 10 10
+    10 ff 10 10 10
+  >S ;test-score-board JSR2
+  ( EXPECT score_board:320 )
+
+  P< "eval_board: >P S<
+    "1,2,3,4,5 0a
+    "6,7,8,9,10 0a
+    "11,12,13,14,15 0a
+    "16,17,18,19,20 0a
+    "21,22,23,24,25 0a
+  >S S< "30,29,28,27,1,25,24,23,22,21,8,9 #0a >S ;test-eval-board JSR2
+  ( EXPECT eval_board:9 21 209 )
 
   BRK !
 
@@ -36,6 +105,42 @@
   ;board ;dump-board JSR2
   RTN
 
+( board-s* pick -- )
+@test-play-turn
+  STH
+
+  ;input STA2
+  ;get-byte-from-input ;board ;parse-board JSR2
+
+  ;board STHr ;play-turn JSR2
+
+  ;board ;dump-board JSR2
+  RTN
+
+( board* -- )
+@test-check-board
+  ;check-board JSR2
+  ;print-byte JSR2 LF
+  RTN
+
+( board* -- )
+@test-score-board
+  ;score-board JSR2
+  ;print-short-decimal JSR2 LF
+  RTN
+
+( board-s* picks-s* -- )
+@test-eval-board
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-byte-list JSR2
+
+  ;input STA2
+  ;get-byte-from-input ;board ;parse-board JSR2
+
+  ;board ;list ;eval-board JSR2
+  ;print-short-decimal JSR2 SP #00 SWP ;print-short-decimal JSR2 SP ;print-short-decimal JSR2 LF
+  RTN
+
 ( -- b )
 @get-byte-from-input
   ;input LDA2 LDA STH
@@ -48,7 +153,7 @@
 
 @test-board 
   "1,2,3,4,5 0a
-  "6,7,8,9,10 0a
+  "6,7,8,9,5 0a
   "11,12,13,14,15 0a
   "16,17,18,19,20 0a
   "21,22,23,24,25 0a

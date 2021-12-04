@@ -9,16 +9,9 @@
 ( variables )
 
 |0000
-@i           $1
-@n           $2
-@bit-count   $1
-@line-count  $2
-@oxygen      $2
-@co2         $2
-@oxygen64    $8
-@co264       $8
-@result64    $8
-@out-n       $2
+@best-turn   $2
+@best-pick   $1
+@best-score  $2
 
 ( init )
 
@@ -53,68 +46,44 @@
   ;read-byte ;picks ;parse-byte-list JSR2
   ;picks ;dump-byte-list JSR2
 
-  BRK !
+  #ffff .best-turn STZ2
+
+  &next-board
+    ;eat-lf JSR2
+    P< "-- >P LF
+    ;read-byte ;board ;parse-board JSR2
+    ;board ;dump-board JSR2
+
+    ;board ;picks ;eval-board JSR2
+
+    ( score pick turn )
+    STH2k P< "turn= >P ;print-short-decimal JSR2 SP
+    STHk P< "pick= >P #00 SWP ;print-short-decimal JSR2 SP
+    STH2k P< "score= >P ;print-short-decimal JSR2 LF
+    STH2r STHr STH2r
+    ( score pick turn )
+
+    DUP2 .best-turn LDZ2 GEQ2 ,&not-better JCN
+      P< "new_best 0a >P
+      ( score pick turn )
+      .best-turn STZ2
+      .best-pick STZ
+      .best-score STZ2
+
+      P< "result= >P
+      #00 .best-pick LDZ .best-score LDZ2 MUL2 ;print-short-decimal JSR2 LF
+
+      ;&next-board JMP2
+    &not-better
+    DUP2 ;print-short-decimal JSR2 SP P< "not_better_than >P SP .best-turn LDZ2 ;print-short-decimal JSR2 LF
+    POP2 POP POP2
+    ;&next-board JMP2
+
+  !
 
 @open-file
   ;argv .File/name DEO2
   #0001 .File/length DEO2
-  RTN
-
-( read binary numbers from file )
-@read-numbers
-  ;open-file JSR2
-
-  #0000 .n STZ2
-  #00 .bit-count STZ
-  #0000 .line-count STZ2
-
-  &read-line
-
-    LIT '- EMIT SP
-
-    #00 .i STZ
-    #0000 ( number )
-
-    &next-digit
-
-      ;read-byte JSR2 ( number digit )
-
-      DUP #00 EQU ;&lines-done JCN2
-      DUP #30 LTH ;&line-done JCN2
-
-      DUP EMIT
-
-      #30 SUB #00 SWP ( number 00 bit )
-
-      SWP2 2** ADD2 ( number*2+bit )
-
-      .i LDZ INC .i STZ
-      ,&next-digit JMP
-
-    &line-done
-
-    POP ( number )
-
-    SP DBGSHORTDECn SP
-
-    ( append number to list )
-    ;numbers .n LDZ2 2** ADD2 STA2 ( )
-    .n LDZ2 INC2 DUP2 .n STZ2 .line-count STZ2
-
-    ( remember bit count )
-    .i LDZ .bit-count STZ
-
-    LIT '/' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2 LF
-
-    ;&read-line JMP2
-
-  &lines-done
-
-  POP
-
-  LIT '* EMIT LIT '=' EMIT SP .line-count LDZ2 DBGSHORTDECn POP2
-  LIT 'x EMIT #00 .bit-count LDZ DBGSHORTDECn POP2
-  LF
   RTN
 
 ( -- next-byte )
@@ -124,7 +93,15 @@
   LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
   JMP2r
 
+@eat-lf
+  ;read-byte JSR2
+  #0a NEQ ,&fail JCN
+  RTN
+  &fail
+  BRK
+
 ~day4_lib.tal
 
 @picks $ff
+@board $19
 @numbers
