@@ -38,4 +38,4 @@
     STH INC2 STHr ( s* s'*+1 b )
     #00 NEQ ,&loop JCN
   ( s* s'* )
-  STH2k JMP2
+  JMP2
