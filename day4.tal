@@ -46,7 +46,7 @@
   ;read-byte ;picks ;parse-byte-list JSR2
   ;picks ;dump-byte-list JSR2
 
-  #ffff .best-turn STZ2
+  #0000 .best-turn STZ2
 
   &next-board
     ;eat-lf JSR2
@@ -63,7 +63,7 @@
     STH2r STHr STH2r
     ( score pick turn )
 
-    DUP2 .best-turn LDZ2 GEQ2 ,&not-better JCN
+    DUP2 .best-turn LDZ2 LEQ2 ,&not-better JCN
       P< "new_best 0a >P
       ( score pick turn )
       .best-turn STZ2
