@@ -4,6 +4,9 @@
 
 %NOT { #00 EQU }
 
+%DUP4 { OVR2 OVR2 }
+%DUP6 { ROT2k ROT2 ROT2 }
+
 ( Fast Arithmetic )
 
 %2*  { #10 SFT } %2/  { #01 SFT }

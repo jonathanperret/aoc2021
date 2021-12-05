@@ -118,135 +118,130 @@
 
 ( row* rownum lines* -- )
 @draw-into-row
-  STH2 ( row* rownum : lines* )
-  ;&rownum STA2
-  ;&row STA2
   &next-line
-    STH2rk LDA2 ( x1 : lines* )
+    DUP2 LDA2 ( x1 )
     #ffff EQU2 ;&lines-done JCN2
 
-    ( : lines * )
+    ( row* rownum lines* )
 
     ( check for horizontal )
-    STH2rk #0002 ADD2 LDA2 ( y1 : lines* )
-    STH2rk #0006 ADD2 LDA2 ( y1 y2 : lines* )
-    NEQ2 ;&not-horizontal JCN2
+    DUP2 #0002 ADD2 LDA2 ( y1 )
+    OVR2 #0006 ADD2 LDA2 ( y1 y2 )
+    NEQ2 ;&non-horizontal JCN2
 
-    STH2rk #0002 ADD2 LDA2 ( y1 : lines* )
-    ;&rownum LDA2 NEQ2 ;&continue JCN2
+    DUP6 ;draw-horizontal JSR2
+    ;&continue JMP2
 
-    STH2rk #0006 ADD2 LDA2 ( y2 : lines* )
-    ;&rownum LDA2 NEQ2 ;&continue JCN2
-
-      ( : lines* )
-      STH2rk #0000 ADD2 LDA2 ( x1 : lines* )
-      STH2rk #0004 ADD2 LDA2 ( x1 x2 : lines* )
-      LTH2k ,&not-x-swapped JCN
-        SWP2
-      &not-x-swapped
-      ( x1 x2 : lines* )
-      2** ;&row LDA2 ADD2 STH2 ( x1 : row+x2* lines* )
-      2** ;&row LDA2 ADD2 ( row+x1* : row+x2* lines* )
-      &x-loop
-        ( row+x* : row+x2* lines* )
-        LDA2k INC2 ( row+x* v+1 : row+x2* lines* )
-        OVR2 STA2  ( row+x* : row+x2* lines* )
-        ( advance x )
-        INC2 INC2
-        ( loop if x<=x2 )
-        DUP2 STH2rk LEQ2 ,&x-loop JCN
-      POP2 POP2r
-      ;&continue JMP2
-
-    &not-horizontal
-    ( : lines* )
-
-    ( check for vertical )
-    STH2rk #0000 ADD2 LDA2 ( x1 : lines* )
-    STH2rk #0004 ADD2 LDA2 ( x1 x2 : lines* )
-    OVR2 NEQ2 ,&not-vertical JCN
-      ( x : lines* )
-
-      STH2rk #0002 ADD2 LDA2 ( x y1 : lines* )
-      STH2rk #0006 ADD2 LDA2 ( x y2 : lines* )
-      LTH2k ,&not-y-swapped JCN
-        SWP2
-      &not-y-swapped
-      ( x ymin ymax : lines* )
-
-      ;&rownum LDA2 ( x ymin ymax rownum : lines* )
-      GEQ2k ,&ymax-ok JCN
-        POP2 POP2 POP2 POP2 ;&continue JMP2
-      &ymax-ok
-      NIP2
-      ( x ymin rownum : lines* )
-
-      LEQ2k ,&ymin-ok JCN
-        POP2 POP2 POP2 ;&continue JMP2
-      &ymin-ok
-      ( x ymin rownum : lines* )
-      POP2 POP2
-
-      ( x : lines* )
-      DUP2 2** ;&row LDA2 ADD2 ( x row+x* : lines* )
-
-      LDA2k ( x row+x* v ) INC2 ( x row+x* v+1 ) SWP2 ( x v+1 row+x* ) STA2 ( x : lines* )
-
-      POP2
-      ;&continue JMP2
-    &not-vertical
-    POP2
-
-    ( : lines* )
-
-    ( assume diagonal, according to problem statement )
-    STH2rk #0000 ADD2 LDA2 ( x1 : lines* )
-    STH2rk #0004 ADD2 LDA2 ( x1 x2 : lines* )
-    LTH2k ,&not-diag-x-swapped JCN
-      SWP2
-      STH2rk #0006 ADD2 LDA2 ;&y STA2 ( y <- y2 )
-      STH2rk #0002 ADD2 LDA2 ( y1 )
-      ,&start-diagonal JMP
-    &not-diag-x-swapped
-      STH2rk #0002 ADD2 LDA2 ;&y STA2 ( y <- y1 )
-      STH2rk #0006 ADD2 LDA2 ( y2 )
-    &start-diagonal
-    ( x1 x2 y2 : lines* )
-    #0001 ,&yinc STR2
-    ( y2 ) [ ;&y LDA2 ]
-    ( y2 y1 ) GTH2 ,&not-diag-y-flipped JCN
-      #ffff ;&yinc STA2
-    &not-diag-y-flipped
-    ( x1 x2 : lines* )
-
-    2** ;&row LDA2 ADD2 STH2 ( x1 : row+x2* y1 lines* )
-    2** ;&row LDA2 ADD2 ( row+x1* : row+x2* y1  lines* )
-    &diag-loop
-      ( DUP2 [ ,&row LDR2 ] SUB2 2// DBGSHORTDECn POP2 LIT ', EMIT [ ,&y LDR2 ] DBGSHORTDEC POP2 )
-
-      ( row+x* : row+x2* lines* )
-      [ ;&y LDA2 ] [ ;&rownum LDA2 ] NEQ2 ,&diag-not-this-row JCN
-        LDA2k INC2 ( row+x* v+1 : row+x2* lines* )
-        OVR2 STA2  ( row+x* : row+x2* lines* )
-      &diag-not-this-row
-      ( advance x )
-      INC2 INC2
-      ( advance y )
-      [ ;&y LDA2 ] [ ;&yinc LDA2 ] ADD2 ;&y STA2
-
-      ( loop if x<=x2 )
-      DUP2 STH2rk LEQ2 ,&diag-loop JCN
-    POP2 POP2r
+    &non-horizontal
+    DUP6 ;draw-non-horizontal JSR2
 
     &continue
-    ( : lines* )
-    LIT2r 0008 ADD2r
+    ( row* rownum lines* )
+    #0008 ADD2
     ;&next-line JMP2
   &lines-done
-  ( : lines* )
-  POP2r
+  ( row* rownum lines* )
+  POP2 POP2 POP2
   RTN
-  [ &row $2 &rownum $2 &y $2 &yinc $2 ]
+
+( row* rownum line* -- )
+@draw-horizontal
+  SWP2 [ ,&rownum STR2 ]
+  SWP2 [ ,&row STR2 ]
+  ( line* )
+
+  DUP2 #0002 ADD2 LDA2 ( line* y1 )
+  [ ,&rownum LDR2 ] NEQ2 ;&not-this-row JCN2
+
+  ( line* )
+  LDA2k SWP2 ( x1 line* )
+  #0004 ADD2 LDA2 ( x1 x2 )
+
+  LTH2k ,&not-x-swapped JCN
+    SWP2
+  &not-x-swapped
+  ( x1 x2 )
+  2** [ ,&row LDR2 ] ADD2 STH2 ( x1 : row+x2* )
+  2** [ ,&row LDR2 ] ADD2 ( row+x1* : row+x2* )
+  &x-loop
+    ( row+x* : row+x2* )
+    LDA2k INC2 ( row+x* v+1 : row+x2* )
+    OVR2 STA2  ( row+x* : row+x2* )
+    ( advance x )
+    INC2 INC2
+    ( loop if x<=x2 )
+    DUP2 STH2rk LEQ2 ,&x-loop JCN
+  POP2 POP2r
+  RTN
+
+  &not-this-row
+  ( line* )
+  POP2
+  RTN
+  [ &row $2 &rownum $2 ]
+
+( row* rownum line* -- )
+@draw-non-horizontal
+  SWP2 [ ;&rownum STA2 ]
+  SWP2 [ ;&row STA2 ]
+
+  ( line* )
+  STH2 ( : line* )
+  STH2rk #0002 ADD2 LDA2 ( y1 )
+  STH2rk #0006 ADD2 LDA2 ( y1 y2 )
+  STH2rk #0000 ADD2 LDA2 ( y1 y2 x1 : line* )
+  STH2rk #0004 ADD2 LDA2 ( y1 y2 x1 x2 : line* )
+  POP2r ( y1 y2 x1 x2 )
+
+  LTH2k ,&not-x-swapped JCN
+    [ ;&x1 STA2 ]
+    [ ;&x2 STA2 ]
+    [ ;&y1 STA2 ]
+    [ ;&y2 STA2 ]
+    ,&start-diagonal JMP
+  &not-x-swapped
+    [ ;&x2 STA2 ]
+    [ ;&x1 STA2 ]
+    [ ;&y2 STA2 ]
+    [ ;&y1 STA2 ]
+
+  &start-diagonal
+
+  ( test slope )
+
+  [ ,&y2 LDR2 ] [ ,&y1 LDR2 ] GTH2 ;&y-increases JCN2
+    ( y decreases )
+    [ ,&y1 LDR2 ] [ ,&rownum LDR2 ] LTH2 ;&exit JCN2
+    [ ,&y2 LDR2 ] [ ,&rownum LDR2 ] GTH2 ;&exit JCN2
+
+    ( y1 >= rownum >= y2 )
+    [ ,&y1 LDR2 ] [ ,&rownum LDR2 ] SUB2 ( distance=y1-rownum )
+
+    ,&apply JMP
+
+  &y-increases
+    ( y increases )
+    [ ,&y1 LDR2 ] [ ,&rownum LDR2 ] GTH2 ,&exit JCN
+    [ ,&y2 LDR2 ] [ ,&rownum LDR2 ] LTH2 ,&exit JCN
+
+    ( y1 <= rownum <= y2 )
+    [ ,&rownum LDR2 ] [ ,&y1 LDR2 ] SUB2 ( distance=rownum-y1 )
+
+  &apply
+
+    [ ,&x1 LDR2 ] [ ,&x2 LDR2 ] NEQ2 ,&keep-distance JCN
+      ( line is vertical: set distance to zero )
+      POP2 #0000
+    &keep-distance
+    [ ,&x1 LDR2 ] ADD2 ( x1+distance )
+    2** [ ,&row LDR2 ] ADD2 ( row[x1+distance]* )
+    LDA2k INC2 SWP2 STA2
+
+  &exit
+    RTN
+
+  [ &row $2 &rownum $2 &x1 $2 &y1 $2 &x2 $2 &y2 $2 ]
+
 
 ( row* -- count )
 @count-crossings
