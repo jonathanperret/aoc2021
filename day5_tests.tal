@@ -37,14 +37,14 @@
   P< "draw_into_row_horizontal: >P S<
     "1,1 "-> "5,1 0a
   >S #0001 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_horizontal:0 1 1 1 1 1 0 0 0 0  )
+  ( EXPECT draw_into_row_horizontal:.11111 )
 
   STKCHK
 
   P< "draw_into_row_horizontal_reversed: >P S<
     "5,1 "-> "1,1 0a
   >S #0001 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_horizontal_reversed:0 1 1 1 1 1 0 0 0 0  )
+  ( EXPECT draw_into_row_horizontal_reversed:.11111 )
 
   STKCHK
 
@@ -53,7 +53,7 @@
     "1,2 "-> "5,2 0a
     "3,1 "-> "6,1 0a
   >S #0001 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_horizontal_multi:0 1 1 2 2 2 1 0 0 0  )
+  ( EXPECT draw_into_row_horizontal_multi:.112221 )
 
   STKCHK
 
@@ -63,7 +63,14 @@
     "6,0 "-> "6,1 0a
     "4,3 "-> "4,1 0a
   >S #0002 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_vertical:0 0 0 0 2 0 0 0 0 0  )
+  ( EXPECT draw_into_row_vertical:....2.. )
+
+  STKCHK
+
+  P< "draw_into_row_diagonal: >P S<
+    "1,1 "-> "5,5 0a
+  >S #0002 ;test-draw-into-row JSR2
+  ( EXPECT draw_into_row_diagonal:..1... )
 
   STKCHK
 
@@ -85,6 +92,27 @@
   ( EXPECT 1...1 )
   ( EXPECT 1...1 )
   ( EXPECT 11112 )
+  ( EXPECT 3 )
+
+  STKCHK
+
+  P< "eval_rows_diag: 0a >P S<
+    ( almost a diamond )
+    "4,0 "-> "8,4 0a
+    "8,4 "-> "4,8 0a
+    "4,8 "-> "0,4 0a
+    "0,4 "-> "3,1 0a
+  >S ;test-eval-rows JSR2
+  ( EXPECT eval_rows_diag: )
+  ( EXPECT ....1.... )
+  ( EXPECT ...1.1... )
+  ( EXPECT ..1...1.. )
+  ( EXPECT .1.....1. )
+  ( EXPECT 2.......2 )
+  ( EXPECT .1.....1. )
+  ( EXPECT ..1...1.. )
+  ( EXPECT ...1.1... )
+  ( EXPECT ....2.... )
   ( EXPECT 3 )
 
   STKCHK
@@ -117,13 +145,15 @@
   STH2 ( s* : rownum )
 
   ;input STA2
-  ;get-byte-from-input ;list ;parse-lines JSR2 POP2
+  ;get-byte-from-input ;list ;parse-lines JSR2
+  ( max )
+  INC2 ( size )
 
-  ;row #000a ;init-row JSR2
+  ;row SWP2 ( row* size ) ;init-row JSR2
 
   ;row STH2r ;list ;draw-into-row JSR2
 
-  ;row ;dump-short-list JSR2
+  ;row ;dump-row JSR2
   RTN
 
 ( s* -- )
