@@ -24,6 +24,7 @@
 %10MOD { #0f AND } %10MOD2 { #000f AND2 }
 
 %DEC { #01 SUB } %DEC2 { #0001 SUB2 }
+%DECr { LITr 01 SUBr } %DEC2r { LIT2r 0001 SUB2r }
 
 ( Buttons )
 
@@ -84,7 +85,9 @@
 %PRINT { ;print JSR2 }
 
 %GEQ { LTH NOT } %GEQ2 { LTH2 NOT }
+%GEQk { LTHk NOT } %GEQ2k { LTH2k NOT }
 %LEQ { GTH NOT } %LEQ2 { GTH2 NOT }
+%LEQk { GTHk NOT } %LEQ2k { GTH2k NOT }
 
 ( Fun with strings )
 

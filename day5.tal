@@ -4,9 +4,6 @@
 ( variables )
 
 |0000
-@best-turn   $2
-@best-pick   $1
-@best-score  $2
 
 ( init )
 

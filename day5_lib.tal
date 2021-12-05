@@ -83,6 +83,102 @@
 
   RTN
 
+( row* count -- )
+@init-row
+  STH2 ( row* : count )
+  ( clear row )
+  &loop
+    #0000 OVR2 STA2
+    ( advance pointer )
+    #0002 ADD2
+    ( row* : count )
+    DEC2r STH2rk #0000 NEQ2 ,&loop JCN
+  POP2r
+  ( write terminator )
+  #ffff SWP2 STA2
+  RTN
+
+( row* rownum lines* -- )
+@draw-into-row
+  STH2 ( row* rownum : lines* )
+  ;&rownum STA2
+  ;&row STA2
+  &next-line
+    STH2rk LDA2 ( x1 : lines* )
+    #ffff EQU2 ;&lines-done JCN2
+
+    ( : lines * )
+
+    STH2rk #0002 ADD2 LDA2 ( y1 : lines* )
+    ;&rownum LDA2 NEQ2 ,&not-this-row JCN
+
+    STH2rk #0006 ADD2 LDA2 ( y2 : lines* )
+    ;&rownum LDA2 NEQ2 ,&not-this-row JCN
+
+      ( : lines* )
+      STH2rk #0000 ADD2 LDA2 ( x1 : lines* )
+      STH2rk #0004 ADD2 LDA2 ( x1 x2 : lines* )
+      LTH2k ,&not-x-swapped JCN
+        SWP2
+      &not-x-swapped
+      2** ,&row LDR2 ADD2 STH2 ( x2 : row+x2* lines* )
+      2** ,&row LDR2 ADD2 ( row+x1* : row+x2* lines* )
+      &x-loop
+        ( row+x* : row+x2* lines* )
+        LDA2k INC2 ( row+x* v+1 : row+x2* lines* )
+        OVR2 STA2  ( row+x* : row+x2* lines* )
+        ( advance x )
+        INC2 INC2
+        ( loop if x<=x2 )
+        DUP2 STH2rk LEQ2 ,&x-loop JCN
+      POP2 POP2r
+
+    &not-this-row
+    ( : lines* )
+
+    ( check for vertical )
+    STH2rk #0000 ADD2 LDA2 ( x1 : lines* )
+    STH2rk #0004 ADD2 LDA2 ( x1 x2 : lines* )
+    OVR2 NEQ2 ,&not-vertical JCN
+      ( x : lines* )
+
+      STH2rk #0002 ADD2 LDA2 ( x y1 : lines* )
+      STH2rk #0006 ADD2 LDA2 ( x y2 : lines* )
+      LTH2k ,&not-y-swapped JCN
+        SWP2
+      &not-y-swapped
+      ( x ymin ymax : lines* )
+
+      ,&rownum LDR2 ( x ymin ymax rownum : lines* )
+      GEQ2k ,&ymax-ok JCN
+        POP2 POP2 POP2 ,&not-vertical JMP
+      &ymax-ok
+      NIP2
+      ( x ymin rownum : lines* )
+
+      LEQ2k ,&ymin-ok JCN
+        POP2 POP2 ,&not-vertical JMP
+      &ymin-ok
+      ( x ymin rownum : lines* )
+      POP2 POP2
+
+      ( x : lines* )
+      DUP2 2** ,&row LDR2 ADD2 ( x row+x* : lines* )
+
+      LDA2k ( x row+x* v ) INC2 ( x row+x* v+1 ) SWP2 ( x v+1 row+x* ) STA2 ( x : lines* )
+    &not-vertical
+    ( x : lines* )
+    POP2
+
+    ( : lines* )
+    LIT2r 0008 ADD2r
+    ;&next-line JMP2
+  &lines-done
+  ( : lines* )
+  POP2r
+  RTN
+  [ &row $2 &rownum $2 ]
+
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal

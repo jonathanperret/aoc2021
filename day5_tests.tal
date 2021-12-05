@@ -1,6 +1,8 @@
 ~library/macros.tal
 ~library/devices.tal
 
+%STKCHK { ;stkchk JSR2 }
+
 ( variables )
 
 |0000
@@ -16,8 +18,46 @@
   P< "parse_empty_line: >P S< 0a >S ;test-parse-line JSR2
   ( EXPECT parse_empty_line: )
 
-  P< "parse_lines: >P ;test-lines ;test-parse-lines JSR2
+  P< "parse_lines: >P ;test-lines-txt ;test-parse-lines JSR2
   ( EXPECT parse_lines:455 552 289 718 1 2 3 4  )
+
+  P< "init_row: >P ;row #000a ;init-row JSR2 #0200 ;row STA2 ;row ;dump-short-list JSR2
+  ( EXPECT init_row:512 0 0 0 0 0 0 0 0 0  )
+
+  STKCHK
+
+  P< "draw_into_row_horizontal: >P S<
+    "1,1 "-> "5,1 0a
+  >S #0001 ;test-draw-into-row JSR2
+  ( EXPECT draw_into_row_horizontal:0 1 1 1 1 1 0 0 0 0  )
+
+  STKCHK
+
+  P< "draw_into_row_horizontal_reversed: >P S<
+    "5,1 "-> "1,1 0a
+  >S #0001 ;test-draw-into-row JSR2
+  ( EXPECT draw_into_row_horizontal_reversed:0 1 1 1 1 1 0 0 0 0  )
+
+  STKCHK
+
+  P< "draw_into_row_horizontal_multi: >P S<
+    "1,1 "-> "5,1 0a
+    "1,2 "-> "5,2 0a
+    "3,1 "-> "6,1 0a
+  >S #0001 ;test-draw-into-row JSR2
+  ( EXPECT draw_into_row_horizontal_multi:0 1 1 2 2 2 1 0 0 0  )
+
+  STKCHK
+
+  P< "draw_into_row_vertical: >P S<
+    "4,0 "-> "4,5 0a
+    "2,3 "-> "2,5 0a
+    "6,0 "-> "6,1 0a
+    "4,3 "-> "4,1 0a
+  >S #0002 ;test-draw-into-row JSR2
+  ( EXPECT draw_into_row_vertical:0 0 0 0 2 0 0 0 0 0  )
+
+  STKCHK
 
   P< ". 0a >P
   ( EXPECT . )
@@ -40,6 +80,20 @@
   ;list ;dump-short-list JSR2
   RTN
 
+( s* rownum -- )
+@test-draw-into-row
+  STH2 ( s* : rownum )
+
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-lines JSR2
+
+  ;row #000a ;init-row JSR2
+
+  ;row STH2r ;list ;draw-into-row JSR2
+
+  ;row ;dump-short-list JSR2
+  RTN
+
 ( -- b )
 @get-byte-from-input
   ;input LDA2 LDA STH
@@ -47,11 +101,36 @@
   STHr
   RTN
 
+( tries to fills the working stack, to detect stack leaks )
+( -- )
+@stkchk
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
+  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #00
+
+  POP   POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
+
+  RTN
+
+
 @test-list 00 01 00 02 01 59 ff ff
-@test-lines
+@test-lines-txt
     "455,552 20 "-> 20 "289,718 0a
     "1,2 20 "-> 20 "3,4 0a
     00
 @input $2
 
 @list $1000
+@row $1000
