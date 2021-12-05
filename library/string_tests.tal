@@ -17,6 +17,12 @@
   P< "or 20 "the 20 "P< 20 "macro 0a >P
   ( EXPECT or the P< macro )
 
+  P< "string_short: >P S< "0000 >S #5678 OVR2 ;string-short JSR2 ;print JSR2 LF
+  ( EXPECT string_short:5678 )
+
+  P< "❤️  0a >P
+  ( EXPECT ❤️ )
+
   BRK !
 
 ~library/console.lib.tal

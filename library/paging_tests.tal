@@ -1,0 +1,46 @@
+~library/macros.tal
+~library/devices.tal
+
+%STKCHK { ;stkchk JSR2 }
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "paged_buffer: 0a >P
+  #0010 ;paging-init JSR2
+  #0003 #0000 ;paged-get JSR2 DBGBYTEn POP SP
+  #0003 #0001 ;paged-get JSR2 DBGBYTEn POP SP
+  #0005 #0001 ;paged-get JSR2 DBGBYTEn POP LF
+  #33 #0003 #0001 ;paged-set JSR2
+  #55 #0005 #0001 ;paged-set JSR2
+  #0003 #0000 ;paged-get JSR2 DBGBYTEn POP SP
+  #0003 #0001 ;paged-get JSR2 DBGBYTEn POP SP
+  #0005 #0001 ;paged-get JSR2 DBGBYTEn POP SP
+  #0006 #0001 ;paged-get JSR2 DBGBYTEn POP LF
+  ( EXPECT paged_buffer: )
+  ( EXPECT 0x00 0x00 0x00 )
+  ( EXPECT 0x00 0x33 0x55 0x00 )
+
+  STKCHK
+
+  P< "paging_init_clear_page: >P
+  #0002 ;paging-init JSR2
+  #55 #0001 #0000 ;paged-set JSR2
+  #0001 #0000 ;paged-get JSR2 DBGBYTEn POP SP
+  #0002 ;paging-init JSR2
+  #0001 #0000 ;paged-get JSR2 DBGBYTEn POP LF
+  ( EXPECT paging_init_clear_page:0x55 0x00 )
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+~library/test.tal
+~library/string.tal
+~library/console.lib.tal
+~library/paging.tal
+

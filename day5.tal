@@ -40,8 +40,9 @@
 
   ;lines ;dump-short-list JSR2
 
-  ;lines SWP2 ( lines* max ) ;eval-rows JSR2
-  ;print-short-decimal JSR2 LF
+
+  ( max ) ;lines SWP2 ( lines* max ) ;eval-matrix JSR2
+  P< "C= 20 >P ;print-short-decimal JSR2 LF
 
   BRK
 

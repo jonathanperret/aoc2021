@@ -39,3 +39,37 @@
     #00 NEQ ,&loop JCN
   ( s* s'* )
   JMP2
+
+( src* dest* cnt -- )
+@memcpy
+  OVR2 ADD2 ( src* dest* end* )
+  ROT2 STH2 ( dest* end* : src* )
+  SWP2 ( end* dest* : src* )
+  &loop
+    LDArk ( end* dest* : b src* )
+    #00 STHr OVR2 ( end* dest* 00 b dest* : src* )
+    STA POP ( end* dest* : src* )
+    INC2 INC2r ( end* dest+1* : src+1* )
+    NEQ2k ,&loop JCN
+  ( end* dest* : src* )
+  POP2r POP2 POP2
+  RTN
+
+
+( short out* -- )
+@string-short
+  [ ,&out STR2 ]
+  OVR #04 SFT ,&hex JSR
+  SWP #0f AND ,&hex JSR
+  DUP #04 SFT ,&hex JSR
+      #0f AND ,&hex JMP
+
+  &hex
+  #30 ADD DUP #3a LTH ,&not-alpha JCN
+  #27 ADD
+  &not-alpha
+  [ ,&out LDR2 ] STA
+  [ ,&out LDR2 ] INC2 [ ,&out STR2 ]
+  RTN
+  [ &out $2 ]
+

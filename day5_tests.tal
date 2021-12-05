@@ -21,72 +21,106 @@
   P< "parse_lines: >P ;test-lines-txt ;test-parse-lines JSR2
   ( EXPECT parse_lines:max=718 455 552 289 718 1 2 3 4  )
 
-  P< "init_row: >P
-    #cafe ;row #0016 ADD2 STA2
-    #0200 ;row STA2
-    ;row #000a ;init-row JSR2
-    ;row ;dump-short-list JSR2
-    ;row #0014 ADD2 LDA2 DBGSHORT POP2
-    ;row #0016 ADD2 LDA2 DBGSHORT POP2
-  ( EXPECT init_row:0 0 0 0 0 0 0 0 0 0  )
-  ( EXPECT 0xffff )
-  ( EXPECT 0xcafe )
+  P< "dump_matrix: 0a >P S<
+    01 02 03 04 05
+    01 01 01 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+  >S #0005 #0005 ;test-dump-matrix JSR2
+  ( EXPECT dump_matrix: )
+  ( EXPECT 12345 )
+  ( EXPECT 11111 )
+  ( EXPECT 11111 )
+  ( EXPECT 11111 )
+  ( EXPECT 11111 )
 
   STKCHK
 
-  P< "draw_into_row_horizontal: >P S<
-    "1,1 "-> "5,1 0a
-  >S #0001 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_horizontal:.11111 )
+  P< "draw_downward_line_into_matrix: 0a >P S<
+    "1,1 "-> "3,3 0a
+  >S #0005 #0004 ;test-draw-line-into-matrix JSR2
+  ( EXPECT draw_downward_line_into_matrix: )
+  ( EXPECT ..... )
+  ( EXPECT .1... )
+  ( EXPECT ..1.. )
+  ( EXPECT ...1. )
 
   STKCHK
 
-  P< "draw_into_row_horizontal_reversed: >P S<
-    "5,1 "-> "1,1 0a
-  >S #0001 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_horizontal_reversed:.11111 )
+  P< "draw_horizontal_line_into_matrix: 0a >P S<
+    "1,1 "-> "3,1 0a
+  >S #0005 #0004 ;test-draw-line-into-matrix JSR2
+  ( EXPECT draw_horizontal_line_into_matrix: )
+  ( EXPECT ..... )
+  ( EXPECT .111. )
+  ( EXPECT ..... )
+  ( EXPECT ..... )
 
   STKCHK
 
-  P< "draw_into_row_horizontal_multi: >P S<
-    "1,1 "-> "5,1 0a
-    "1,2 "-> "5,2 0a
-    "3,1 "-> "6,1 0a
-  >S #0001 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_horizontal_multi:.112221 )
+  P< "draw_lines_into_matrix: 0a >P S<
+    "1,1 "-> "3,1 0a
+    "2,0 "-> "2,3 0a
+  >S #0005 #0004 ;test-draw-lines-into-matrix JSR2
+  ( EXPECT draw_lines_into_matrix: )
+  ( EXPECT ..1.. )
+  ( EXPECT .121. )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
 
   STKCHK
 
-  P< "draw_into_row_vertical: >P S<
-    "4,0 "-> "4,5 0a
-    "2,3 "-> "2,5 0a
-    "6,0 "-> "6,1 0a
-    "4,3 "-> "4,1 0a
-  >S #0002 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_vertical:....2.. )
+  P< "draw_upward_line_into_matrix: 0a >P S<
+    "1,3 "-> "3,1 0a
+  >S #0005 #0004 ;test-draw-line-into-matrix JSR2
+  ( EXPECT draw_upward_line_into_matrix: )
+  ( EXPECT ..... )
+  ( EXPECT ...1. )
+  ( EXPECT ..1.. )
+  ( EXPECT .1... )
 
   STKCHK
 
-  P< "draw_into_row_diagonal: >P S<
-    "1,1 "-> "5,5 0a
-  >S #0002 ;test-draw-into-row JSR2
-  ( EXPECT draw_into_row_diagonal:..1... )
+  P< "draw_vertical_line_into_matrix: 0a >P S<
+    "2,0 "-> "2,3 0a
+  >S #0005 #0004 ;test-draw-line-into-matrix JSR2
+  ( EXPECT draw_vertical_line_into_matrix: )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
 
   STKCHK
 
-  P< "count_crossings: >P S< "0,0,1,0,0,2,0,2,0" >S ;test-count-crossings JSR2
-  ( EXPECT count_crossings:2 )
+  P< "draw_vertical_line_into_paged_matrix: 0a >P S<
+    "2,0 "-> "2,3 0a
+  >S #0005 #0004 ;test-draw-line-into-paged-matrix JSR2
+  ( EXPECT draw_vertical_line_into_paged_matrix: )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
+  ( EXPECT ..1.. )
 
   STKCHK
 
-  P< "eval_rows: 0a >P S<
+  P< "count_matrix_crossings: >P S<
+    01 01 01
+    01 02 01
+    01 01 02
+  >S #0003 #0003 ;test-count-matrix-crossings JSR2
+  ( EXPECT count_matrix_crossings:2 )
+
+  STKCHK
+
+  P< "eval_matrix: 0a >P S<
     ( almost a square )
     "0,0 "-> "4,0 0a
     "4,0 "-> "4,4 0a
     "4,4 "-> "1,4 0a
     "0,4 "-> "0,0 0a
-  >S ;test-eval-rows JSR2
-  ( EXPECT eval_rows: )
+  >S ;test-eval-matrix JSR2
+  ( EXPECT eval_matrix: )
   ( EXPECT 21112 )
   ( EXPECT 1...1 )
   ( EXPECT 1...1 )
@@ -96,33 +130,13 @@
 
   STKCHK
 
-  P< "eval_rows_diag: 0a >P S<
-    ( almost a diamond )
-    "4,0 "-> "8,4 0a
-    "8,4 "-> "4,8 0a
-    "4,8 "-> "0,4 0a
-    "0,4 "-> "3,1 0a
-  >S ;test-eval-rows JSR2
-  ( EXPECT eval_rows_diag: )
-  ( EXPECT ....1.... )
-  ( EXPECT ...1.1... )
-  ( EXPECT ..1...1.. )
-  ( EXPECT .1.....1. )
-  ( EXPECT 2.......2 )
-  ( EXPECT .1.....1. )
-  ( EXPECT ..1...1.. )
-  ( EXPECT ...1.1... )
-  ( EXPECT ....2.... )
-  ( EXPECT 3 )
-
-  STKCHK
-
-  P< ". 0a >P
-  ( EXPECT . )
+  P< "👍 0a >P
+  ( EXPECT 👍 )
 
   BRK !
 
 ~day5_lib.tal
+~library/test.tal
 
 ( s* -- )
 @test-parse-line
@@ -140,41 +154,83 @@
   ;list ;dump-short-list JSR2
   RTN
 
-( s* rownum -- )
-@test-draw-into-row
-  STH2 ( s* : rownum )
+( s* w h -- )
+@test-draw-line-into-matrix
+  STH2 STH2 ( s* : w h )
 
   ;input STA2
   ;get-byte-from-input ;list ;parse-lines JSR2
   ( max )
-  INC2 ( size )
+  POP2
 
-  ;row SWP2 ( row* size ) ;init-row JSR2
+  ;matrix STH2rk STH2rk ;clear-matrix JSR2
+  ;matrix ;input STA2
+  ;get-at-from-input ;set-at-from-input ;list ;draw-line-into-matrix JSR2
 
-  ;row STH2r ;list ;draw-into-row JSR2
-
-  ;row ;dump-row JSR2
+  ;get-at-from-input STH2r STH2r ;dump-matrix JSR2
   RTN
 
-( s* -- )
-@test-count-crossings
+( s* w h -- )
+@test-draw-lines-into-matrix
+  STH2 STH2 ( s* : w h )
+
   ;input STA2
-  ;get-byte-from-input ;list ;parse-line JSR2 POP2
-  ;list ;count-crossings JSR2
+  ;get-byte-from-input ;list ;parse-lines JSR2
+  ( max )
+  POP2
+
+  ;matrix STH2rk STH2rk ;clear-matrix JSR2
+  ;matrix ;input STA2
+  ;get-at-from-input ;set-at-from-input ;list ;draw-lines-into-matrix JSR2
+
+  ;get-at-from-input STH2r STH2r ;dump-matrix JSR2
+  RTN
+
+( s* w h -- )
+@test-draw-line-into-paged-matrix
+  STH2 STH2 ( s* : w h )
+
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-lines JSR2
+  ( max )
+  POP2
+
+  ( : w h )
+  OVR2r OVR2r STH2r STH2r ( w h : w h ) ;paged-matrix-init JSR2
+
+  ;paged-matrix-get-at ;paged-matrix-set-at ;list ;draw-line-into-matrix JSR2
+
+  ;paged-matrix-get-at STH2r STH2r ;dump-matrix JSR2
+  RTN
+
+( s* w h -- )
+@test-dump-matrix
+  [ ;input-h STA2 ]
+  [ ;input-w STA2 ]
+  ;input STA2
+  ;get-at-from-input [ ;input-w LDA2 ] [ ;input-h LDA2 ] ;dump-matrix JSR2
+  RTN
+
+( s* w h -- )
+@test-count-matrix-crossings
+  [ ;input-h STA2 ]
+  [ ;input-w STA2 ]
+  ;input STA2
+
+  ;get-at-from-input [ ;input-w LDA2 ] [ ;input-h LDA2 ] ;count-matrix-crossings JSR2
   ;print-short-decimal JSR2 LF
   RTN
 
 ( s* -- )
-@test-eval-rows
+@test-eval-matrix
   ;input STA2
   ;get-byte-from-input ;list ;parse-lines JSR2
   ( max )
 
-  ;list SWP2 ( list* max ) ;eval-rows JSR2
+  ;list SWP2 ( list* max ) ;eval-matrix JSR2
   ( count )
   ;print-short-decimal JSR2 LF
   RTN
-
 
 ( -- b )
 @get-byte-from-input
@@ -183,29 +239,31 @@
   STHr
   RTN
 
-( tries to fills the working stack, to detect stack leaks )
-( -- )
-@stkchk
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000
-  #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #0000 #00
-
-  POP   POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
-
+( x y -- b )
+@get-at-from-input
+  [ ;input-w LDA2 ] MUL2 ADD2 [ ;input LDA2 ] ADD2 LDA
   RTN
 
+( b x y -- )
+@set-at-from-input
+  [ ;input-w LDA2 ] MUL2 ADD2 [ ;input LDA2 ] ADD2 STA
+  RTN
+
+( w*h must be even )
+( matrix* w h -- )
+@clear-matrix
+  MUL2 2// STH2 ( matrix* : wordcount )
+  ( clear matrix )
+  &loop
+    #0000 OVR2 STA2
+    ( advance pointer )
+    #0002 ADD2
+    ( matrix* : count )
+    DEC2r STH2rk #0000 NEQ2 ,&loop JCN
+  ( matrix* : count )
+  POP2r
+  POP2
+  RTN
 
 @test-list 00 01 00 02 01 59 ff ff
 @test-lines-txt
@@ -213,6 +271,8 @@
     "1,2 20 "-> 20 "3,4 0a
     00
 @input $2
+@input-w $2
+@input-h $2
 
 @list $1000
-@row $1000
+@matrix $1000

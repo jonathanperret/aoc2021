@@ -1,0 +1,63 @@
+( page-count -- )
+@paging-init
+  ( pagenum )
+  &loop
+    DEC2 ( pagenum-1 )
+    DUP2 ;paging-open-page-file JSR2
+    #01 .File/delete DEO
+    DUP2 #0000 NEQ2 ,&loop JCN
+  POP2
+  #ffff [ ;paging-loaded-page STA2 ]
+  RTN
+
+( pagenum offset -- b )
+@paged-get
+  SWP2 ;paging-load-page JSR2
+  ;paging-page ADD2 LDA
+  RTN
+
+( b pagenum offset -- )
+@paged-set
+  SWP2 ;paging-load-page JSR2
+  ;paging-page LDA2 POP2
+  ;paging-page ADD2 STA
+  RTN
+
+( pagenum -- )
+@paging-load-page
+  DUP2 [ ;paging-loaded-page LDA2 ] EQU2 ,&skip JCN
+  ( LIT 'F EMIT )
+  ( pagenum )
+  [ ;paging-loaded-page LDA2 ] ;paging-save-page JSR2 ( pagenum )
+  DUP2 [ ;paging-loaded-page STA2 ] ( pagenum )
+
+  ;paging-open-page-file JSR2
+  ;paging-page .File/read DEO2
+  .File/success DEI2 ( length )
+  #0000 NEQ2 ,&success JCN
+    ;&devzero .File/name DEO2
+    ;paging-page .File/read DEO2
+  &success
+  RTN
+  [ &devzero "/dev/zero 00 ]
+
+  &skip
+  POP2
+  RTN
+
+( pagenum -- )
+@paging-save-page
+  ;paging-open-page-file JSR2
+  ;paging-page .File/write DEO2
+  RTN
+
+( pagenum -- )
+@paging-open-page-file
+  ;&filename ;string-short JSR2
+  ;&filename .File/name DEO2
+  #4000 .File/length DEO2
+  RTN
+  [ &filename "0000.swp 00 ]
+
+@paging-loaded-page $2
+@paging-page $4000

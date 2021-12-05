@@ -101,91 +101,33 @@
   RTN
   [ &max $2 ]
 
-( row* count -- )
-@init-row
-  STH2 ( row* : count )
-  ( clear row )
-  &loop
-    #0000 OVR2 STA2
-    ( advance pointer )
-    #0002 ADD2
-    ( row* : count )
-    DEC2r STH2rk #0000 NEQ2 ,&loop JCN
+( get-at w h -- )
+@dump-matrix
+  [ ,&h STR2 ]
+  [ ,&w STR2 ]
+  [ ,&get-at STR2 ]
+  LIT2r 0000 ( : y )
+  &row-loop
+    #0000 ( x : y )
+    &col-loop
+      DUP2 STH2rk LIT2 [ &get-at $2 ] JSR2
+      DUP ,&not-zero JCN
+        POP #fe ( fe+30 = '.' )
+      &not-zero
+      #30 ADD EMIT
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&col-loop JCN
+    POP2 ( : y )
+    LF
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ,&row-loop JCN
+  ( : y )
   POP2r
-  ( write terminator )
-  #ffff SWP2 STA2
   RTN
+  [ &w $2 &h $2 ]
 
-( row* rownum lines* -- )
-@draw-into-row
-  &next-line
-    DUP2 LDA2 ( x1 )
-    #ffff EQU2 ;&lines-done JCN2
-
-    ( row* rownum lines* )
-
-    ( check for horizontal )
-    DUP2 #0002 ADD2 LDA2 ( y1 )
-    OVR2 #0006 ADD2 LDA2 ( y1 y2 )
-    NEQ2 ;&non-horizontal JCN2
-
-    DUP6 ;draw-horizontal JSR2
-    ;&continue JMP2
-
-    &non-horizontal
-    DUP6 ;draw-non-horizontal JSR2
-
-    &continue
-    ( row* rownum lines* )
-    #0008 ADD2
-    ;&next-line JMP2
-  &lines-done
-  ( row* rownum lines* )
-  POP2 POP2 POP2
-  RTN
-
-( row* rownum line* -- )
-@draw-horizontal
-  SWP2 [ ,&rownum STR2 ]
-  SWP2 [ ,&row STR2 ]
-  ( line* )
-
-  DUP2 #0002 ADD2 LDA2 ( line* y1 )
-  [ ,&rownum LDR2 ] NEQ2 ;&not-this-row JCN2
-
-  ( line* )
-  LDA2k SWP2 ( x1 line* )
-  #0004 ADD2 LDA2 ( x1 x2 )
-
-  LTH2k ,&not-x-swapped JCN
-    SWP2
-  &not-x-swapped
-  ( x1 x2 )
-  2** [ ,&row LDR2 ] ADD2 STH2 ( x1 : row+x2* )
-  2** [ ,&row LDR2 ] ADD2 ( row+x1* : row+x2* )
-  &x-loop
-    ( row+x* : row+x2* )
-    LDA2k INC2 ( row+x* v+1 : row+x2* )
-    OVR2 STA2  ( row+x* : row+x2* )
-    ( advance x )
-    INC2 INC2
-    ( loop if x<=x2 )
-    DUP2 STH2rk LEQ2 ,&x-loop JCN
-  POP2 POP2r
-  RTN
-
-  &not-this-row
-  ( line* )
-  POP2
-  RTN
-  [ &row $2 &rownum $2 ]
-
-( row* rownum line* -- )
-@draw-non-horizontal
-  SWP2 [ ;&rownum STA2 ]
-  SWP2 [ ;&row STA2 ]
-
-  ( line* )
+( line* -- y1 y2 x1 x2 )
+@get-points-in-order
   STH2 ( : line* )
   STH2rk #0002 ADD2 LDA2 ( y1 )
   STH2rk #0006 ADD2 LDA2 ( y1 y2 )
@@ -194,121 +136,156 @@
   POP2r ( y1 y2 x1 x2 )
 
   LTH2k ,&not-x-swapped JCN
-    [ ;&x1 STA2 ]
-    [ ;&x2 STA2 ]
-    [ ;&y1 STA2 ]
-    [ ;&y2 STA2 ]
-    ,&start-diagonal JMP
+    STH2 STH2 ( y1 y2 : x1 x2 )
+    SWP2r SWP2 ( y2 y1 : x2 x1 )
+    STH2r STH2r ( y2 y1 x2 x1 )
   &not-x-swapped
-    [ ;&x2 STA2 ]
-    [ ;&x1 STA2 ]
-    [ ;&y2 STA2 ]
-    [ ;&y1 STA2 ]
-
-  &start-diagonal
-
-  ( test slope )
-
-  [ ,&y2 LDR2 ] [ ,&y1 LDR2 ] GTH2 ;&y-increases JCN2
-    ( y decreases )
-    [ ,&y1 LDR2 ] [ ,&rownum LDR2 ] LTH2 ;&exit JCN2
-    [ ,&y2 LDR2 ] [ ,&rownum LDR2 ] GTH2 ;&exit JCN2
-
-    ( y1 >= rownum >= y2 )
-    [ ,&y1 LDR2 ] [ ,&rownum LDR2 ] SUB2 ( distance=y1-rownum )
-
-    ,&apply JMP
-
-  &y-increases
-    ( y increases )
-    [ ,&y1 LDR2 ] [ ,&rownum LDR2 ] GTH2 ,&exit JCN
-    [ ,&y2 LDR2 ] [ ,&rownum LDR2 ] LTH2 ,&exit JCN
-
-    ( y1 <= rownum <= y2 )
-    [ ,&rownum LDR2 ] [ ,&y1 LDR2 ] SUB2 ( distance=rownum-y1 )
-
-  &apply
-
-    [ ,&x1 LDR2 ] [ ,&x2 LDR2 ] NEQ2 ,&keep-distance JCN
-      ( line is vertical: set distance to zero )
-      POP2 #0000
-    &keep-distance
-    [ ,&x1 LDR2 ] ADD2 ( x1+distance )
-    2** [ ,&row LDR2 ] ADD2 ( row[x1+distance]* )
-    LDA2k INC2 SWP2 STA2
-
-  &exit
-    RTN
-
-  [ &row $2 &rownum $2 &x1 $2 &y1 $2 &x2 $2 &y2 $2 ]
-
-
-( row* -- count )
-@count-crossings
-  LIT2r 0000 ( row* : count )
-  &loop
-    DUP2 LDA2 ( row* num : count )
-    DUP2 #ffff EQU2 ,&done JCN
-
-    ( row* num : count )
-    #0001 LEQ2 ,&not-crossing JCN
-      INC2r
-    &not-crossing
-
-    INC2 INC2
-    ,&loop JMP
-  &done
-  ( row* terminator : count )
-  POP2 POP2
-  STH2r
   RTN
 
-( row* -- )
-@dump-row
-  &loop
-    DUP2 LDA2
-    DUP2 #ffff EQU2 ,&done JCN
-    DUP2 #0000 NEQ2 ,&not-zero JCN
-      POP2 LIT '. EMIT
-      ,&continue JMP
-    &not-zero
-      ;print-short-decimal JSR2
-    &continue
-    INC2 INC2
-    ,&loop JMP
-  &done
-  POP2 POP2
-  LF
-  RTN
+( get-at set-at line* -- )
+@draw-line-into-matrix
+  ( line* )
+  ;get-points-in-order JSR2 ( y1 y2 x1 x2 )
+  [ ;&x2 STA2 ]
+  [ ;&x1 STA2 ]
+  [ ;&y2 STA2 ]
+  [ ;&y1 STA2 ]
 
-( lines* max -- count )
-@eval-rows
-  INC2 ,&size STR2
-  LIT2r 0000 ( lines* : rownum )
-  #0000 ,&result STR2
-  &row-loop
-    ( lines* : rownum )
-    ;&row [ ,&size LDR2 ] ;init-row JSR2
+  [ ;&set-at STA2 ]
+  [ ;&get-at STA2 ]
 
-    DUP2 ;&row STH2rk ( lines* lines* row* rownum )
-    ROT2 ( lines* row* rownum lines* )
-    ;draw-into-row JSR2
+  ( P< "x1= >P [ ;&x1 LDA2 ] DBGSHORTDECn POP2 SP P< "y1= >P [ ;&y1 LDA2 ] DBGSHORTDEC POP2
+  P< "x2= >P [ ;&x2 LDA2 ] DBGSHORTDECn POP2 SP P< "y2= >P [ ;&y2 LDA2 ] DBGSHORTDEC POP2 )
+  #0000 [ ;&xinc STA2 ]
+  [ ;&x1 LDA2 ] [ ;&x2 LDA2 ] EQU2 ,&vertical JCN
+    #0001 [ ;&xinc STA2 ]
+  &vertical
 
-    ;&row ;dump-row JSR2
+  #0000 [ ;&yinc STA2 ]
+  [ ;&y1 LDA2 ] [ ;&y2 LDA2 ] EQU2 ,&horizontal JCN
+    #0001 [ ;&yinc STA2 ]
+  [ ;&y1 LDA2 ] [ ;&y2 LDA2 ] LTH2 ,&increasing-y JCN
+    #ffff [ ;&yinc STA2 ]
+  &increasing-y
+  &horizontal
 
-    ;&row ;count-crossings JSR2
-    ,&result LDR2 ADD2 ,&result STR2
+  ( P< "xinc= >P [ ;&xinc LDA2 ] DBGSHORTDECn POP2 SP P< "yinc= >P [ ;&yinc LDA2 ] DBGSHORTDEC POP2 )
+  [ ;&x2 LDA2 ] [ ;&xinc LDA2 ] ADD2 [ ;&x2 STA2 ]
+  [ ;&y2 LDA2 ] [ ;&yinc LDA2 ] ADD2 [ ;&y2 STA2 ]
+  ( P< "x2= >P [ ;&x2 LDA2 ] DBGSHORTDECn POP2 SP P< "y2= >P [ ;&y2 LDA2 ] DBGSHORTDEC POP2 )
 
-    INC2r ( lines* : rownum+1 )
-    STH2rk [ ,&size LDR2 ] LTH2 ,&row-loop JCN
+  [ ;&x1 LDA2 ] [ ;&y1 LDA2 ] STH2 ( x : y )
+  &x-loop
+    ( get cell at x,y )
+    DUP2 STH2rk LIT2 [ &get-at $2 ] JSR2 ( x b : y )
+    ( increase cell )
+    INC ( x b+1 )
+    ( set cell at x,y )
+    #00 SWP OVR2 STH2rk ( x 00 b x y : y )
+    LIT2 [ &set-at $2 ] JSR2 ( x 00 : y ) POP ( x : y )
 
+    ( advance x )
+    [ ;&xinc LDA2 ] ADD2
+    ( advance y )
+    [ ;&yinc LDA2 ] STH2 ADD2r
+    ( loop if x!=x2 or y!=y2 )
+    DUP2 [ ;&x2 LDA2 ] NEQ2   ( x x!=x2 : y )
+    STH2rk [ ;&y2 LDA2 ] NEQ2 ( x x!=x2 y!=y2 : y )
+    ORA ( x x!=x2||y!=y2 : y ) ;&x-loop JCN2
   POP2r
   POP2
-
-  ,&result LDR2
   RTN
-  [ &size $2 &result $2 &row $1002 ]
+  [ &x1 $2 &y1 $2 &x2 $2 &y2 $2 &xinc $2 &yinc $2 ]
+
+( get-at set-at lines* -- )
+@draw-lines-into-matrix
+  &next-line
+    LDA2k ( get-at set-at lines* x1 )
+    #ffff EQU2 ,&lines-done JCN
+
+    ( get-at set-at lines* )
+
+    DUP6 ;draw-line-into-matrix JSR2
+
+    ( get-at set-at lines* )
+    #0008 ADD2
+    ,&next-line JMP
+  &lines-done
+
+  ( get-at set-at lines* )
+  POP2 POP2 POP2
+  RTN
+
+( get-at w h -- count )
+@count-matrix-crossings
+  [ ,&h STR2 ]
+  [ ,&w STR2 ]
+  [ ,&get-at STR2 ]
+  #0000 [ ,&result STR2 ]
+  LIT2r 0000 ( : y )
+  &row-loop
+    #0000 ( x : y )
+    &col-loop
+      DUP2 STH2rk LIT2 [ &get-at $2 ] JSR2
+      #02 LTH ,&not-crossing JCN
+        [ ,&result LDR2 ] INC2 [ ,&result STR2 ]
+      &not-crossing
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&col-loop JCN
+    POP2 ( : y )
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ,&row-loop JCN
+  ( : y )
+  POP2r
+  [ ,&result LDR2 ]
+  RTN
+  [ &w $2 &h $2 &result $2 ]
+
+( lines* max -- count )
+@eval-matrix
+  INC2 [ ,&size STR2 ]
+  [ ,&lines STR2 ]
+
+  [ ,&size LDR2 ] DUP2 ( size size )
+  ;paged-matrix-init JSR2
+
+  ;paged-matrix-get-at ;paged-matrix-set-at [ ,&lines LDR2 ] ;draw-lines-into-matrix JSR2
+
+  ;paged-matrix-get-at [ ,&size LDR2 ] DUP2 ;dump-matrix JSR2
+
+  ;paged-matrix-get-at [ ,&size LDR2 ] DUP2 ;count-matrix-crossings JSR2
+  RTN
+  [ &size $2 &lines $2 ]
+
+( x y -- b )
+@paged-matrix-get-at
+  ;paged-matrix-address JSR2 ( pagenum offset )
+  ;paged-get JSR2
+  RTN
+
+( b x y -- )
+@paged-matrix-set-at
+  ;paged-matrix-address JSR2 ( b pagenum offset )
+  ;paged-set JSR2
+  RTN
+
+( w h -- )
+@paged-matrix-init
+  DEC2 SWP2 DEC2 SWP2 ( w-1 h-1 )
+  ;paged-matrix-address JSR2 ( pagenum offset )
+  POP2 ( pagenum )
+  INC2 ( pagenum+1 )
+  ;paging-init JSR2
+  RTN
+
+( x y -- pagenum offset )
+@paged-matrix-address
+  DUP2 10// STH2 ( x y : y/16 )
+  10MOD2 #a0 SFT2 ADD2 ( x+(y%16)*1024 : y/16 )
+  STH2r SWP2 ( pagenum=y/16 offset=(y%16)*1024+x )
+  RTN
 
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal
+~library/paging.tal
