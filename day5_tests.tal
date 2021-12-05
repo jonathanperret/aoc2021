@@ -1,0 +1,57 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "dump_list: >P ;test-list ;dump-short-list JSR2
+  ( EXPECT dump_list:1 2 345  )
+
+  P< "parse_line: >P S< "455,552 20 "-> 20 "289,718 0a >S ;test-parse-line JSR2
+  ( EXPECT parse_line:455 552 289 718  )
+
+  P< "parse_empty_line: >P S< 0a >S ;test-parse-line JSR2
+  ( EXPECT parse_empty_line: )
+
+  P< "parse_lines: >P ;test-lines ;test-parse-lines JSR2
+  ( EXPECT parse_lines:455 552 289 718 1 2 3 4  )
+
+  P< ". 0a >P
+  ( EXPECT . )
+
+  BRK !
+
+~day5_lib.tal
+
+( s* -- )
+@test-parse-line
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-line JSR2
+  ;list ;dump-short-list JSR2
+  RTN
+
+( s* -- )
+@test-parse-lines
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-lines JSR2
+  ;list ;dump-short-list JSR2
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+@test-list 00 01 00 02 01 59 ff ff
+@test-lines
+    "455,552 20 "-> 20 "289,718 0a
+    "1,2 20 "-> 20 "3,4 0a
+    00
+@input $2
+
+@list $1000

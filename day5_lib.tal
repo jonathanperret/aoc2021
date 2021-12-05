@@ -1,0 +1,88 @@
+( get-byte list* -- )
+@parse-line
+  ;&list STA2
+  ( patch call site )
+  ;&get-byte STA2
+
+  #00 ,&started STR
+  LIT2r 0000 ( : num )
+  &next-byte
+    LIT2 [ &get-byte $2 ] JSR2 ( b )
+    DUP #0a EQU ,&done JCN
+    DUP #00 EQU ,&done JCN
+    DUP #30 LTH ,&next-number JCN
+    DUP #39 GTH ,&next-number JCN
+
+    #01 ,&started STR
+    ( b : num )
+    #30 SUB
+    ( digit-val : num )
+    LIT2r 000a MUL2r ( digit-val : num*10 )
+    LITr 00 STH ADD2r
+    ,&next-byte JMP
+
+    &next-number
+    POP
+    STH2r ,&append_if_started JSR
+    #00 ,&started STR
+    LIT2r 0000 ( : num )
+    ,&next-byte JMP
+
+  &done
+  POP
+  ( append final number )
+  STH2r ,&append_if_started JSR
+  ( append terminator )
+  #ffff ,&append JSR
+  RTN
+
+  &list $2
+
+  &started $1
+  ( num -- )
+  &append_if_started
+    ,&started LDR ,&append JCN
+    POP2
+    RTN
+  ( num -- )
+  &append
+    ,&list LDR2 STA2
+    ,&list LDR2 INC2 INC2 ,&list STR2
+    RTN
+
+( list -- )
+@dump-short-list
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    ;print-short-decimal JSR2 SP
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  LF
+  RTN
+
+( get-byte list* -- )
+@parse-lines
+  STH2 ( : list* )
+  ( patch call site )
+  ;&get-byte STA2
+  &loop
+    ( clear terminator )
+    #0000 STH2rk STA2
+    LIT2 [ &get-byte $2 ] STH2rk ;parse-line JSR2
+    ( check for empty list )
+    #ffff STH2rk LDA2 EQU2 ,&done JCN
+    ( advance pointer )
+    LIT2r 0008 ADD2r
+    ,&loop JMP
+  &done
+  POP2r
+  RTN
+
+  RTN
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
