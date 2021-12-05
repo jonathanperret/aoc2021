@@ -1,8 +1,10 @@
-( get-byte list* -- )
+( get-byte list* -- max )
 @parse-line
   ;&list STA2
   ( patch call site )
   ;&get-byte STA2
+
+  #0000 ,&max STR2
 
   #00 ,&started STR
   LIT2r 0000 ( : num )
@@ -33,19 +35,24 @@
   ( append final number )
   STH2r ,&append_if_started JSR
   ( append terminator )
-  #ffff ,&append JSR
+  #ffff ,&list LDR2 STA2
+  ,&max LDR2
   RTN
 
-  &list $2
+  [ &list $2 &started $1 &max $2 ]
 
-  &started $1
   ( num -- )
   &append_if_started
     ,&started LDR ,&append JCN
     POP2
     RTN
+
   ( num -- )
   &append
+    DUP2 ,&max LDR2 ( num num max )
+    LEQ2 ,&not-new-max JCN
+      DUP2 ,&max STR2
+    &not-new-max
     ,&list LDR2 STA2
     ,&list LDR2 INC2 INC2 ,&list STR2
     RTN
@@ -68,10 +75,21 @@
   STH2 ( : list* )
   ( patch call site )
   ;&get-byte STA2
+
+  #0000 ,&max STR2
+
   &loop
     ( clear terminator )
     #0000 STH2rk STA2
     LIT2 [ &get-byte $2 ] STH2rk ;parse-line JSR2
+    ( line-max )
+
+    DUP2 ,&max LDR2 ( line-max line-max max )
+    LEQ2 ,&not-new-max JCN
+      DUP2 ,&max STR2
+    &not-new-max
+    POP2
+
     ( check for empty list )
     #ffff STH2rk LDA2 EQU2 ,&done JCN
     ( advance pointer )
@@ -79,9 +97,9 @@
     ,&loop JMP
   &done
   POP2r
+  ,&max LDR2
   RTN
-
-  RTN
+  [ &max $2 ]
 
 ( row* count -- )
 @init-row
@@ -178,6 +196,72 @@
   POP2r
   RTN
   [ &row $2 &rownum $2 ]
+
+( row* -- count )
+@count-crossings
+  LIT2r 0000 ( row* : count )
+  &loop
+    DUP2 LDA2 ( row* num : count )
+    DUP2 #ffff EQU2 ,&done JCN
+
+    ( row* num : count )
+    #0001 LEQ2 ,&not-crossing JCN
+      INC2r
+    &not-crossing
+
+    INC2 INC2
+    ,&loop JMP
+  &done
+  ( row* terminator : count )
+  POP2 POP2
+  STH2r
+  RTN
+
+( row* -- )
+@dump-row
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    DUP2 #0000 NEQ2 ,&not-zero JCN
+      POP2 LIT '. EMIT
+      ,&continue JMP
+    &not-zero
+      ;print-short-decimal JSR2
+    &continue
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  LF
+  RTN
+
+( lines* max -- count )
+@eval-rows
+  INC2 ,&size STR2
+  LIT2r 0000 ( lines* : rownum )
+  #0000 ,&result STR2
+  &row-loop
+    ( lines* : rownum )
+    ;&row [ ,&size LDR2 ] ;init-row JSR2
+
+    DUP2 ;&row STH2rk ( lines* lines* row* rownum )
+    ROT2 ( lines* row* rownum lines* )
+    ;draw-into-row JSR2
+
+    ;&row ;dump-row JSR2
+
+    ;&row ;count-crossings JSR2
+    ,&result LDR2 ADD2 ,&result STR2
+
+    INC2r ( lines* : rownum+1 )
+    STH2rk [ ,&size LDR2 ] LTH2 ,&row-loop JCN
+
+  POP2r
+  POP2
+
+  ,&result LDR2
+  RTN
+  [ &size $2 &result $2 &row $1002 ]
 
 ~library/console.lib.tal
 ~library/string.tal

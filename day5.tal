@@ -36,7 +36,12 @@
   ;open-file JSR2
 
   ;read-byte ;lines ;parse-lines JSR2
+  ( max )
+
   ;lines ;dump-short-list JSR2
+
+  ;lines SWP2 ( lines* max ) ;eval-rows JSR2
+  ;print-short-decimal JSR2 LF
 
   BRK
 
@@ -51,13 +56,6 @@
   ;&byte .File/read DEO2
   LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
   RTN
-
-@eat-lf
-  ;read-byte JSR2
-  #0a NEQ ,&fail JCN
-  RTN
-  &fail
-  BRK
 
 ~day5_lib.tal
 
