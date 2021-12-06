@@ -1,0 +1,182 @@
+( parses 1,2,3\n into 31 32 33 ff )
+( get-byte list -- )
+@parse-byte-list
+  ;&list STA2
+  ( patch call site )
+  ;&get-byte STA2
+
+  #00 ,&started STR
+  #00 STH ( : num )
+  &next-byte
+    LIT2 [ &get-byte $2 ] JSR2 ( b )
+    DUP #0a EQU ,&done JCN
+    DUP #30 LTH ,&next-number JCN
+
+    #01 ,&started STR
+    #30 SUB
+    STHr #0a MUL ADD STH
+    ,&next-byte JMP
+
+    &next-number
+    POP
+    STHr ,&append_if_started JSR
+    #00 ,&started STR
+    #00 STH  ( : num )
+    ,&next-byte JMP
+
+  &done
+  POP
+  ( append final number )
+  STHr ,&append_if_started JSR
+  ( append terminator )
+  #ff ,&append JSR
+  RTN
+
+  &list $2
+
+  &started $1
+  ( num -- )
+  &append_if_started
+    ,&started LDR ,&append JCN
+    POP
+    RTN
+  ( num -- )
+  &append
+    ,&list LDR2 STA
+    ,&list LDR2 INC2 ,&list STR2
+    RTN
+
+( list -- )
+@dump-byte-list
+  &loop
+    DUP2 LDA
+    DUP #ff EQU ,&done JCN
+    #00 SWP ;print-short-decimal JSR2 SP
+    INC2
+    ,&loop JMP
+  &done
+  POP POP2
+  LF
+  RTN
+
+( result* fish days )
+@compute-fish
+  [ ;&days STA2 ]
+  [ ;&fish STA ]
+  [ ;&result STA2 ]
+
+  ( subtract fish from days )
+  ( fish > days? )
+  #00 [ ;&fish LDA ] ( fish16 ) [ ;&days LDA2 ] LTH2 ,&enough-days JCN
+    [ ;&result LDA2 ] #0001 ;short-to-64 JSR2
+    RTN
+  &enough-days
+  [ ;&days LDA2 ] #00 [ ;&fish LDA ] SUB2 [ ;&days STA2 ]
+
+  ( days is >= 1 )
+
+  LIT2r 0000 ( : day )
+  &loop
+    ( compute day )
+    ( P< "day= >P STH2rk DBGSHORTDECn POP2 LF )
+
+    ( get f(0, day-9) )
+    ;&f STH2rk #0009 SUB2 ;&memo-get JSR2
+
+    ( get f(0, day-7) )
+    ;&f-7 STH2rk #0007 SUB2 ;&memo-get JSR2
+    ( P< "f(-7)= >P ;&f-7 ;print64 JSR2 LIT ') EMIT LF )
+
+    ( add f(0, day-9) + d(0, day-7) )
+    ;&f ;&f-7 ;add64 JSR2
+
+    ( store memo )
+
+    ;&f STH2rk ;&memo-set JSR2
+    ( P< "now= >P ;&f ;print64 JSR2 LF )
+
+    ( advance day )
+    INC2r ( : day+1 )
+    ( check days )
+    STH2rk ( day : day ) [ ;&days LDA2 ] LEQ2 ;&loop JCN2
+
+  POP2r ( : )
+
+  ( P< "fin= >P ;&f ;print64 JSR2 LF )
+
+  [ ,&result LDR2 ] ;&f ;copy64 JSR2
+
+  RTN
+  [ &days $2 &fish $1 &result $2
+    &memo $1000
+    &f $8
+    &f-7 $8
+  ]
+
+  ( r* day )
+  &memo-get
+    ( negative? )
+    DUP2 #8000 GTH2 ,&negative JCN
+    DUP2 #0000 EQU2 ,&zero JCN
+
+    ( P< "get( >P DBGSHORTDECn P< ")= >P )
+
+    ( r* day )
+    8** ( r* day*8 )
+    ;&memo ADD2 ( r* memo+day*8 )
+
+    ( DUP2 ;print64 JSR2 LF )
+
+    ;copy64 JSR2
+    RTN
+
+    &negative
+    &zero
+    ( r* day )
+    ( P< "get( >P DBGSHORTDECn P< ")=1 >P LF )
+    POP2
+    ( r* )
+    #0001 ;short-to-64 JSR2
+    RTN
+
+  ( r* day )
+  &memo-set
+    ( P< "set( >P DBGSHORTDECn LIT ', EMIT OVR2 ;print64 JSR2 LIT ') EMIT LF )
+    8** ( day*8 ) ;&memo ADD2 ( memo+day*8 )
+    SWP2 ( memo+day*8 r* ) ;copy64 JSR2
+    RTN
+
+( r* list* days -- )
+@eval-list
+  [ ;&days STA2 ]
+  [ ;&list STA2 ]
+  [ ;&r STA2 ]
+  [ ;&r LDA2 ] #0000 ;short-to-64 JSR2
+  &loop
+    [ ;&list LDA2 ] LDA
+    ( fish )
+    DUP #ff EQU ,&done JCN
+
+    ( fish )
+    STH
+    ( : fish )
+    ;&f STHr [ ;&days LDA2 ] ( f* fish days )
+    ;compute-fish JSR2
+
+    ( add into r )
+    [ ;&r LDA2 ] ;&f ;add64 JSR2
+
+    ( advance list )
+    [ ;&list LDA2 ] INC2 [ ;&list STA2 ]
+    ( loop )
+    ,&loop JMP
+
+  &done
+  ( fish )
+  POP
+  RTN
+  [ &r $2 &list $2 &days $2 &f $8 ]
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal

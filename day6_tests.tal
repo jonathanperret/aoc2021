@@ -1,0 +1,130 @@
+~library/macros.tal
+~library/devices.tal
+
+%STKCHK { ;stkchk JSR2 }
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "number_list: >P S< "12,13,14 0a >S ;test-parse-list JSR2
+  ( EXPECT number_list:12 13 14  )
+  STKCHK
+
+  P< "empty_line: >P S< 0a >S ;test-parse-list JSR2
+  ( EXPECT empty_line: )
+  STKCHK
+
+  P< "repeated_separator: >P S< "1,,23,,,45 0a >S ;test-parse-list JSR2
+  ( EXPECT repeated_separator:1 23 45  )
+  STKCHK
+
+  P< "zero_days_zero: >P ;result #00 #0000 ;compute-fish JSR2 ;result ;print64 JSR2 LF
+  ( EXPECT zero_days_zero:                    1 )
+
+  P< "zero_days_one: >P ;result #01 #0000 ;compute-fish JSR2 ;result ;print64 JSR2 LF
+  ( EXPECT zero_days_one:                    1 )
+
+  P< "zero_days_two: >P ;result #02 #0000 ;compute-fish JSR2 ;result ;print64 JSR2 LF
+  ( EXPECT zero_days_two:                    1 )
+
+  P< "one_day: >P LF
+    ;result #01 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #02 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #03 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #04 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #00 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+  ( EXPECT one_day: )
+  ( EXPECT 0x01                     1 )
+  ( EXPECT 0x02                     1 )
+  ( EXPECT 0x03                     1 )
+  ( EXPECT 0x04                     1 )
+  ( EXPECT 0x00                     2 )
+
+  P< "multi_day: >P LF
+    ;result #01 DBGBYTEn SP #0004 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #01 DBGBYTEn SP #0007 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #00 DBGBYTEn SP #0007 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #00 DBGBYTEn SP #0008 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #00 DBGBYTEn SP #0009 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+    ;result #00 DBGBYTEn SP #000a DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
+  ( EXPECT multi_day: )
+  ( EXPECT 0x01 4                     2 )
+  ( EXPECT 0x01 7                     2 )
+  ( EXPECT 0x00 7                     2 )
+  ( EXPECT 0x00 8                     3 )
+  ( EXPECT 0x00 9                     3 )
+  ( EXPECT 0x00 10                     4 )
+
+  P< "eval_list: >P LF
+  S< "3,4,3,1,2 0a >S #0001 ;test-eval-list JSR2
+  S< "3,4,3,1,2 0a >S #0002 ;test-eval-list JSR2
+  S< "3,4,3,1,2 0a >S #0003 ;test-eval-list JSR2
+  S< "3,4,3,1,2 0a >S #000a ;test-eval-list JSR2
+  S< "3,4,3,1,2 0a >S #0012 ;test-eval-list JSR2
+  S< "3,4,3,1,2 0a >S #0050 ;test-eval-list JSR2
+  ( EXPECT eval_list: )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 1                    5 )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 2                    6 )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 3                    7 )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 10                   12 )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 18                   26 )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 80                 5934 )
+  STKCHK
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+~day6_lib.tal
+~library/test.tal
+
+( s* -- )
+@test-parse-list
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-byte-list JSR2
+  ;list ;dump-byte-list JSR2
+
+  RTN
+
+( s* days -- )
+@test-eval-list
+  STH2 ( : days )
+
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-byte-list JSR2
+  ;list ;dump-byte-list JSR2
+
+  ( : days )
+  STH2rk DBGSHORTDECn POP2
+
+  ;result ;list STH2rk ;eval-list JSR2
+
+  ;result ;print64 JSR2 LF
+
+  ( : days )
+  POP2r
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+@test-list 00 01 00 02 01 59 ff ff
+@input $2
+
+@result $8
+
+@list $1000
