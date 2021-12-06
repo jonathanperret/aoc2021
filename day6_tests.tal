@@ -21,42 +21,19 @@
   ( EXPECT repeated_separator:1 23 45  )
   STKCHK
 
-  P< "zero_days_zero: >P ;result #00 #0000 ;compute-fish JSR2 ;result ;print64 JSR2 LF
-  ( EXPECT zero_days_zero:                    1 )
-
-  P< "zero_days_one: >P ;result #01 #0000 ;compute-fish JSR2 ;result ;print64 JSR2 LF
-  ( EXPECT zero_days_one:                    1 )
-
-  P< "zero_days_two: >P ;result #02 #0000 ;compute-fish JSR2 ;result ;print64 JSR2 LF
-  ( EXPECT zero_days_two:                    1 )
-
-  P< "one_day: >P LF
-    ;result #01 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #02 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #03 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #04 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #00 DBGBYTEn SP #0001 ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-  ( EXPECT one_day: )
-  ( EXPECT 0x01                     1 )
-  ( EXPECT 0x02                     1 )
-  ( EXPECT 0x03                     1 )
-  ( EXPECT 0x04                     1 )
-  ( EXPECT 0x00                     2 )
-
-  P< "multi_day: >P LF
-    ;result #01 DBGBYTEn SP #0004 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #01 DBGBYTEn SP #0007 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #00 DBGBYTEn SP #0007 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #00 DBGBYTEn SP #0008 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #00 DBGBYTEn SP #0009 DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-    ;result #00 DBGBYTEn SP #000a DBGSHORTDECn SP ;compute-fish JSR2 ;result ;print64 JSR2 LF STKCHK
-  ( EXPECT multi_day: )
-  ( EXPECT 0x01 4                     2 )
-  ( EXPECT 0x01 7                     2 )
-  ( EXPECT 0x00 7                     2 )
-  ( EXPECT 0x00 8                     3 )
-  ( EXPECT 0x00 9                     3 )
-  ( EXPECT 0x00 10                     4 )
+  P< "list_stats: >P LF
+  S< "3,4,3,1,2 0a >S ;test-parse-list JSR2 ;list ;stats ;list-stats JSR2 ;stats ;dump-stats JSR2
+  ( EXPECT list_stats: )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT                     0 )
+  ( EXPECT                     1 )
+  ( EXPECT                     1 )
+  ( EXPECT                     2 )
+  ( EXPECT                     1 )
+  ( EXPECT                     0 )
+  ( EXPECT                     0 )
+  ( EXPECT                     0 )
+  ( EXPECT                     0 )
 
   P< "eval_list: >P LF
   S< "3,4,3,1,2 0a >S #0001 ;test-eval-list JSR2
@@ -131,3 +108,4 @@
 @result $8
 
 @list $1000
+@stats $100
