@@ -65,6 +65,7 @@
   S< "3,4,3,1,2 0a >S #000a ;test-eval-list JSR2
   S< "3,4,3,1,2 0a >S #0012 ;test-eval-list JSR2
   S< "3,4,3,1,2 0a >S #0050 ;test-eval-list JSR2
+  S< "3,4,3,1,2 0a >S #0100 ;test-eval-list JSR2
   ( EXPECT eval_list: )
   ( EXPECT 3 4 3 1 2  )
   ( EXPECT 1                    5 )
@@ -78,6 +79,8 @@
   ( EXPECT 18                   26 )
   ( EXPECT 3 4 3 1 2  )
   ( EXPECT 80                 5934 )
+  ( EXPECT 3 4 3 1 2  )
+  ( EXPECT 256          26984457539 )
   STKCHK
 
   P< "👍 0a >P

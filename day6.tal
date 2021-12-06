@@ -39,7 +39,7 @@
 
   ;fish ;dump-byte-list JSR2
 
-  ;&result ;fish #0050 ;eval-list JSR2
+  ;&result ;fish #0100 ;eval-list JSR2
 
   ;&result ;print64 JSR2 LF
 
