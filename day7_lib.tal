@@ -1,0 +1,165 @@
+( parses 1,2,256\n into 0001 0002 0100 ffff )
+( get-byte list -- )
+@parse-short-list
+  ;&list STA2
+  ( patch call site )
+  ;&get-byte STA2
+
+  ,&first-number JMP
+
+  &next-byte
+    LIT2 [ &get-byte $2 ] JSR2 ( b )
+    DUP #0a EQU ,&done JCN
+    DUP #30 LTH ,&next-number JCN
+
+    #01 [ ,&started STR ]
+    #30 SUB #00 SWP
+    STH2r #000a MUL2 ADD2 STH2
+    ,&next-byte JMP
+
+  &next-number
+    ( separator ) POP ( )
+    STH2r ,&append_if_started JSR
+    &first-number
+    #00 [ ,&started STR ]
+    #0000 STH2 ( : num )
+    ,&next-byte JMP
+
+  &done
+  ( 0a ) POP ( )
+
+  ( append final number )
+  STH2r ,&append_if_started JSR
+  ( append terminator )
+  #ffff ,&append JSR
+  RTN
+
+  ( num -- )
+  &append_if_started
+    [ ,&started LDR ] ,&append JCN
+    ( num ) POP2 ( )
+    RTN
+  ( num -- )
+  &append
+    [ ,&list LDR2 ] STA2
+    [ ,&list LDR2 ] INC2 INC2 [ ,&list STR2 ]
+    RTN
+
+  [ &list $2 &started $1 ]
+
+( list -- )
+@dump-short-list
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    ;print-short-decimal JSR2 SP
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  LF
+  RTN
+
+( dest* src* -- )
+@copy-short-list
+  SWP2 STH2
+  ( src* : dest* )
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    STH2rk STA2
+    INC2r INC2r
+    INC2 INC2
+    ,&loop JMP
+  &done
+  ( terminator )
+  STH2r STA2
+  ( src* )
+  POP2
+  RTN
+
+( list* stats* -- )
+@list-stats
+  STH2
+  &loop
+    DUP2 LDA
+    DUP #ff EQU ,&done JCN
+    #00 SWP 8** STH2rk ADD2
+    #01 ;add64-byte JSR2
+
+    INC2
+    ,&loop JMP
+  &done
+  POP
+
+  POP2 POP2r
+  RTN
+  &tmp $8
+
+( stats* -- )
+@dump-stats
+  LITr 09
+  &loop
+    DUP2 ;print64 JSR2 LF
+    #0008 ADD2
+    DECr STHrk ,&loop JCN
+  POP2 POPr
+  RTN
+
+( from to -- cost )
+@compute-cost
+  DUP4 GTH2 ,&pos JCN
+    SWP2
+    &pos
+  SUB2
+  RTN
+  &neg
+
+( r* list* to -- )
+@compute-list-cost
+  STH2 ( r* list* : to )
+  SWP2 [ ,&r STR2 ] ( list* : to )
+  [ ,&r LDR2 ] #0000 ;short-to-64 JSR2
+  ( list* : to )
+  &loop
+    DUP2 LDA2 ( list* from : to )
+    DUP2 #ffff EQU2 ,&done JCN
+
+    STH2rk ( list* from to : to )
+    ;compute-cost JSR2 ( list* cost : to )
+    ;&cost SWP2 ;short-to-64 JSR2
+    [ ,&r LDR2 ] ;&cost ;add64 JSR2
+
+    INC2 INC2
+    ,&loop JMP
+  &done
+  ( list* terminator : to )
+  POP2 POP2
+  POP2r
+  RTN
+  [ &r $2 &cost $8 ]
+
+( list* tomin tomax -- )
+@compute-list-cost-range
+  ROT2 ( tomin tomax list* )
+  STH2 SWP2 ( tomax tomin : list* )
+  ( tomax to : list* )
+  &loop
+    P< "-> 20 >P
+    DUP2 DBGSHORTDECn POP2 SP
+    P< ": >P
+    ( tomax to : list* )
+    ;&cost OVR2 ( tomax to cost* to : list* )
+    STH2rk SWP2 ( tomax to cost* list* to : list* )
+    ;compute-list-cost JSR2
+    ;&cost ;print64 JSR2
+    LF
+    INC2 ( tomax to+1 : list* )
+    GEQ2k ,&loop JCN
+  POP2 POP2 POP2r
+  RTN
+  [ &cost $8 ]
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal

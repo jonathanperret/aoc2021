@@ -97,3 +97,7 @@
 
 %S< { ;inline-str JSR2 } %>S { 00 }
 %P< { S< }               %>P { >S ;print JSR2 }
+
+( Testing )
+%STKCHK { ;stkchk JSR2 }
+

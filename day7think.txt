@@ -1,0 +1,235 @@
+1000 numbers (635 distinct values) between 0 and 2000.
+
+The best position must be within the range of initial positions. Otherwise, there would be
+a position one step closer to the pack that is cheaper.
+
+Brute force: for each position between 0 and 2000, compute abs(pos - x) and sum, take min.
+
+Does the best position have to be one of the crabs' initial position?
+
+
+Each crab group at initial position X0 generates a cost function that is a broken line
+bouncing on the X axis, whose slope is the group size:
+
+Y ^
+  |   $            !    *                 $
+  |     $             !  *              $*                           !
+  |       $              !*           $ *                         !
+  |         $              *!       $  *                        !
+  |           $             *  !  $   *                      !
+  |             $            *  $ !  *                    !
+  |               $           $     *!                 !
+  |                 $       $  *   *    !           !
+  |                   $   $     * *        !     !
+   ---------------------$--------*------------!---------------------> X
+                                 X0
+
+The sum of these functions is a wavy broken line:
+
+Y ^              ∑                               ∑
+  |
+  |                ∑                          ∑
+  |
+  |                   ∑                   ∑
+  |
+  |                     ∑              ∑
+  | !              *       ∑         ∑
+  |       !          *        ∑    ∑
+  |             !      *         ∑
+  |     $             !  *              $*                           !
+  |         $              *!       $  *                        !
+  |             $            *  $ !  *                    !
+  |                 $       $  *   *    !           !
+  |---------------------$--------*------------!---------------------> X
+
+The curve has an equation of the form:
+  y = |x-x1| + | x-x2 | + … + | x-xn |
+
+Is it true that it "bounces" only once?
+Going from -infinity towards +infinity, it starts sloping down, and for each crab group
+encountered, its slope becomes more shallow, until we reach the minimum — since there
+has to be an inflexion at the minimum, it has to be on a crab group! — and from there
+the slope can only increase.
+
+The "derivative" (defined only for continuous parts i.e. between groups) looks like:
+
+Y ^
+  |
+  |                                           ∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂
+  |
+  |                              ∂∂∂∂∂∂∂∂∂∂∂∂∂
+  |
+  |---------------------$--------*------------!---------------------> X
+  |
+  |                     ∂∂∂∂∂∂∂∂∂
+  |
+  |∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂∂
+  |
+  |    -1-1/2-1/3      -1+1/2-1/3  1-1/2+1/3    1+1/2+1/3
+  |      ~ -1.833        -0.833     0.833         1.833
+
+The minimum is necessarily where the "derivative" crosses 0.
+
+So, if we sort crabs by initial position:
+
+  16 1 2 0 4 2 7 1 2 14
+
+  0 1 1 2 2 2 4 7 14 16
+
+Compute slopes (group sizes):
+
+  0 1 1 2 2 2 4 7 14 16
+  1 2   3     1 1 1  1
+  1 2 3   1     1             1   1
+
+The slope at -infinity is -(total number of crabs). Indeed, until we reach
+the edge of the pack, for each step towards the pack the cost reduces by the
+number of crabs.
+
+Go through groups updating slope by adding 2*group size at each group (the
+group goes from negative contributor to positive contributor)::
+
+ x=             0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18
+ s=             1   2   3       1           1                           1       1
+ ∂=        -10  -8  -4  2       4           6                           8       10
+
+ As soon as the slope gets positive we have reached our optimum, here x=2.
+ We can get rid of the factor of two by starting with half the pack size as the
+ initial slope:
+
+ x=             0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18
+ s=             1   2   3       1           1                           1       1
+ ∂=        -5   -4  -2  1       2           3                           4       5
+
+We don't even have to group crabs. If they are sorted, each one increments the slope by 1:
+
+ x=         0   1      2          3   4   5   6   7   8   9   10  11  12  13  14  15  16  17  18
+ c=         0   1  1   2  2  2        4           7                           14      16 
+ ∂=    -5   -4  -3 -2  -1 0  1        2           3                           4       5
+
+So:
+  - sort crabs;
+  - set ∂=-(crab count)/2;
+  - for each crab:
+    - ∂++;
+    - if ∂>=0 return crab.
+
+Looking at it, the return value will always be the value of the middle crab, i.e. the median
+of the list.
+
+Given 0 1 1 2 2 2 4 7 14 16, the median is indeed 2.
+
+So:
+  - sort crabs;
+  - return median crab.
+
+Is there an algorithm for computing the median of a set without sorting?
+
+https://en.wikipedia.org/wiki/Quickselect
+
+> Quickselect uses the same overall approach as quicksort, choosing one element
+> as a pivot and partitioning the data in two based on the pivot, accordingly as
+> less than or greater than the pivot. However, instead of recursing into both
+> sides, as in quicksort, quickselect only recurses into one side – the side with
+> the element it is searching for. This reduces the average complexity from
+> \theta(n log n) to \theta(n) with a worst case of O(n^2).
+
+> As with quicksort, quickselect is generally implemented as an in-place
+> algorithm, and beyond selecting the kth element, it also partially sorts the
+> data.
+
+Sounds pretty good!
+
+Wikipedia suggests the Lomuto partition scheme, but I think a safer bet
+implementation-wise will be to drop the in-place requirement and just:
+
+ - set targetIndex=floor((crab count)/2);
+ - repeat:
+   - pick list[0] as a pivot;
+   - partition list into two new lists, smaller and larger (excluding pivot),
+       returning smallerCount, pivotCount and largerCount;
+   - if smallerCount > targetIndex:
+     - copy smaller to list;
+     - repeat.
+     else:
+     - targetIndex -= smallerCount;
+     - if pivotCount > targetIndex:
+       - return pivot.
+       else:
+         - targetIndex -= pivotCount;
+         - copy larger to list;
+         - repeat.
+
+Checking: if initial list has a single element [x]:
+  - targetIndex = 0;
+  - pivot = x;
+  - smaller=[], pivotCount=1, larger=[];
+  - smallerCount(=0) <= targetIndex(=0) : skip;
+  - targetCount -= smallerCount(=0) = 0;
+  - pivotCount(=1) > targetIndex(=0), therefore
+  - return pivot (=x).
+
+If initial list has two elements [x,y]:
+  - targetIndex = 0;
+  - pivot = x;
+
+  Three cases:
+  1. x < y:
+    - smaller=[], pivotCount=1, larger=[y];
+    - smallerCount(=0) <= targetIndex(=0) : skip;
+    - targetCount -= smallerCount(=0) = 0;
+    - pivotCount(=1) > targetIndex(=0), therefore
+    - return pivot (=x).
+  2. x = y:
+    - smaller=[], pivotCount=2, larger=[];
+    - smallerCount(=0) <= targetIndex(=0) : skip;
+    - targetCount -= smallerCount(=0) = 0;
+    - pivotCount(=2) > targetIndex(=0), therefore
+    - return pivot (=x).
+  3. x > y:
+    - smaller=[y], pivotCount=1, larger=[];
+    - smallerCount(=1) > targetIndex(=0) : therefore
+    - targetIndex remains 0, list becomes [y];
+    - singleton case returns y.
+
+If initial list is [16,1,2,0,4,2,7,1,2,14]:
+  - targetIndex = floor(10/2) = 5;
+
+  - pivot=16;
+  - smaller=[1,2,0,4,2,7,1,2,14], pivotCount=1, larger=[];
+  - smallerCount(=10) > targetIndex(=5), therefore
+  - targetIndex remains 5, list=smaller=[1,2,0,4,2,7,1,2,14];
+
+  - pivot=1;
+  - smaller=[], pivotCount=2, larger=[2,0,4,2,7,2,14];
+  - targetIndex = targetIndex - pivotCount = 3;
+  - list=larger=[2,0,4,2,7,2,14];
+
+  - pivot=2;
+  - smaller=[0], pivotCount=3, larger=[4,7,14];
+  - smallerCount(=1) < targetIndex(=3), therefore
+  - targetIndex = targetIndex(=3) - smallerCount(=1) = 2;
+  - pivotCount(=3) > targetIndex(=2), therefore
+  - return pivot(=2).
+
+Oh, but we need to compute the fuel needed to get there.
+Is there a better way than going over the list once again?
+Can't think of one right now. So we need to keep the initial list around.
+
+ - copy crab list to temp list;
+ - quickselect median of temp list;
+ - for each crab in crab list:
+   - result += crab - median;
+ - return result.
+
+With 1000 crabs each between 0 and 2000, and a median >= 0, the result
+will be between 0 (all crabs equal) and 2000*1000 (median = 0 and all crabs
+at 2000, which is impossible but a clear upper bound).
+
+Let's make result an int64.
+
+First we need to parse a list of shorts.
+
+Then, copy it to a temporary list.
+
+To quickselect, we need to know how to split a list according to its first element.

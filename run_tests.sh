@@ -11,7 +11,10 @@ for testfile in $testlist; do
     if [ -f ${testfile%.tal}.expected ]; then
       cat ${testfile%.tal}.expected
     else
-      < $testfile awk '/\( EXPECT/ { sub(".*\\( EXPECT ",""); sub(" \\)$",""); print; }'
+      < $testfile awk '
+        /\( EXPECT/ { sub(".*\\( EXPECT ",""); sub(" \\)$",""); print; }
+        /STKCHK/ { print("🥞"); }
+      '
     fi
   ) <(</dev/null uxncli ${testfile%.tal}.rom)
 done

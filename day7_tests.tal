@@ -1,0 +1,166 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "number_list: >P S< "1234,0,56 0a >S ;test-parse-list JSR2
+  ( EXPECT number_list:1234 0 56  )
+  STKCHK
+
+  P< "copy_list: >P S< "1234,0,56 0a >S ;test-copy-list JSR2
+  ( EXPECT copy_list:1234 0 56  )
+  ( EXPECT = 1234 0 56  )
+  STKCHK
+
+  ( P< "split_list: >P S< "3,2,10,1,3,8,9 0a >S ;test-split-list JSR2 )
+  ( ^EXPECT split_list:pc=2 )
+  ( ^EXPECT sm(2)=2 1  )
+  ( ^EXPECT lg(3)=8 9  )
+  STKCHK
+
+  P< "compute_cost: >P LF
+  #000a #0002 ;test-compute-cost JSR2
+  #0002 #000a ;test-compute-cost JSR2
+  ( EXPECT compute_cost: )
+  ( EXPECT 10 2 8 )
+  ( EXPECT 2 10 8 )
+  STKCHK
+
+  P< "compute_list_cost: >P LF
+  S< "1,2,10 0a >S #0002 ;test-compute-list-cost JSR2
+  ( EXPECT compute_list_cost: )
+  ( EXPECT 1 2 10  )
+  ( EXPECT -> 2 :                     9 )
+  STKCHK
+
+  P< "compute_list_cost_range: >P LF
+  S< "1,2,10 0a >S #0000 #0005 ;test-compute-list-cost-range JSR2
+  ( EXPECT compute_list_cost_range: )
+  ( EXPECT 1 2 10  )
+  ( EXPECT -> 0 :                   13 )
+  ( EXPECT -> 1 :                   10 )
+  ( EXPECT -> 2 :                    9 )
+  ( EXPECT -> 3 :                   10 )
+  ( EXPECT -> 4 :                   11 )
+  ( EXPECT -> 5 :                   12 )
+  STKCHK
+
+  P< "compute_list_cost_range: >P LF
+  S< "16,1,2,0,4,2,7,1,2,14 0a >S #0000 #0010 ;test-compute-list-cost-range JSR2
+  ( EXPECT compute_list_cost_range: )
+  ( EXPECT 16 1 2 0 4 2 7 1 2 14  )
+  ( EXPECT -> 0 :                   49 )
+  ( EXPECT -> 1 :                   41 )
+  ( EXPECT -> 2 :                   37 )
+  ( EXPECT -> 3 :                   39 )
+  ( EXPECT -> 4 :                   41 )
+  ( EXPECT -> 5 :                   45 )
+  ( EXPECT -> 6 :                   49 )
+  ( EXPECT -> 7 :                   53 )
+  ( EXPECT -> 8 :                   59 )
+  ( EXPECT -> 9 :                   65 )
+  ( EXPECT -> 10 :                   71 )
+  ( EXPECT -> 11 :                   77 )
+  ( EXPECT -> 12 :                   83 )
+  ( EXPECT -> 13 :                   89 )
+  ( EXPECT -> 14 :                   95 )
+  ( EXPECT -> 15 :                  103 )
+  ( EXPECT -> 16 :                  111 )
+  STKCHK
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+~day7_lib.tal
+~library/test.tal
+
+( s* -- )
+@test-parse-list
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-short-list JSR2
+  ;list ;dump-short-list JSR2
+
+  RTN
+
+( s* -- )
+@test-copy-list
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-short-list JSR2
+  ;list ;dump-short-list JSR2
+
+  P< "= 20 >P
+  ;list2 ;list ;copy-short-list JSR2
+  ;list2 ;dump-short-list JSR2
+
+  RTN
+
+( from to -- )
+@test-compute-cost
+  SWP2 DBGSHORTDECn SP SWP2 DBGSHORTDECn SP
+  ;compute-cost JSR2 DBGSHORTDEC POP2
+  RTN
+
+( s* to -- )
+@test-compute-list-cost
+  STH2
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-short-list JSR2
+  STH2r
+  ( to )
+
+  ;list ;dump-short-list JSR2
+
+  P< "-> 20 >P
+  DBGSHORTDECn P< 20 ": 20 >P
+
+  STH2
+  ;cost ;list STH2r ;compute-list-cost JSR2
+
+  ;cost ;print64 JSR2
+  LF
+
+  RTN
+
+( s* tomin tomax -- )
+@test-compute-list-cost-range
+  STH2 STH2
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-short-list JSR2
+
+  ;list ;dump-short-list JSR2
+
+  ;list STH2r STH2r ( list* tomin tomax )
+  ;compute-list-cost-range JSR2
+
+  RTN
+
+( s* -- )
+@test-split-list
+  ;input STA2
+  ;get-byte-from-input ;list ;parse-short-list JSR2
+
+  P< "pc= >P #0002 DBGSHORTDECn POP2 LF
+  P< "sm( >P #0001 DBGSHORTDECn POP2 P< ")= >P ;list ;dump-short-list JSR2
+  P< "lg( >P #0003 DBGSHORTDECn POP2 P< ")= >P ;list ;dump-short-list JSR2
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+@input $2
+
+@result $8
+
+@list $1000
+@list2 $1000
+@cost $8

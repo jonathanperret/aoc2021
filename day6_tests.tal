@@ -1,8 +1,6 @@
 ~library/macros.tal
 ~library/devices.tal
 
-%STKCHK { ;stkchk JSR2 }
-
 ( variables )
 
 |0000
