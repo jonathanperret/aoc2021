@@ -253,3 +253,394 @@ Brute force should work the same since the cost to compute a cost is constant.
 Hmm, I don't have an easy way to divide an int64 by 2 😭
 I could shift bits, but instead I can multiply by 128 and then drop
 the first byte!
+
+What does the derivative look like for
+  f(x) = x^2 + |x| ? (dropping the 1/2 factor because it has no bearing on optimization)
+
+  f'(x) = 2x + x/|x|  { where x != 0 }
+
+What does the derivative look like for
+  f(x) = (x-a)^2 + |x-a| ? (_a_ being the crab's starting coordinate)
+       = x^2 - 2ax + a^2 + |x-a|
+
+  f'(x) = 2x - 2a + (x-a)/|x-a|  { where x != a }
+
+What does the derivative look like for
+  f(x) = k[(x-a)^2 + |x-a|] ? (_k_ being the number of crabs in the group at _a_)
+       = k.x^2 - 2kax + k.a^2 + k|x-a|
+
+  f'(x) = k[2x - 2a + (x-a)/|x-a|]  { where x != a }
+
+  f'(x) = k[2x - 2a - 1 ]  { where x < a }
+  f'(x) = k[2x - 2a + 1 ]  { where x > a }
+
+Given three crab groups (k,a) (l,b) and (m,c), a < b < c:
+
+  f'(x) =   k[2x - 2a + (x-a)/|x-a|] 
+          + l[2x - 2b + (x-b)/|x-b|] 
+          + m[2x - 2c + (x-c)/|x-c|]   { where x != a,b,c }
+
+  f'(x) =   k[2x - 2a - 1] 
+          + l[2x - 2b - 1] 
+          + m[2x - 2c - 1]            { where x < a }
+        = 2(k+l+m)x - 2(ka+lb+mc) - (k+l+m)
+
+  f'(x) =   k[2x - 2a + 1] 
+          + l[2x - 2b - 1] 
+          + m[2x - 2c - 1]            { where a < x < b }
+        = 2(k+l+m)x - 2(ka+lb+mc) + (k) - (l+m)
+
+  f'(x) =   k[2x - 2a + 1] 
+          + l[2x - 2b + 1] 
+          + m[2x - 2c - 1]            { where b < x < c }
+        = 2(k+l+m)x - 2(ka+lb+mc) + (k+l) - (m)
+
+  f'(x) =   k[2x - 2a + 1] 
+          + l[2x - 2b + 1] 
+          + m[2x - 2c + 1]            { where c < x }
+        = 2(k+l+m)x - 2(ka+lb+mc) + (k+l+m)
+
+  k+l+m = [crab count] = C
+  (ka+lb+mc) = [crab sum] = S
+
+Y ^
+  |                                                    ∂
+  |                                                  ∂
+  |                                                ∂
+  |                                              ∂
+  |                                            ∂
+  |
+  |
+  |                                           ∂
+  |                                         ∂
+  |                                       ∂
+  |                                     ∂
+  |---------------------$--------*----∂-------!---------------------> X
+  |                                 ∂
+  |                               ∂
+  |
+  |                              ∂
+  |                            ∂
+  |                          ∂
+  |                        ∂
+  |                      ∂
+  |
+  |                    ∂
+  |                  ∂
+  |                ∂
+  |              ∂
+
+The derivative is piecewise linear with discontinuities at each crab.
+
+It may cross the Y axis either within a segment, e.g.:
+
+Y ^
+  |                                         ∂
+  |                                       ∂
+  |                                     ∂
+  |---------------------$--------*----∂-------!---------------------> X
+  |                                 ∂
+  |                               ∂
+
+Or at a discontinuity, e.g.:
+
+Y ^
+  |                                                    ∂
+  |                                                  ∂
+  |                                                ∂
+  |                                              ∂
+  |                                            ∂
+  |
+  |---------------------$--------*----∂-------!---------------------> X
+  |
+  |                                           ∂
+  |                                         ∂
+  |                                       ∂
+  |                                     ∂
+
+A general formula seems to be:
+
+  f'(x) = 2Cx - 2S + [count of crabs < x] - [count of crabs > x]
+
+So, given a sorted list of crabs, we can evaluate the derivative to the
+immediate right (x+ε, because it is undefined at a crab itself!)
+of crab number _i_ ( 0 <= i < C ) with:
+
+  f'(crabs[i]+ε) = 2C(crabs[i]+ε) - 2S + [count of crabs < crabs[i]+ε] - [count of crabs > crabs[i]+ε]
+                 = 2C·crabs[i] + 2Cε - 2S + [count of crabs < crabs[i]+ε] - [count of crabs > crabs[i]+ε]
+
+I'll go ahead and approximate 2Cε with ε, and apply the fact that crabs
+have integer coordinates:
+
+  f'(crabs[i]+ε) = 2C·crabs[i] - 2S + [count of crabs <= crabs[i]] - [count of crabs > crabs[i]] + ε
+
+To start with, it is easier to think in terms of non-repeating crabs (i.e. all groups
+have size 1).  If that held, we would have:
+
+  f'(crabs[i]+ε) = 2C·crabs[i] - 2S + [i + 1] - [C - i - 1] + ε
+                 = 2C·crabs[i] - 2S + i + 1 - C + i + 1 + ε
+                 = 2C·crabs[i] - 2S + 2i + 2 - C + ε { no repeated crab }
+
+If crabs can repeat, as is the case in both the sample and my input, computing
+the count of crabs to the left or to the right of the crab at position _i_
+requires looking through the list on the left and right of _i_ to avoid
+double-counting those that share the x coordinate (value) of _i_.
+
+[count of crabs > crabs[i]] must not count any other crab sharing
+the same value as crabs[i], and [count of crabs <=crabs[i]] must
+count all of those.
+
+Indeed, the cost for the entire pack to join any crab that initially sits
+at a given x must be independent of which one of these crabs we look at!
+
+Can we avoid this looking around with a bit of preparation?
+
+Grouping crabs by distinct value, would transform (arbitrarily taking the
+"last" crab in the group as a representative):
+  [ count of crabs to the left or at ith crab ]
+into
+  [ sum of sizes of groups up to and including ith group ]
+and
+  [ count of crabs to the right of ith crab ]
+into
+  [ C - [ sum of sizes of groups up to and including ith group ]]
+
+But thinking a bit more, when we look at the "last" crab in a group of
+identically-valued crabs (e.g 1 1 2 2 [2] 3 3 4 ), the "no repeated crab"
+formula actually holds, since [count of crabs <= crabs[i]] is simply _i+1_,
+and [count of crabs > crabs[i]] is all of the others i.e. _C - (i+1)_.
+
+So, instead of grouping the list, we can instead:
+  - either precompute for each crab the offset to the last crab in its group,
+    in a single right-to-left scan of the list;
+  - or, when trying to evaluate f'(crabs[i]+ε), first scan the list
+    on the right of _i_ until we reach the last crab of this group.
+
+Once we have done that, we can apply
+
+  f'(crabs[i]+ε) = 2C·crabs[i] - 2S + 2i + 2 - C + ε     { i+1 == C || crabs[i+1] > crabs[i] }
+
+Anyway, now that we know how to quickly compute the derivative at any crab,
+how do we find the minimal cost?
+
+We're looking for the x coordinate where the derivative goes from
+below zero to above zero.
+
+We know that at the left of the first crab, the derivative is negative, and at
+the right of the last crab it is necessarily positive. We also know it
+is strictly monotonous (f'(x2) > f'(x1) whenever x2 > x1).
+
+So we could bisect the crab list to find an index _i_ where
+  
+  f'(crabs[i]+ε) < 0 and f'(crabs[i+1]+ε) > 0.
+
+Or for a more basic though less efficient implementation, just scan the list
+from left to right, skipping crabs that have the same value as their
+neighbor on the right, and wait for the derivative to become positive.
+
+Note that if we're scanning, we could use the fact that
+
+  { i+1 == C || crabs[i+1] > crabs[i], (i+k)+1 == C || crabs[(i+k)+1] > crabs[(i+k)] }
+
+  f'(crabs[i+k]+ε) - f'(crabs[i]+ε) =   ( 2C·crabs[i+k] - 2S + 2(i+k) + 2 - C + ε )
+                                      - ( 2C·crabs[i]   - 2S + 2i     + 2 - C + ε )
+                                    = 2C·(crabs[i+k] - crabs[i]) + 2k { playing it fast and loose with ε 🤞 }
+
+to avoid recomputing f'(crabs[i+k]) from scratch given we have f'(crabs[i]) on
+hand, but in fact it looks more trouble than it's worth.
+
+Let's get rid of the edge cases of f' being positive on the immediate right of
+the first crab (group) — just exit with that position as the answer; and
+f' still being negative at the right of the last crab — this can't actually
+happen as it would mean that the entire pack would have to move right.
+
+Now that we have the two positions bounding the optimal position, there
+are still two cases to consider:
+
+Either the derivative crosses the Y axis in a linear segment:
+
+Y ^
+  |                                         ∂
+  |                                       ∂
+  |                                     ∂
+  |---------------------$--------*----∂-------!---------------------> X
+  |                                 ∂
+  |                               ∂
+
+Or at a discontinuity:
+
+Y ^
+  |                                                    ∂
+  |                                                  ∂
+  |                                                ∂
+  |                                              ∂
+  |                                            ∂
+  |
+  |---------------------$--------*----∂-------!---------------------> X
+  |
+  |                                           ∂
+  |                                         ∂
+  |                                       ∂
+  |                                     ∂
+
+Because of this last case, we can't just intersect the line starting
+at (crabs[i]+ε, f'(crabs[i]+ε)) with the Y axis.
+
+Actually, it looks like we can, but we have to clamp the resulting _x_
+to crabs[i+1]:
+
+Y ^
+  |                                                    ∂
+  |                                                  ∂
+  |                                                ∂
+  |                                              ∂      *
+  |                                            ∂      *
+  |                                                 *
+  |---------------------$--------*----∂-------!---*-----------------> X
+  |                                             * ^ Don't take this x
+  |                                           ∂   
+  |                                         ∂ ^
+  |                                       ∂   · Take this one instead
+  |                                     ∂
+
+The line equation we're looking at is:
+
+  f'(crabs[i]+∆x) = f'(crabs[i]+ε) + 2C·∆x
+
+Solving
+
+  f'(crabs[i]+ε) + 2C·∆x = 0
+
+We find
+
+  ∆x = -f'(crabs[i]+ε) / 2C
+
+  ∆x = -(2C·crabs[i] - 2S + 2i + 2 - C) / 2C
+     = -(crabs[i] - S/C + 2i/2C + 2/2C - C/2C)
+     = -crabs[i] + S/C - i/C - 1/C + 1/2
+     = -crabs[i] + (S - i - 1)/C + 1/2
+  crabs[i]+∆x = (S - i - 1)/C + 1/2
+
+Checking:
+  f'(crabs[i]+∆x) = f'((S - i - 1)/C + 1/2)
+
+Let's remember:
+  f'(x) = 2Cx - 2S + [count of crabs < x] - [count of crabs > x]
+
+We're on a segment between crabs[i] and crabs[i+1], so the [count of crabs < x]
+here is i+1, and [count of crabs > x] is C - (i+1).
+
+We get:
+  f'(crabs[i]+∆x) = 2C((S - i - 1)/C + 1/2) - 2S + (i+1) - (C - (i+1))
+                  = 2C((S - i - 1)/C) + 2C(1/2) - 2S + (i+1) - C + (i+1)
+                  = 2(S - i - 1) + C - 2S - C + 2(i+1)
+                  = 2S - 2(i + 1) + C - 2S - C + 2(i+1)
+                  = 0 ☑️
+
+So it looks like if we take
+
+  min(crabs[i+1], (S - i - 1)/C + 1/2)
+
+We should be golden?
+
+Alternatively, we can just walk from crabs[i], repeatedly adding 2C 
+to f'(crabs[i]+ε) until we cross 0.
+
+Applying to the sample: 16,1,2,0,4,2,7,1,2,14 
+
+Sorted: 0 1 1 2 2 2 4 7 14 16 
+
+Statistics:
+  C = 10
+  S = 49
+
+We know the solution is x=5, so we should get f'(4+ε) < 0 and f'(7+ε) > 0.
+Let's see:
+  f'(4+ε) = 2C·4 - 2S + [count of crabs <= 4] - [count of crabs > 4]
+          = 2*10*4 - 2*49 + 7 - 3
+          = -14 ☑️
+
+  f'(7+ε) = 2C·7 - 2S + [count of crabs <= 7] - [count of crabs > 7]
+          = 2*10*7 - 2*49 + 8 - 2
+          = 46 ☑️
+
+Does this work with indices? We have crabs[6]=4, crabs[7]=7:
+  f'(crabs[6]+ε) = 2C·crabs[6] - 2S + 2·6 + 2 - C
+                 = 2*10*4 - 2*49 + 2*6 + 2 - 10
+                 = -14 ☑️
+
+  f'(crabs[7]+ε) = 2C·crabs[7] - 2S + 2·7 + 2 - C
+                 = 2*10*7 - 2*49 + 2*6 + 2 - 10
+                 = 46 ☑️
+
+We have i=6 as the last index with a negative derivative.
+Now to find the y=0 point:
+
+Starting from (4, -14) with a slope of 2*C=20, we find
+(5, 6) as the first integer-x point above the Y axis.
+
+But the actual point of intersection is at x = 4+14/20 = 4.7.
+Now I'm wondering how we should round this.
+In terms of cost, we're looking at a saddle. The nearest integer
+for x should also be the lowest of both costs. And if the
+solution is halfway between two integers, any one will do.
+
+Checking the intersection formula:
+  x = (S - i - 1)/C + 1/2
+    = (49 - 6 - 1)/10 + 1/2
+    = 42/10 + 1/2
+    = 4.7 ☑️
+
+Let's try on my input.
+
+  $ ghci
+  zsh: command not found: ghci
+
+Oops.
+  $ node
+  > crabs=fs.readFileSync('day7.txt','ascii').split(',').map(s=>parseInt(s)).sort((a,b)=>a-b)
+  [
+     0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  1,
+     1,  2,  2,  2,  3,  3,  3,  3,  3,  4,  4,  4,
+    ... 
+  ]
+
+  > C=crabs.length
+  1000
+
+  > S=crabs.reduce((a,b)=>a+b)
+  458585
+
+  // f'(crabs[i]+ε) = 2C·crabs[i] - 2S + 2i + 2 - C + ε     { i+1 == C || crabs[i+1] > crabs[i] }
+  > crabs.map((crab,i) => 2*C*crab - 2*S + 2*i + 2 - C)
+
+  > console.table(crabs.map((crab,i) => ({crab,"f'(crab)":2*C*crab - 2*S + 2*i + 2 - C})))
+  ┌─────────┬──────┬──────────┐
+  │ (index) │ crab │ f'(crab) │
+  ├─────────┼──────┼──────────┤
+  │    0    │  0   │ -918168  │
+  │    1    │  0   │ -918166  │
+  │    2    │  0   │ -918164  │
+  │    3    │  0   │ -918162  │
+  ┊         ┊      ┊          ┊
+  │   594   │ 457  │  -2980   │
+  │   595   │ 459  │  1022    │
+  ┊         ┊      ┊          ┊
+
+We do indeed find a solution between the crabs at 457 and 459. My correct solution found by brute-force
+was 458.
+
+# Relationship with the average value of crabs
+
+People on the internet have demonstrated that in fact the seeked x value
+always lies less than 1/2 away from the average value of the crabs.
+
+Let's see how this computes. The average is of course S/C.
+
+  f'(S/C) = 2C(S/C) - 2S + [count of crabs < S/C] - [count of crabs > S/C]
+          = [count of crabs < S/C] - [count of crabs > S/C]
+
+In the case where no crab lies at the average value, this does indeed yield
+a perfect zero. Which is wrong, so I missed something somehow 🤔
+
+
