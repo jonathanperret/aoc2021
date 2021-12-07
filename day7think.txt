@@ -233,3 +233,23 @@ First we need to parse a list of shorts.
 Then, copy it to a temporary list.
 
 To quickselect, we need to know how to split a list according to its first element.
+
+Ended up doing the brute force thing.
+
+# Part 2
+
+OK, now cost is asympotically the square of the distance:
+  1 -> 1
+  2 -> 1+2      = 3
+  3 -> 1+2+3    = 6
+  4 -> 1+2+3+4  = 10
+  .
+  .
+  .
+  n -> ∑1..n    = n*(n+1)/2 = (n^2 + n) / 2
+
+Brute force should work the same since the cost to compute a cost is constant.
+
+Hmm, I don't have an easy way to divide an int64 by 2 😭
+I could shift bits, but instead I can multiply by 128 and then drop
+the first byte!

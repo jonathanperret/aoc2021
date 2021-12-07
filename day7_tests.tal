@@ -23,53 +23,51 @@
   STKCHK
 
   P< "compute_cost: >P LF
+  #0003 #0002 ;test-compute-cost JSR2
+  #0004 #0002 ;test-compute-cost JSR2
+  #0005 #0002 ;test-compute-cost JSR2
   #000a #0002 ;test-compute-cost JSR2
   #0002 #000a ;test-compute-cost JSR2
   ( EXPECT compute_cost: )
-  ( EXPECT 10 2 8 )
-  ( EXPECT 2 10 8 )
+  ( EXPECT 3 -> 2                     1 )
+  ( EXPECT 4 -> 2                     3 )
+  ( EXPECT 5 -> 2                     6 )
+  ( EXPECT 10 -> 2                    36 )
+  ( EXPECT 2 -> 10                    36 )
   STKCHK
 
   P< "compute_list_cost: >P LF
   S< "1,2,10 0a >S #0002 ;test-compute-list-cost JSR2
   ( EXPECT compute_list_cost: )
   ( EXPECT 1 2 10  )
-  ( EXPECT -> 2 :                     9 )
+  ( EXPECT -> 2 :                    37 )
   STKCHK
 
   P< "compute_list_cost_range: >P LF
   S< "1,2,10 0a >S #0000 #0005 ;test-compute-list-cost-range JSR2
   ( EXPECT compute_list_cost_range: )
   ( EXPECT 1 2 10  )
-  ( EXPECT -> 0 :                   13 )
-  ( EXPECT -> 1 :                   10 )
-  ( EXPECT -> 2 :                    9 )
-  ( EXPECT -> 3 :                   10 )
-  ( EXPECT -> 4 :                   11 )
-  ( EXPECT -> 5 :                   12 )
+  ( EXPECT -> 0 :                   59 )
+  ( EXPECT -> 1 :                   46 )
+  ( EXPECT -> 2 :                   37 )
+  ( EXPECT -> 3 :                   32 )
+  ( EXPECT -> 4 :                   30 )
+  ( EXPECT -> 5 :                   31 )
+  ( EXPECT best:                   30 )
   STKCHK
 
   P< "compute_list_cost_range: >P LF
   S< "16,1,2,0,4,2,7,1,2,14 0a >S #0000 #0010 ;test-compute-list-cost-range JSR2
   ( EXPECT compute_list_cost_range: )
   ( EXPECT 16 1 2 0 4 2 7 1 2 14  )
-  ( EXPECT -> 0 :                   49 )
-  ( EXPECT -> 1 :                   41 )
-  ( EXPECT -> 2 :                   37 )
-  ( EXPECT -> 3 :                   39 )
-  ( EXPECT -> 4 :                   41 )
-  ( EXPECT -> 5 :                   45 )
-  ( EXPECT -> 6 :                   49 )
-  ( EXPECT -> 7 :                   53 )
-  ( EXPECT -> 8 :                   59 )
-  ( EXPECT -> 9 :                   65 )
-  ( EXPECT -> 10 :                   71 )
-  ( EXPECT -> 11 :                   77 )
-  ( EXPECT -> 12 :                   83 )
-  ( EXPECT -> 13 :                   89 )
-  ( EXPECT -> 14 :                   95 )
-  ( EXPECT -> 15 :                  103 )
-  ( EXPECT -> 16 :                  111 )
+  ( EXPECT -> 0 :                  290 )
+  ( EXPECT -> 1 :                  242 )
+  ( EXPECT -> 2 :                  206 )
+  ( EXPECT -> 3 :                  183 )
+  ( EXPECT -> 4 :                  170 )
+  ( EXPECT -> 5 :                  168 )
+  ( EXPECT -> 6 :                  176 )
+  ( EXPECT best:                  168 )
   STKCHK
 
   P< "👍 0a >P
@@ -102,8 +100,11 @@
 
 ( from to -- )
 @test-compute-cost
-  SWP2 DBGSHORTDECn SP SWP2 DBGSHORTDECn SP
-  ;compute-cost JSR2 DBGSHORTDEC POP2
+  SWP2 DBGSHORTDECn P< 20 "-> 20 >P SWP2 DBGSHORTDECn SP
+  ( from to )
+  STH2 STH2 ( : from to )
+  ;cost STH2r STH2r ( cost* from to ) ;compute-cost JSR2
+  ;cost ;print64 JSR2 LF
   RTN
 
 ( s* to -- )
@@ -135,7 +136,7 @@
 
   ;list ;dump-short-list JSR2
 
-  ;list STH2r STH2r ( list* tomin tomax )
+  ;list STH2r STH2r ( best* list* tomin tomax )
   ;compute-list-cost-range JSR2
 
   RTN

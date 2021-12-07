@@ -106,14 +106,43 @@
   POP2 POPr
   RTN
 
-( from to -- cost )
+( cost* from to -- )
 @compute-cost
-  DUP4 GTH2 ,&pos JCN
+  GTH2k ,&pos JCN
     SWP2
     &pos
   SUB2
+  ( cost* distance )
+
+  STH2
+
+  ;&result STH2kr ( cost* result* distance : distance )
+  ;short-to-64 JSR2 ( cost* result=distance : distance )
+
+  ( set tmp to distance )
+  ;&tmp STH2r ( cost* tmp* distance ) ;short-to-64 JSR2
+
+  ( cost* )
+
+  ( tmp = tmp^2 )
+  ;&tmp ;&tmp ;mul64 JSR2
+  ;&tmp ;mul64/get-lo JSR2
+
+  ( cost* )
+
+  ( add tmp into result )
+  ;&result ;&tmp ;add64 JSR2
+
+  ( multiply result by 128 )
+  ;&result #80 ;mul64-byte JSR2
+
+  ( cost* )
+  ( drop first byte of result (dividing by 256), copy into cost )
+  ;&result INC2 ;copy64 JSR2
+
   RTN
-  &neg
+  [ &result $9 &tmp $8 ]
+
 
 ( r* list* to -- )
 @compute-list-cost
@@ -126,8 +155,9 @@
     DUP2 #ffff EQU2 ,&done JCN
 
     STH2rk ( list* from to : to )
-    ;compute-cost JSR2 ( list* cost : to )
-    ;&cost SWP2 ;short-to-64 JSR2
+    ;&cost ROT2 ROT2 ( list* cost* from to : to )
+    ;compute-cost JSR2 ( list* : to )
+
     [ ,&r LDR2 ] ;&cost ;add64 JSR2
 
     INC2 INC2
@@ -143,6 +173,8 @@
 @compute-list-cost-range
   ROT2 ( tomin tomax list* )
   STH2 SWP2 ( tomax tomin : list* )
+  ( best = int64_max )
+  #7f ;&best #0006 ADD2 STA
   ( tomax to : list* )
   &loop
     P< "-> 20 >P
@@ -154,11 +186,23 @@
     ;compute-list-cost JSR2
     ;&cost ;print64 JSR2
     LF
+
+    ;&tmp ;&cost ;&best ;sub64 JSR2
+    ;&tmp ;is-positive64 JSR2
+    NOT ,&new-best JCN
+      ,&done JMP
+    &new-best
+    ;&best ;&cost ;copy64 JSR2
+
     INC2 ( tomax to+1 : list* )
     GEQ2k ,&loop JCN
+  &done
   POP2 POP2 POP2r
+  P< "best: >P
+  ;&best ;print64 JSR2 LF
+
   RTN
-  [ &cost $8 ]
+  [ &cost $8 &best $8 &tmp $8 ]
 
 ~library/console.lib.tal
 ~library/string.tal
