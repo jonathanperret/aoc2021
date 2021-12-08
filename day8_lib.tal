@@ -6,33 +6,17 @@
 
   #0000 [ ;&easy-count STA2 ]
 
-  (
-   - repeat:
-     - scan each line for '|';
-     - count the number of non-whitespace characters;
-     - increment counter;
-     - if last whitespace was a newline, loop.
-  )
-
-  &separator-scan
-    ;&get-byte JSR2 ( b )
-    DUP #00 NEQ ,&not-empty JCN
-      POP
-      #ffff
-      RTN
-      &not-empty
-
-    LIT '| NEQ ,&separator-scan JCN
-
-  ( eat the space following the separator )
-  ;&get-byte JSR2 POP
 
   &next-digit
     #0000 [ ;&seg-count STA2 ]
     &next-segment
       ;&get-byte JSR2 ( b )
 
-      DUP #0a EQU ,&line-done JCN
+      DUP #00 NEQ ,&not-empty JCN
+        POP
+        #ffff RTN
+        &not-empty
+      DUP LIT '| EQU ,&left-part-done JCN
       DUP #30 LTH ,&digit-done JCN
       [ ;&seg-count LDA2 ] INC2 [ ;&seg-count STA2 ]
       POP
@@ -43,9 +27,15 @@
     ;&check-seg-count JSR2
     ,&next-digit JMP
 
-  &line-done
-  ;&check-seg-count JSR2
+  &left-part-done
   POP
+
+  ( process last digit )
+  ;&check-seg-count JSR2
+
+  &eol-scan
+    ;&get-byte JSR2 ( b )
+    #0a NEQ ,&eol-scan JCN
 
   [ ;&easy-count LDA2 ]
   RTN

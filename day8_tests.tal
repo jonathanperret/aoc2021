@@ -8,8 +8,8 @@
 
 |0100 @program
 
-  P< "parse_line: >P S< "ab,abc,abcd,|,a,ab,abc,abcd,abcde,abcdef,abcdefg,abcdefgh,ab 0a >S ;test-parse-line JSR2
-  ( EXPECT parse_line:5 )
+  P< "parse_line: >P S< "ab,abc,abcde,|,a,ab,abc,abcd,abcde,abcdef,abcdefg,abcdefgh,ab 0a >S ;test-parse-line JSR2
+  ( EXPECT parse_line:2 )
   STKCHK
 
   P< "parse_empty_line: >P S< 0a >S ;test-parse-line JSR2
@@ -20,7 +20,7 @@
     "ab,|,ab,abc 0a
     "ab,|,abcd,abcde 0a
   >S ;test-parse-lines JSR2
-  ( EXPECT parse_lines:3 )
+  ( EXPECT parse_lines:2 )
   STKCHK
 
   P< "👍 0a >P

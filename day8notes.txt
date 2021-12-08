@@ -23,3 +23,19 @@ A minimal strategy for this part could be to:
      - increment counter;
      - if last whitespace was a newline, loop.
 
+# Part 2
+
+The easy digits in part 1 might be a misdirection.
+Wouldn't it be easier to brute-force the segment assignments?
+
+Let's see, we have 7 segments so we're looking for a 7-element
+permutation. There are 7! of those, which comes out to 5880.
+
+Would it work to try up to 5880 interpretations of each line?
+We only have 200 lines to process, so that doesn't sound too bad.
+
+Note that we only need to scan up to the '|' to find the right
+assignment.
+
+First, let's change the part 1 code to scan to the left of '|'
+instead of the right.
