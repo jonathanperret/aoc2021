@@ -1,0 +1,59 @@
+
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "parse_line: >P S< "ab,abc,abcd,|,a,ab,abc,abcd,abcde,abcdef,abcdefg,abcdefgh,ab 0a >S ;test-parse-line JSR2
+  ( EXPECT parse_line:5 )
+  STKCHK
+
+  P< "parse_empty_line: >P S< 0a >S ;test-parse-line JSR2
+  ( EXPECT parse_empty_line:65535 )
+  STKCHK
+
+  P< "parse_lines: >P S<
+    "ab,|,ab,abc 0a
+    "ab,|,abcd,abcde 0a
+  >S ;test-parse-lines JSR2
+  ( EXPECT parse_lines:3 )
+  STKCHK
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+~day8_lib.tal
+~library/test.tal
+
+( s* -- )
+@test-parse-line
+  ;input STA2
+  ;get-byte-from-input ;parse-line JSR2
+
+  DBGSHORTDEC POP2
+
+  RTN
+
+( s* -- )
+@test-parse-lines
+  ;input STA2
+  ;get-byte-from-input ;parse-lines JSR2
+
+  DBGSHORTDEC POP2
+
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+@input $2

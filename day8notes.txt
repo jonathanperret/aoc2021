@@ -1,0 +1,25 @@
+# Part 1
+
+Segment count
+
+  1 : 2
+  2 : 5
+  3 : 5
+  4 : 4
+  5 : 5
+  6 : 6
+  7 : 3
+  8 : 7
+  9 : 6
+
+Indeed, 1, 4, 7 and 8 are the unambiguous ones, using respectively
+2, 4, 3 and 7 segments.
+
+A minimal strategy for this part could be to:
+
+   - repeat:
+     - scan each line for '|';
+     - count the number of non-whitespace characters;
+     - increment counter;
+     - if last whitespace was a newline, loop.
+

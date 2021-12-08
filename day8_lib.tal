@@ -1,0 +1,91 @@
+
+( get-byte -- easy-count )
+@parse-line
+  ( patch call site )
+  ;&get-byte-addr STA2
+
+  #0000 [ ;&easy-count STA2 ]
+
+  (
+   - repeat:
+     - scan each line for '|';
+     - count the number of non-whitespace characters;
+     - increment counter;
+     - if last whitespace was a newline, loop.
+  )
+
+  &separator-scan
+    ;&get-byte JSR2 ( b )
+    DUP #00 NEQ ,&not-empty JCN
+      POP
+      #ffff
+      RTN
+      &not-empty
+
+    LIT '| NEQ ,&separator-scan JCN
+
+  ( eat the space following the separator )
+  ;&get-byte JSR2 POP
+
+  &next-digit
+    #0000 [ ;&seg-count STA2 ]
+    &next-segment
+      ;&get-byte JSR2 ( b )
+
+      DUP #0a EQU ,&line-done JCN
+      DUP #30 LTH ,&digit-done JCN
+      [ ;&seg-count LDA2 ] INC2 [ ;&seg-count STA2 ]
+      POP
+      ,&next-segment JMP
+
+    &digit-done
+    POP
+    ;&check-seg-count JSR2
+    ,&next-digit JMP
+
+  &line-done
+  ;&check-seg-count JSR2
+  POP
+
+  [ ;&easy-count LDA2 ]
+  RTN
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+  &check-seg-count
+    [ ;&seg-count LDA2 ]
+    DUP2 #0002 EQU2 ,&easy JCN
+    DUP2 #0003 EQU2 ,&easy JCN
+    DUP2 #0004 EQU2 ,&easy JCN
+    DUP2 #0007 EQU2 ,&easy JCN
+
+    POP2
+    RTN
+
+    &easy
+    POP2
+    [ ;&easy-count LDA2 ] INC2 [ ;&easy-count STA2 ]
+    RTN
+
+  [ &seg-count $2 &list $2 &easy-count $2 ]
+
+( get-byte -- easy-count )
+@parse-lines
+  [ ;&get-byte STA2 ]
+  #0000 [ ;&easy-count STA2 ]
+  &next-line
+    [ ;&get-byte LDA2 ] ;parse-line JSR2
+    DUP2 #ffff EQU2 ,&lines-done JCN
+    [ ;&easy-count LDA2 ] ADD2 [ ;&easy-count STA2 ]
+    ,&next-line JMP
+
+  &lines-done
+  POP2
+  [ ;&easy-count LDA2 ]
+  RTN
+  [ &get-byte $2 &easy-count $2 ]
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
