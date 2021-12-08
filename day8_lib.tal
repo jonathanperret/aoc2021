@@ -76,6 +76,101 @@
   RTN
   [ &get-byte $2 &easy-count $2 ]
 
+( get-byte digits-array -- )
+@split-digits
+  [ ;&digits-array STA2 ]
+  [ ;&get-byte-addr STA2 ]
+
+  ( init storage pointer )
+  ;&digits-strings [ ;&digit-ptr STA2 ]
+
+  &next-digit
+    ;&parse-digit JSR2
+    ( success ) ,&next-digit JCN
+
+  ( terminate array )
+  #0000 [ ;&digits-array LDA2 ] STA2
+
+  RTN
+
+  ( -- success )
+  &parse-digit
+    #00 [ ;&started STA ]
+
+    ( parse digit )
+    [ ;&digit-ptr LDA2 ] [ ;&digit-start-ptr STA2 ]
+
+    &next-char
+      ( get next char )
+      ;&get-byte JSR2
+      DUP #30 LTH ,&digit-done JCN
+      DUP LIT '| EQU ,&digit-done JCN
+
+      ( append char to current digit )
+      ;&append-char JSR2
+
+      ,&next-char JMP
+
+    &digit-done
+    POP
+
+    [ ;&started LDA ] ,&was-started JCN
+      #00 RTN
+    &was-started
+
+    ( terminate digit )
+    #00 ;&append-char JSR2
+
+    ( append digit to array )
+    [ ;&digits-array LDA2 ]
+    [ ;&digit-start-ptr LDA2 ] OVR2 STA2
+    INC2 INC2 [ ;&digits-array STA2 ]
+    #01 ( success )
+    RTN
+
+  ( c -- )
+  &append-char
+    #01 [ ;&started STA ]
+    [ ;&digit-ptr LDA2 ] STA
+    [ ;&digit-ptr LDA2 ] INC2 [ ;&digit-ptr STA2 ]
+    RTN
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+  [ &started $1
+    &digits-array $2
+    &digit-start-ptr $2
+    &digit-ptr $2
+    &digits-strings $100 ]
+
+( digits-array -- )
+@dump-digits
+  [ ;&digits-array STA2 ]
+
+  &next-digit
+    ( get digit start )
+    [ ;&digits-array LDA2 ]
+
+    DUP2 LDA2 #0000 EQU2 ,&digits-done JCN
+
+    LDA2
+    DUP2 ;print JSR2
+    POP2
+    SP
+
+    [ ;&digits-array LDA2 ]
+    INC2 INC2
+    [ ;&digits-array STA2 ]
+
+    ,&next-digit JMP
+
+  &digits-done
+  POP2
+
+  RTN
+  [ &digits-array $2 ]
+
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal

@@ -23,6 +23,16 @@
   ( EXPECT parse_lines:2 )
   STKCHK
 
+  P< "split_digits: >P S< "ab,abc,abcde,| aa >S ;test-split-digits JSR2
+  ( EXPECT split_digits:ab abc abcde 0xaa )
+  STKCHK
+
+  P< "split_digits_empty_line: >P S< >S
+    ;input STA2 ;get-byte-from-input ;digits ;split-digits JSR2
+    [ ;digits LDA2 ] DBGSHORT POP2
+  ( EXPECT split_digits_empty_line:0x0000 )
+  STKCHK
+
   P< "👍 0a >P
   ( EXPECT 👍 )
 
@@ -49,6 +59,16 @@
 
   RTN
 
+( s* -- )
+@test-split-digits
+  ;input STA2
+  ;get-byte-from-input ;digits ;split-digits JSR2
+
+  ;digits ;dump-digits JSR2
+  ;get-byte-from-input JSR2 DBGBYTEn POP LF
+
+  RTN
+
 ( -- b )
 @get-byte-from-input
   ;input LDA2 LDA STH
@@ -57,3 +77,4 @@
   RTN
 
 @input $2
+@digits $100
