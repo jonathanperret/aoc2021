@@ -8,65 +8,164 @@
 
 |0100 @program
 
-  P< "parse_line: >P S< "ab,abc,abcde,|,a,ab,abc,abcd,abcde,abcdef,abcdefg,abcdefgh,ab 0a >S ;test-parse-line JSR2
-  ( EXPECT parse_line:2 )
+  P< "parse_byte: >P LF
+  S< "ab, >S DUP2 PRINT SP ;make-get-byte JSR2 ;parse-byte JSR2 SWP DBGBYTEn POP EMIT LF
+  S< "| >S DUP2 PRINT SP ;make-get-byte JSR2 ;parse-byte JSR2 SWP DBGBYTEn POP EMIT LF
+  S< "ab,ac, >S DUP2 PRINT SP ;make-get-byte JSR2 DUP2 ;parse-byte JSR2 SWP DBGBYTEn POP EMIT SP ;parse-byte JSR2 SWP DBGBYTEn POP EMIT LF
+  S< "ab,ac 0a >S DUP2 PRINT SP ;make-get-byte JSR2 DUP2 ;parse-byte JSR2 SWP DBGBYTEn POP EMIT SP ;parse-byte JSR2 SWP DBGBYTEn POP SP DBGBYTE POP
+  S< "ab 0a >S DUP2 PRINT SP ;make-get-byte JSR2 DUP2 ;parse-byte JSR2 SWP DBGBYTEn POP SP DBGBYTE POP SP ;parse-byte JSR2 SWP DBGBYTEn POP SP DBGBYTE POP
+  ( EXPECT parse_byte: )
+  ( EXPECT ab, 0x03, )
+  ( EXPECT | 0xff| )
+  ( EXPECT ab,ac, 0x03, 0x05, )
+  ( EXPECT ab,ac )
+  ( EXPECT  0x03, 0x05 0x0a )
+  ( EXPECT ab )
+  ( EXPECT  0x03 0x0a )
+  ( EXPECT  0xff 0x00 )
   STKCHK
 
-  P< "parse_empty_line: >P S< 0a >S ;test-parse-line JSR2
-  ( EXPECT parse_empty_line:65535 )
+  P< "bit_count: >P LF
+  #00 DBGBYTEn SP ;bit-count JSR2 DBGBYTEDEC POP
+  #01 DBGBYTEn SP ;bit-count JSR2 DBGBYTEDEC POP
+  #02 DBGBYTEn SP ;bit-count JSR2 DBGBYTEDEC POP
+  #04 DBGBYTEn SP ;bit-count JSR2 DBGBYTEDEC POP
+  #80 DBGBYTEn SP ;bit-count JSR2 DBGBYTEDEC POP
+  #ff DBGBYTEn SP ;bit-count JSR2 DBGBYTEDEC POP
+  ( EXPECT bit_count: )
+  ( EXPECT 0x00 0 )
+  ( EXPECT 0x01 1 )
+  ( EXPECT 0x02 1 )
+  ( EXPECT 0x04 1 )
+  ( EXPECT 0x80 1 )
+  ( EXPECT 0xff 8 )
   STKCHK
 
-  P< "parse_lines: >P S<
-    "ab,|,ab,abc 0a
-    "ab,|,abcd,abcde 0a
-  >S ;test-parse-lines JSR2
-  ( EXPECT parse_lines:2 )
+  P< "parity: >P LF
+  #00 DBGBYTEn SP ;parity JSR2 DBGBYTEDEC POP
+  #01 DBGBYTEn SP ;parity JSR2 DBGBYTEDEC POP
+  #02 DBGBYTEn SP ;parity JSR2 DBGBYTEDEC POP
+  #04 DBGBYTEn SP ;parity JSR2 DBGBYTEDEC POP
+  #80 DBGBYTEn SP ;parity JSR2 DBGBYTEDEC POP
+  #ff DBGBYTEn SP ;parity JSR2 DBGBYTEDEC POP
+  ( EXPECT parity: )
+  ( EXPECT 0x00 0 )
+  ( EXPECT 0x01 1 )
+  ( EXPECT 0x02 1 )
+  ( EXPECT 0x04 1 )
+  ( EXPECT 0x80 1 )
+  ( EXPECT 0xff 0 )
   STKCHK
 
-  P< "split_digits: >P S< "ab,abc,abcde,| aa >S ;test-split-digits JSR2
-  ( EXPECT split_digits:ab abc abcde 0xaa )
+  P< "scan_easy: >P
+  S< "ab,abcdef,abcd,| >S ;make-get-byte JSR2 ;scan-easy JSR2 DBGBYTEn SP POP DBGBYTE POP
+  ( EXPECT scan_easy:0x0f 0x03 )
   STKCHK
 
-  P< "split_digits_empty_line: >P S< >S
-    ;input STA2 ;get-byte-from-input ;digits ;split-digits JSR2
-    [ ;digits LDA2 ] DBGSHORT POP2
-  ( EXPECT split_digits_empty_line:0x0000 )
+  P< "convert_byte: >P LF
+  S< "cf,bcdf,cf 20 >S      ;test-convert-byte JSR2
+  S< "cf,bcdf,acdeg 20 >S   ;test-convert-byte JSR2
+  S< "cf,bcdf,acdfg 20 >S   ;test-convert-byte JSR2
+  S< "cf,bcdf,bcdf 20 >S    ;test-convert-byte JSR2
+  S< "cf,bcdf,abdfg 20 >S   ;test-convert-byte JSR2
+  S< "cf,bcdf,abdefg 20 >S  ;test-convert-byte JSR2
+  S< "cf,bcdf,acf 20 >S     ;test-convert-byte JSR2
+  S< "cf,bcdf,abcdefg 20 >S ;test-convert-byte JSR2
+  S< "cf,bcdf,abcdfg 20 >S  ;test-convert-byte JSR2
+  S< "cf,bcdf,abcefg 20 >S  ;test-convert-byte JSR2
+
+  ( EXPECT convert_byte: )
+  ( EXPECT cf,bcdf,cf 1 )
+  ( EXPECT cf,bcdf,acdeg 2 )
+  ( EXPECT cf,bcdf,acdfg 3 )
+  ( EXPECT cf,bcdf,bcdf 4 )
+  ( EXPECT cf,bcdf,abdfg 5 )
+  ( EXPECT cf,bcdf,abdefg 6 )
+  ( EXPECT cf,bcdf,acf 7 )
+  ( EXPECT cf,bcdf,abcdefg 8 )
+  ( EXPECT cf,bcdf,abcdfg 9 )
+  ( EXPECT cf,bcdf,abcefg 0 )
+
+  S< "fc,bfdc,fc 20 >S      ;test-convert-byte JSR2
+  S< "fc,bfdc,gfdea 20 >S   ;test-convert-byte JSR2
+  S< "fc,bfdc,gfdca 20 >S   ;test-convert-byte JSR2
+  S< "fc,bfdc,bfdc 20 >S    ;test-convert-byte JSR2
+  S< "fc,bfdc,gbdca 20 >S   ;test-convert-byte JSR2
+  S< "fc,bfdc,gbdeca 20 >S  ;test-convert-byte JSR2
+  S< "fc,bfdc,gfc 20 >S     ;test-convert-byte JSR2
+  S< "fc,bfdc,gbfdeca 20 >S ;test-convert-byte JSR2
+  S< "fc,bfdc,gbfdca 20 >S  ;test-convert-byte JSR2
+  S< "fc,bfdc,gbfeca 20 >S  ;test-convert-byte JSR2
+
+  ( EXPECT fc,bfdc,fc 1 )
+  ( EXPECT fc,bfdc,gfdea 2 )
+  ( EXPECT fc,bfdc,gfdca 3 )
+  ( EXPECT fc,bfdc,bfdc 4 )
+  ( EXPECT fc,bfdc,gbdca 5 )
+  ( EXPECT fc,bfdc,gbdeca 6 )
+  ( EXPECT fc,bfdc,gfc 7 )
+  ( EXPECT fc,bfdc,gbfdeca 8 )
+  ( EXPECT fc,bfdc,gbfdca 9 )
+  ( EXPECT fc,bfdc,gbfeca 0 )
   STKCHK
+
+  P< "convert_line: >P LF
+  S< "cf,abcdefg,bcdf,|,cf,cf 0a "cf 0a >S DUP2 PRINT ;make-get-byte JSR2 ;convert-line JSR2 DBGSHORTDEC POP2
+  ( EXPECT convert_line: )
+  ( EXPECT cf,abcdefg,bcdf,|,cf,cf )
+  ( EXPECT cf )
+  ( EXPECT 11 )
+
+  P< "convert_line_empty: >P
+  S< >S ;make-get-byte JSR2 ;convert-line JSR2 DBGSHORT POP2
+  ( EXPECT convert_line_empty:0xffff )
+
+  P< "convert_lines: >P LF
+  S<
+    "cf,abcdefg,bcdf,|,cf,cf 0a
+    "cf,abcdefg,bcdf,|,acf,acdeg,bcdf 0a
+  >S ;make-get-byte JSR2 ;convert-lines JSR2
+  ( EXPECT convert_lines: )
+  ( EXPECT 11 )
+  ( EXPECT 724 )
+  ( EXPECT                   735 )
 
   P< "👍 0a >P
   ( EXPECT 👍 )
 
   BRK !
 
+
 ~day8_lib.tal
 ~library/test.tal
 
-( s* -- )
-@test-parse-line
+( s* -- get-byte )
+@make-get-byte
   ;input STA2
-  ;get-byte-from-input ;parse-line JSR2
-
-  DBGSHORTDEC POP2
-
+  ;get-byte-from-input
   RTN
 
 ( s* -- )
-@test-parse-lines
-  ;input STA2
-  ;get-byte-from-input ;parse-lines JSR2
+@test-convert-byte
+  DUP2 PRINT
 
-  DBGSHORTDEC POP2
+  ;make-get-byte JSR2
+  ( get-byte )
+  DUP2 ;parse-byte JSR2 POP STH ( get-byte : digit1 )
+  DUP2 ;parse-byte JSR2 POP STH ( get-byte : digit4 digit1 )
 
-  RTN
+  ;parse-byte JSR2 POP ( byte : digit4 digit1 )
 
-( s* -- )
-@test-split-digits
-  ;input STA2
-  ;get-byte-from-input ;digits ;split-digits JSR2
+  STHr STHr ( byte digit4 digit1 )
+  SWP ( byte digit1 digit4 )
+  ROT ( digit1 digit4 byte )
+  ;convert-byte JSR2
 
-  ;digits ;dump-digits JSR2
-  ;get-byte-from-input JSR2 DBGBYTEn POP LF
+  ( value )
+  DBGBYTEDECn
+  POP
 
+  LF
   RTN
 
 ( -- b )

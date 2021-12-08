@@ -1,175 +1,167 @@
+( get-byte -- digit1-or-ff digit4-or-ff )
+@scan-easy
+  ( get-byte )
+  [ ;&get-byte STA2 ]
 
-( get-byte -- easy-count )
-@parse-line
-  ( patch call site )
-  ;&get-byte-addr STA2
+  #ff [ ;&bytes-by-count #0002 ADD2 STA ]
+  #ff [ ;&bytes-by-count #0004 ADD2 STA ]
 
-  #0000 [ ;&easy-count STA2 ]
+  &next-word
+    LIT2 [ &get-byte $2 ] ;parse-byte JSR2
+    ( byte-or-ff separator )
+    POP ( byte-or-ff )
+    DUP #ff EQU ,&done JCN
+    DUP ;bit-count JSR2
+    ( byte bit-count )
+    #00 SWP ;&bytes-by-count ADD2 ( byte addr ) STA
 
+    ,&next-word JMP
+  &done
+  ( ff ) POP
 
-  &next-digit
-    #0000 [ ;&seg-count STA2 ]
-    &next-segment
-      ;&get-byte JSR2 ( b )
+  [ ;&bytes-by-count #0002 ADD2 LDA ]
+  [ ;&bytes-by-count #0004 ADD2 LDA ]
+  RTN
+  [ &bytes-by-count $8 ]
 
-      DUP #00 NEQ ,&not-empty JCN
-        POP
-        #ffff RTN
-        &not-empty
-      DUP LIT '| EQU ,&left-part-done JCN
-      DUP #30 LTH ,&digit-done JCN
-      [ ;&seg-count LDA2 ] INC2 [ ;&seg-count STA2 ]
-      POP
-      ,&next-segment JMP
-
-    &digit-done
-    POP
-    ;&check-seg-count JSR2
-    ,&next-digit JMP
-
-  &left-part-done
-  POP
-
-  ( process last digit )
-  ;&check-seg-count JSR2
-
-  &eol-scan
-    ;&get-byte JSR2 ( b )
-    #0a NEQ ,&eol-scan JCN
-
-  [ ;&easy-count LDA2 ]
+( byte -- count )
+@bit-count
+          DUP #11 AND STH  ( : count )
+  #01 SFT DUP #11 AND STH  ADDr
+  #01 SFT DUP #11 AND STH  ADDr
+  #01 SFT     #11 AND STHr ADD
+  DUP #04 SFT ADD #0f AND
   RTN
 
-  &get-byte
-    LIT2 [ &get-byte-addr $2 ] JMP2
+( byte -- parity )
+@parity
+  DUP #04 SFT EOR
+  DUP #02 SFT EOR
+  DUP #01 SFT EOR
+  #01 AND
+  RTN
 
-  &check-seg-count
-    [ ;&seg-count LDA2 ]
-    DUP2 #0002 EQU2 ,&easy JCN
-    DUP2 #0003 EQU2 ,&easy JCN
-    DUP2 #0004 EQU2 ,&easy JCN
-    DUP2 #0007 EQU2 ,&easy JCN
+( get-byte -- byte-or-ff separator )
+@parse-byte
+  ( patch call site )
+  ;&get-byte STA2
+  #00 ( byte )
+  #00 [ ,&started STR ]
+  &next-char
+    LIT2 [ &get-byte $2 ] JSR2 ( char )
 
-    POP2
-    RTN
+    DUP #61 LTH ,&digit-done JCN
+    DUP #67 GTH ,&digit-done JCN
 
-    &easy
-    POP2
-    [ ;&easy-count LDA2 ] INC2 [ ;&easy-count STA2 ]
-    RTN
+    ( byte char )
+    LIT 'a SUB
+    ( byte bitpos )
 
-  [ &seg-count $2 &list $2 &easy-count $2 ]
+    #40 SFT ( byte bitpos*16 )
+    #01 SWP ( byte 01 bitpos*16 )
+    SFT
+    ( byte bitshifted )
+    ADD
+    ( byte+bitshifted )
+    #01 [ ,&started STR ]
+    ,&next-char JMP
 
-( get-byte -- easy-count )
-@parse-lines
-  [ ;&get-byte STA2 ]
-  #0000 [ ;&easy-count STA2 ]
+  &digit-done
+  ( byte separator )
+  STH
+  ( byte : separator )
+
+  [ ,&started LDR ] ,&started-ok JCN
+    POP #ff ( ff : char )
+    &started-ok
+
+  ( byte-or-ff : separator )
+
+  STHr
+
+  ( byte-or-ff separator )
+
+  RTN
+  [ &started $1 ]
+
+  &empty
+  ( byte char )
+  POP POP
+  #ff
+  RTN
+
+( digit1 digit4 byte -- value )
+@convert-byte
+  STH ( d1 d4 : byte )
+  STHrk AND ;parity JSR2 8* SWP ( 8*parity(byte & d4) d1 : byte )
+  STHrk AND ;parity JSR2 10* ADD ( 16*parity(byte & d4)+8*parity(byte & d4) : byte )
+  STHr ;bit-count JSR2 ADD ( 8*parity(byte & d4)+parity(byte & d4)+bit-count(byte) )
+  ( signature )
+  #00 SWP ;&table ADD2 LDA
+  RTN
+  [ &table 00 00 01 07 04 00 09 08 00 00 00 00 00 03 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 05 06 00 ]
+
+( get-byte -- value-or-ffff )
+@convert-line
+  ( get-byte )
+  [ ,&get-byte STR2 ]
+  [ ,&get-byte LDR2 ] ;scan-easy JSR2
+  ( digit1 digit4 )
+  [ ,&digit4 STR ] [ ,&digit1 STR ]
+
+  #0000 STH2 ( : result )
+
+  ( eat space )
+  [ ,&get-byte LDR2 ] JSR2 POP
+
+  &next-byte
+    [ ,&get-byte LDR2 ] ;parse-byte JSR2
+    ( byte separator )
+    SWP
+    ( separator byte )
+    DUP #ff NEQ ,&not-empty JCN
+      POP POP2r #ffff RTN
+      &not-empty
+    [ ,&digit1 LDR ] [ ,&digit4 LDR ] ( sep byte digit1 digit4 )
+    ROT ( sep digit1 digit4 byte ) ;convert-byte JSR2
+    ( sep byteval : result )
+    LIT2r 000a MUL2r ( sep byteval : result*10 )
+    #00 SWP STH2 ADD2r ( sep : result*10+byteval )
+    ( separator : result )
+    #0a NEQ ,&next-byte JCN
+
+  STH2r
+  RTN
+  [ &get-byte $2 &digit1 $1 &digit4 $1 ]
+
+( get-byte -- )
+@convert-lines
+  [ ,&get-byte STR2 ]
+
+  ;&result #0000 ;short-to-64 JSR2
+
   &next-line
-    [ ;&get-byte LDA2 ] ;parse-line JSR2
-    DUP2 #ffff EQU2 ,&lines-done JCN
-    [ ;&easy-count LDA2 ] ADD2 [ ;&easy-count STA2 ]
+    [ ,&get-byte LDR2 ] ;convert-line JSR2
+    ( lineval )
+    DUP2 #ffff EQU2 ,&done JCN
+
+    DBGSHORTDEC
+
+    ;&lineval SWP2 ;short-to-64 JSR2
+
+    ;&result ;&lineval ;add64 JSR2
+
     ,&next-line JMP
 
-  &lines-done
-  POP2
-  [ ;&easy-count LDA2 ]
-  RTN
-  [ &get-byte $2 &easy-count $2 ]
+  &done
+  ( ffff ) POP2
 
-( get-byte digits-array -- )
-@split-digits
-  [ ;&digits-array STA2 ]
-  [ ;&get-byte-addr STA2 ]
+  ;&result ;print64 JSR2
+  LF
 
-  ( init storage pointer )
-  ;&digits-strings [ ;&digit-ptr STA2 ]
-
-  &next-digit
-    ;&parse-digit JSR2
-    ( success ) ,&next-digit JCN
-
-  ( terminate array )
-  #0000 [ ;&digits-array LDA2 ] STA2
 
   RTN
-
-  ( -- success )
-  &parse-digit
-    #00 [ ;&started STA ]
-
-    ( parse digit )
-    [ ;&digit-ptr LDA2 ] [ ;&digit-start-ptr STA2 ]
-
-    &next-char
-      ( get next char )
-      ;&get-byte JSR2
-      DUP #30 LTH ,&digit-done JCN
-      DUP LIT '| EQU ,&digit-done JCN
-
-      ( append char to current digit )
-      ;&append-char JSR2
-
-      ,&next-char JMP
-
-    &digit-done
-    POP
-
-    [ ;&started LDA ] ,&was-started JCN
-      #00 RTN
-    &was-started
-
-    ( terminate digit )
-    #00 ;&append-char JSR2
-
-    ( append digit to array )
-    [ ;&digits-array LDA2 ]
-    [ ;&digit-start-ptr LDA2 ] OVR2 STA2
-    INC2 INC2 [ ;&digits-array STA2 ]
-    #01 ( success )
-    RTN
-
-  ( c -- )
-  &append-char
-    #01 [ ;&started STA ]
-    [ ;&digit-ptr LDA2 ] STA
-    [ ;&digit-ptr LDA2 ] INC2 [ ;&digit-ptr STA2 ]
-    RTN
-
-  &get-byte
-    LIT2 [ &get-byte-addr $2 ] JMP2
-
-  [ &started $1
-    &digits-array $2
-    &digit-start-ptr $2
-    &digit-ptr $2
-    &digits-strings $100 ]
-
-( digits-array -- )
-@dump-digits
-  [ ;&digits-array STA2 ]
-
-  &next-digit
-    ( get digit start )
-    [ ;&digits-array LDA2 ]
-
-    DUP2 LDA2 #0000 EQU2 ,&digits-done JCN
-
-    LDA2
-    DUP2 ;print JSR2
-    POP2
-    SP
-
-    [ ;&digits-array LDA2 ]
-    INC2 INC2
-    [ ;&digits-array STA2 ]
-
-    ,&next-digit JMP
-
-  &digits-done
-  POP2
-
-  RTN
-  [ &digits-array $2 ]
+  [ &get-byte $2 &result $8 &lineval $8 ]
 
 ~library/console.lib.tal
 ~library/string.tal

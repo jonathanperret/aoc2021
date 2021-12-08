@@ -35,8 +35,7 @@
 
   ;open-file JSR2
 
-  ;read-byte ;parse-lines JSR2
-  DBGSHORTDEC POP2
+  ;read-byte ;convert-lines JSR2
 
   BRK
 

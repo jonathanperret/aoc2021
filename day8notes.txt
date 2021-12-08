@@ -137,7 +137,7 @@ What bricks do we still need then?
 
   - enumerate-mappings ( visitor* -- ) where visitor ( mapping* -- continue )
 
-        …
+        … https://en.wikipedia.org/wiki/Heap%27s_algorithm ?
 
   - digit-bytes-to-decimal ( bytes* -- num )
     - init result to 0;
@@ -159,4 +159,116 @@ What bricks do we still need then?
     - call digit-bytes-to-decimal.
 
 
+Generating permutations sounds like work. Let's take another look at the digits:
+
+    0:      1:      2:      3:      4:      5:      6:      7:      8:      9:
+   aaaa    ....    aaaa    aaaa    ....    aaaa    aaaa    aaaa    aaaa    aaaa
+  b    c  .    c  .    c  .    c  b    c  b    .  b    .  .    c  b    c  b    c
+  b    c  .    c  .    c  .    c  b    c  b    .  b    .  .    c  b    c  b    c
+   ....    ....    dddd    dddd    dddd    dddd    dddd    ....    dddd    dddd
+  e    f  .    f  e    .  .    f  .    f  .    f  e    f  .    f  e    f  .    f
+  e    f  .    f  e    .  .    f  .    f  .    f  e    f  .    f  e    f  .    f
+   gggg    ....    gggg    gggg    ....    gggg    gggg    ....    gggg    gggg
+
+    6       2       5       5       4       5       6        3       7      6
+            *                       *                        *       *
+
+We know the words for 1, 4, 7, and 8. Note that 8 is always abcdefg!
+
+  - for each remaining digit:
+    - switch on [ bit-count(digit), bit-count(digit & digit1), bit-count(digit & digit4) ]:
+      - [ 5, 2, 3 ]: it's 3;
+      - [ 5, 1, 3 ]: it's 5;
+      - [ 5, 1, 2 ]: it's 2;
+      - [ 6, 1, 3 ]: it's 6;
+      - [ 6, 2, 4 ]: it's 9;
+      - [ 6, 2, 3 ]: it's 0.
+
+Simplifying and generalizing:
+
+  - for each remaining digit:
+    - switch on [ bit-count(digit), parity(digit & digit1), parity(digit & digit4) ]:
+      - [ 5, 0, 1 ]: it's 3;
+      - [ 5, 1, 1 ]: it's 5;
+      - [ 5, 1, 0 ]: it's 2;
+      - [ 6, 1, 1 ]: it's 6;
+      - [ 6, 0, 0 ]: it's 9;
+      - [ 6, 0, 1 ]: it's 0.
+      - [ 2, 0, 0 ]: it's 1.
+      - [ 3, 0, 0 ]: it's 7.
+      - [ 4, 0, 0 ]: it's 4.
+      - [ 7, 0, 0 ]: it's 8.
+
+Again:
+
+  - for each remaining digit:
+    - switch on [ parity(digit & digit1), parity(digit & digit4), bit-count(digit) ]:
+      - [ 0, 0, 2 ]: it's 1.
+      - [ 0, 0, 3 ]: it's 7.
+      - [ 0, 0, 4 ]: it's 4.
+      - [ 0, 0, 6 ]: it's 9.
+      - [ 0, 0, 7 ]: it's 8.
+      - [ 0, 1, 5 ]: it's 3.
+      - [ 0, 1, 6 ]: it's 0.
+      - [ 1, 0, 5 ]: it's 2.
+      - [ 1, 1, 5 ]: it's 5.
+      - [ 1, 1, 6 ]: it's 6.
+
+Packing:
+
+  - for each remaining digit:
+    - switch on [ 16*parity(digit & 1) + 8*parity(digit & 4) + bit-count(digit) ]:
+      - 2: it's 1
+      - 3: it's 7
+      - 4: it's 4
+      - 6: it's 9
+      - 7: it's 8
+      - 13: it's 3
+      - 14: it's 0
+      - 21: it's 2
+      - 29: it's 5
+      - 30: it's 6
+
+Building a table:
+  - @digit-lookup 00 00 01 07 04 00 09 08 00 00 00 00 00 03 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 05 06 00
+  - for each digit:
+    - compute [ 16*parity(digit & 1) + 8*parity(digit & 4) + bit-count(digit) ];
+    - look up digit in table.
+
+In fact, as suprising as it looks, it seems we don't even need to look at the
+non-easy digits on the left of the '|' delimiter before going ahead and
+deciphering the number on the right! In fact, finding '1' and '4' is sufficient.
+
+That '8' is useless is trivial: whatever the permutation of the wires it will
+always come out the same. We can see why '7' is not needed either by looking
+at the only segment it has over '1' (the top line): among the non-easy digits,
+they all have that segment on (in fact only '1' and '4' turn it off), so it
+can't be used to discriminate between those digits.
+
+This all means we can do a single scan on the left-side list, only collecting two
+of the easy digits!
+  - for each line:
+    - for each word until '|':
+      - convert word ( be ) to byte ( 0100100 );
+      - call bit-count(byte) ( 2 );
+      - if count == 2, set digit1 to byte, continue;
+      - if count == 4, set digit4 to byte, continue;
+    - set result to 0;
+    - for each word after '|', until newline:
+      - convert word ( cefdb ) to byte ( 011111 );
+      - for each digit:
+        - compute [ 16*parity(digit & 1) + 8*parity(digit & 4) + bit-count(digit) ];
+        - look up digit in table.
+      - set result to 10*result + value.
+    - convert result to 64-bit;
+    - add result to 64-bit total;
+  - print 64-bit total.
+
+  @digit-lookup 00 00 01 07 04 00 09 08 00 00 00 00 00 03 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 05 06 00
+
+  - digit-to-byte ( digit* -- byte )
+    - init byte to 0;
+    - for each char in digit:
+        set bit (char - 'a') in byte;
+    - return byte.
 
