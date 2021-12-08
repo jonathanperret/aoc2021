@@ -175,6 +175,23 @@ Generating permutations sounds like work. Let's take another look at the digits:
 
 We know the words for 1, 4, 7, and 8. Note that 8 is always abcdefg!
 
+  - (7 & ~1) is a.
+  - Only one remaining digits contains (a | 4), that's 9.
+  - 9 & ~(a | 4) is g.
+  - Only one remaining digit contains (9 & ~1), that's 5.
+  - Only one remaining digit has count(d & ~(7 | g)) == 1, it is 3.
+  - 3 & ~(7 | g) is d.
+  - 8 & ~d is 0.
+  - 8 & ~9 is e.
+  - 8 & ~(3 | e) is b.
+  - Only one remaining digit contains (a|b|d|e|g), it is 6.
+  - 6 & ~(a|b|d|e|g) is f.
+  - 1 & ~f is c.
+  - (a|c|d|e|g) is 2.
+  - (a|b|d|f|g) is 5.
+
+An alternative that uses only bit operations and counting:
+
   - for each remaining digit:
     - switch on [ bit-count(digit), bit-count(digit & digit1), bit-count(digit & digit4) ]:
       - [ 5, 2, 3 ]: it's 3;
