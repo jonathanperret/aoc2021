@@ -7,7 +7,7 @@ testlist=${1:-$(find . -name '*_tests.tal')}
 for testfile in $testlist; do
   uxnasm $testfile ${testfile%.tal}.rom 2>&1 | (egrep -v 'Unused label|^Assembled' ||:)
 
-  diff -U 2 <(
+  diff -a -U 2 <(
     if [ -f ${testfile%.tal}.expected ]; then
       cat ${testfile%.tal}.expected
     else

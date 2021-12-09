@@ -1,0 +1,25 @@
+# Part 1
+
+Ok, we need to find "low points" in a matrix. Basically, convolve with
+
+    0 -1 0       0 0 0        0 0 0        0 0 0
+    0  1 0 ,     0 1 -1 ,    -1 1 0 , and  0 1 0
+    0  0 0       0 0 0        0 0 0        0 -1 0
+
+and look for points where all of these are negative.
+
+First, will the matrix fit in memory? We have a 100x100 array of values
+between 0 and 9, so 10k will be OK.
+
+It is tempting to add a high border around the input. In fact, making the
+in-memory array 128x128 (16k) might be helpful?
+
+Alternatively, we could store only two rows at a time.
+
+I did experiment with a matrix on day 5. That one was backed by virtual
+memory since it had to be 1000x1000, but the interface may be reusable.
+
+In fact, the `dump-matrix` function should work as-is.
+
+I'll use 10 as a sentinel value on the border, which `dump-matrix`
+nicely represents as '@' because ASCII.

@@ -1,0 +1,152 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "dump_matrix: 0a >P S<
+    01 02 03 04 05
+    06 07 01 01 01
+    01 01 10 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+  >S #0005 #0005 ;test-dump-matrix JSR2
+  ( EXPECT dump_matrix: )
+  ( EXPECT 12345 )
+  ( EXPECT 67111 )
+  ( EXPECT 11@11 )
+  ( EXPECT 11111 )
+  ( EXPECT 11111 )
+
+  STKCHK
+
+  P< "parse_matrix: 0a >P S<
+    "91235 0a
+    "56789 0a
+    "01234 0a
+    "56789 0a
+    "00009 0a
+  >S ;test-parse-matrix JSR2
+  ( EXPECT parse_matrix: )
+  ( EXPECT @@@@@@@ )
+  ( EXPECT @91235@ )
+  ( EXPECT @56789@ )
+  ( EXPECT @01234@ )
+  ( EXPECT @56789@ )
+  ( EXPECT @00009@ )
+  ( EXPECT @@@@@@@ )
+
+  STKCHK
+
+  P< "process_matrix: >P ;sample-matrix [ ;sample-matrix-w LDA2 ] [ ;sample-matrix-h LDA2 ] ;test-process-matrix JSR2
+  ( EXPECT process_matrix:15 )
+
+  STKCHK
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+
+~day9_lib.tal
+~library/test.tal
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+( s* w h -- )
+@test-dump-matrix
+  [ ;test-matrix-h STA2 ]
+  [ ;test-matrix-w STA2 ]
+  ;test-matrix-ptr STA2
+  ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;dump-matrix JSR2
+  RTN
+
+( s* -- )
+@test-parse-matrix
+  ;make-get-byte JSR2
+  ( get-byte )
+
+  ;test-matrix ;parse-matrix JSR2
+  ( w h )
+
+  ;test-matrix [ ;test-matrix-ptr STA2 ]
+  STH2 STH2 ;test-matrix-get-at STHr2 STHr2
+  ( get-at w h )
+
+  DUP2 [ ;test-matrix-h STA2 ]
+  OVR2 [ ;test-matrix-w STA2 ]
+
+  ;dump-matrix JSR2
+
+  RTN
+
+( x* w h -- )
+@test-process-matrix
+  [ ;test-matrix-h STA2 ]
+  [ ;test-matrix-w STA2 ]
+  ;test-matrix-ptr STA2
+
+  ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;process-matrix JSR2
+  ( risk )
+  DBGSHORTDEC POP2
+  RTN
+
+( x y -- b )
+@test-matrix-get-at
+  [ ;test-matrix-w LDA2 ] MUL2 ADD2 [ ;test-matrix-ptr LDA2 ] ADD2 LDA
+  RTN
+
+( b x y -- )
+@test-matrix-set-at
+  [ ;test-matrix-w LDA2 ] MUL2 ADD2 [ ;test-matrix-ptr LDA2 ] ADD2 STA
+  RTN
+
+( w*h must be even )
+( matrix* w h -- )
+@clear-matrix
+  MUL2 2// STH2 ( matrix* : wordcount )
+  ( clear matrix )
+  &loop
+    #0000 OVR2 STA2
+    ( advance pointer )
+    #0002 ADD2
+    ( matrix* : count )
+    DEC2r STH2rk #0000 NEQ2 ,&loop JCN
+  ( matrix* : count )
+  POP2r
+  POP2
+  RTN
+
+@input $2
+
+@test-matrix-ptr $2
+@test-matrix-w $2
+@test-matrix-h $2
+
+@test-matrix $1000
+
+@sample-matrix
+  10 10 10 10 10 10 10 10 10 10 10 10
+  10 02 01 09 09 09 04 03 02 01 00 10
+  10 03 09 08 07 08 09 04 09 02 01 10
+  10 09 08 05 06 07 08 09 08 09 02 10
+  10 08 07 06 07 08 09 06 07 08 09 10
+  10 09 08 09 09 09 06 05 06 07 08 10
+  10 10 10 10 10 10 10 10 10 10 10 10
+@sample-matrix-w 000c
+@sample-matrix-h 0007

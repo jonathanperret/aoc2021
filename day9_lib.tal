@@ -1,0 +1,177 @@
+( get-at w h -- )
+@dump-matrix
+  [ ,&h STR2 ]
+  [ ,&w STR2 ]
+  [ ,&get-at STR2 ]
+  LIT2r 0000 ( : y )
+  &row-loop
+    #0000 ( x : y )
+    &col-loop
+      DUP2 STH2rk LIT2 [ &get-at $2 ] JSR2
+      #30 ADD EMIT
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&col-loop JCN
+    POP2 ( : y )
+    LF
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ,&row-loop JCN
+  ( : y )
+  POP2r
+  RTN
+  [ &w $2 &h $2 ]
+
+( get-byte matrix* -- w h )
+@parse-matrix
+  [ ;&matrix STA2 ]
+  [ ;&get-byte-addr STA2 ]
+  #0000 [ ;&w STA2 ]
+  #0002 [ ;&h STA2 ]
+
+  ( scan first row to get width )
+  ;&parse-row JSR2
+  [ ;&row-w LDA2 ] [ ;&w STA2 ]
+
+  ( write border row into matrix )
+  ;&append-border-row JSR2
+
+  ( copy first row into matrix )
+  ;&append-row JSR2
+
+  ( parse other rows )
+  &next-row
+    ;&parse-row JSR2
+    [ ;&row-w LDA2 ] #0002 EQU2 ,&done JCN
+    ;&append-row JSR2
+    ,&next-row JMP
+
+  &done
+
+  ;&append-border-row JSR2
+
+  [ ;&w LDA2 ] [ ;&h LDA2 ] RTN
+  [ &row $100 &matrix $2 &w $2 &h $2 &row-w $2 ]
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+  &parse-row
+    ;&row STH2 ( : row* )
+    #10 STH2rk STA INC2r
+    &next-char
+      ;&get-byte JSR2
+      DUP #00 EQU ,&row-done JCN
+      DUP #0a EQU ,&row-done JCN
+      #30 SUB
+      STH2rk STA
+      INC2r
+      ,&next-char JMP
+    &row-done
+    POP
+    #10 STH2rk STA INC2r
+
+    STH2r ;&row SUB2 [ ;&row-w STA2 ]
+    RTN
+
+  &append-border-row
+    ;&row [ ;&w LDA2 ] ADD2 STH2 ( : rowend* )
+    [ ;&matrix LDA2 ] ;&row STH2 ( matrix* : row* rowend* )
+    &fill-top-next-char
+      #10 #00 SWP OVR2 STA POP
+      INC2 INC2r
+      ( loop if rowend > row )
+      GTH2rk STHr ,&fill-top-next-char JCN
+    POP2r POP2r
+    ( matrix* ) [ ;&matrix STA2 ]
+    RTN
+
+  &append-row
+    ;&row [ ;&w LDA2 ] ADD2 STH2 ( : rowend* )
+    [ ;&matrix LDA2 ] ;&row STH2 ( matrix* : row* rowend* )
+    &copy-next-char
+      STH2rk LDA #00 SWP OVR2 STA POP
+      INC2 INC2r
+      ( loop if rowend > row )
+      GTH2rk STHr ,&copy-next-char JCN
+    POP2r POP2r
+    ( matrix* ) [ ;&matrix STA2 ]
+    [ ;&h LDA2 ] INC2 [ ;&h STA2 ]
+    RTN
+
+( get-at w h -- risk )
+@process-matrix
+  #0001 SUB2 [ ;&h STA2 ]
+  #0001 SUB2 [ ;&w STA2 ]
+  [ ;&get-at-addr STA2 ]
+
+  #0000 [ ;&risk STA2 ]
+  LIT2r 0001 ( : y )
+  &row-loop
+    #0001 ( x : y )
+    &col-loop
+      DUP2 STH2rk ;&get-at JSR2
+
+      ( x v : y )
+      [ ;&v STA ]
+
+      ( x : y )
+      DUP2 INC2
+      ( x x+1 : y )
+      STH2rk
+      ( x x+1 y : y )
+      ;&check JSR2 ,&continue JCN
+
+      ( x : y )
+      DUP2 DEC2
+      ( x x-1 : y )
+      STH2rk
+      ( x x-1 y : y )
+      ;&check JSR2 ,&continue JCN
+
+      ( x : y )
+      DUP2
+      ( x x : y )
+      STH2rk DEC2
+      ( x x y-1 : y )
+      ;&check JSR2 ,&continue JCN
+
+      ( x : y )
+      DUP2
+      ( x x : y )
+      STH2rk INC2
+      ( x x y+1 : y )
+      ;&check JSR2 ,&continue JCN
+
+      [ ;&v LDA ] #00 SWP INC2 ( v+1 )
+      [ ;&risk LDA2 ] ADD2 ( risk+v+1 )
+      [ ;&risk STA2 ]
+
+      ( P< "❤️  >P )
+
+      &continue
+
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ;&col-loop JCN2
+    POP2 ( : y )
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ;&row-loop JCN2
+  ( : y )
+  POP2r
+  [ ;&risk LDA2 ]
+  RTN
+  [ &w $2 &h $2 &v $1 &risk $2 ]
+
+  ( x y -- v )
+  &get-at
+    LIT2 [ &get-at-addr $2 ] JMP2
+
+  ( x y : islow )
+  &check
+    ;&get-at JSR2
+    ( x vl : y )
+    [ ;&v LDA ] ( x vl v : y )
+    LEQ ( x vl<=v? : y )
+    RTN
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
