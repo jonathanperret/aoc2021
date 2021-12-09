@@ -15,6 +15,7 @@ RTN
 @print-short ( short* -- )
 	LIT '0 .Console/write DEO
 	LIT 'x .Console/write DEO
+@print-short-no0x
 	OVR #04 SFT ,&hex JSR
 	SWP #0f AND ,&hex JSR
 	DUP #04 SFT ,&hex JSR

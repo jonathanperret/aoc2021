@@ -41,8 +41,46 @@
 
   STKCHK
 
-  P< "process_matrix: >P ;sample-matrix [ ;sample-matrix-w LDA2 ] [ ;sample-matrix-h LDA2 ] ;test-process-matrix JSR2
-  ( EXPECT process_matrix:15 )
+  P< "process_cell: >P LF                                                  ( EXPECT process_cell: )
+  ( clear column basin if cell is high )
+  S< "0,0,0,65280,0,0 >S S< "1 >S #0003 #09 ;test-process-cell JSR2        ( EXPECT cols=0 0 0 0 0 0 sizes=1  )
+  ( copy basin from top cell )
+  S< "0,0,0,65280,0,0 >S S< "1 >S #0003 #01 ;test-process-cell JSR2        ( EXPECT cols=0 0 0 65280 0 0 sizes=2  )
+  ( copy basin from left cell )
+  S< "0,0,0,65280,0,0 >S S< "1 >S #0004 #01 ;test-process-cell JSR2        ( EXPECT cols=0 0 0 65280 65280 0 sizes=2  )
+  ( allocate new basin )
+  S< "0,0,0,0,0,0 >S S< "4 >S #0003 #01 ;test-process-cell JSR2            ( EXPECT cols=0 0 0 65282 0 0 sizes=4 1  )
+  ( merge basins )
+  S< "0,0,65282,65280,0,0 >S S< "4,2 >S #0003 #01 ;test-process-cell JSR2  ( EXPECT cols=0 0 65280 65280 0 0 sizes=7 0  )
+  ( skip merging identical basins )
+  S< "0,0,65280,65280,0,0 >S S< "4 >S #0003 #01 ;test-process-cell JSR2    ( EXPECT cols=0 0 65280 65280 0 0 sizes=5  )
+
+  STKCHK
+
+  P< "process_matrix: >P LF
+  ;sample-matrix [ ;sample-matrix-w LDA2 ] [ ;sample-matrix-h LDA2 ] ;test-process-matrix JSR2
+  ( EXPECT process_matrix: )
+  ( EXPECT   #    #    #    #    #    #    #    #    #    #    #    #   )
+  ( EXPECT 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000  )
+  ( EXPECT   #    .    .    #    #    #    .    .    .    .    .    #   )
+  ( EXPECT 0000 ff00 ff00 0000 0000 0000 ff02 ff02 ff02 ff02 ff02 0000  )
+  ( EXPECT   #    .    #    .    .    .    #    .    #    .    .    #   )
+  ( EXPECT 0000 ff00 0000 ff04 ff04 ff04 0000 ff02 0000 ff02 ff02 0000  )
+  ( EXPECT   #    #    .    .    .    .    .    #    .    #    .    #   )
+  ( EXPECT 0000 0000 ff04 ff04 ff04 ff04 ff04 0000 ff08 0000 ff02 0000  )
+  ( EXPECT   #    .    .    .    .    .    #    .    .    .    #    #   )
+  ( EXPECT 0000 ff04 ff04 ff04 ff04 ff04 0000 ff08 ff08 ff08 0000 0000  )
+  ( EXPECT   #    #    .    #    #    #    .    .    .    .    .    #   )
+  ( EXPECT 0000 0000 ff04 0000 0000 0000 ff08 ff08 ff08 ff08 ff08 0000  )
+  ( EXPECT   #    #    #    #    #    #    #    #    #    #    #    #   )
+  ( EXPECT 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000  )
+  ( EXPECT sizes=3 9 14 0 9 0 0 0  )
+
+  STKCHK
+
+  P< "compute_result: >P
+  S< "3,9,14,0,9,0,0,0 >S ;make-get-byte JSR2 ;test-basin-sizes ;parse-short-list JSR2 ;test-basin-sizes ;compute-result JSR2
+  ( EXPECT compute_result:14*9*9=                 1134 )
 
   STKCHK
 
@@ -54,6 +92,39 @@
 
 ~day9_lib.tal
 ~library/test.tal
+
+( initial-cols* initial-sizes* x cell -- )
+@test-process-cell
+  ;test-basin-sizes #0006 ;init-basins JSR2
+
+  STH STH2
+  ( initial-cols* initial-sizes* )
+  ;make-get-byte JSR2 ;test-basin-sizes ;parse-short-list JSR2
+
+  ( set next-basin to end of basins )
+  ;test-basin-sizes ( b* )
+  &scan-for-last-basin
+    DUP2 LDA2 #ffff EQU2 ,&found-terminator JCN
+    INC2 INC2
+    ,&scan-for-last-basin JMP
+  &found-terminator
+  [ ;next-basin STA2 ]
+
+  ( initial-cols* )
+  ;make-get-byte JSR2 ;column-basins ;parse-short-list JSR2
+
+  ( set last-basin from column x-1 )
+  ( : x cell )
+  ;column-basins STH2rk DEC2 2** ADD2 LDA2 [ ;last-basin STA2 ]
+
+  STH2r STHr ;process-cell JSR2
+
+  P< "cols= >P
+  ;column-basins ;dump-short-list JSR2
+
+  P< "sizes= >P
+  ;test-basin-sizes ;dump-short-list JSR2 LF
+  RTN
 
 ( s* -- get-byte )
 @make-get-byte
@@ -101,9 +172,11 @@
   [ ;test-matrix-w STA2 ]
   ;test-matrix-ptr STA2
 
-  ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;process-matrix JSR2
-  ( risk )
-  DBGSHORTDEC POP2
+  ;test-basin-sizes ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;process-matrix JSR2
+
+  P< "sizes= >P
+  ;test-basin-sizes ;dump-short-list JSR2
+  LF
   RTN
 
 ( x y -- b )
@@ -150,3 +223,5 @@
   10 10 10 10 10 10 10 10 10 10 10 10
 @sample-matrix-w 000c
 @sample-matrix-h 0007
+
+|ff00 @test-basin-sizes $100

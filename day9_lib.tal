@@ -97,81 +97,268 @@
     [ ;&h LDA2 ] INC2 [ ;&h STA2 ]
     RTN
 
-( get-at w h -- risk )
+( basin-sizes* get-at w h -- )
 @process-matrix
-  #0001 SUB2 [ ;&h STA2 ]
-  #0001 SUB2 [ ;&w STA2 ]
+  [ ;&h STA2 ]
+  [ ;&w STA2 ]
   [ ;&get-at-addr STA2 ]
 
-  #0000 [ ;&risk STA2 ]
-  LIT2r 0001 ( : y )
+  ( basin-sizes* )
+  [ ;&w LDA2 ] ;init-basins JSR2
+
+  LIT2r 0000 ( : y )
   &row-loop
-    #0001 ( x : y )
+    #0000 ( x : y )
+    #0000 [ ;last-basin STA2 ]
     &col-loop
       DUP2 STH2rk ;&get-at JSR2
 
-      ( x v : y )
-      [ ;&v STA ]
+      #20 EMIT
+      #20 EMIT
+      LITr '.
+      DUP #09 LTH ,&low JCN
+        POPr LITr '#
+        &low
+      STHr EMIT
+      #20 EMIT
+      #20 EMIT
+
+      STH DUP2 STHr ;process-cell JSR2
 
       ( x : y )
-      DUP2 INC2
-      ( x x+1 : y )
-      STH2rk
-      ( x x+1 y : y )
-      ;&check JSR2 ,&continue JCN
 
-      ( x : y )
-      DUP2 DEC2
-      ( x x-1 : y )
-      STH2rk
-      ( x x-1 y : y )
-      ;&check JSR2 ,&continue JCN
-
-      ( x : y )
-      DUP2
-      ( x x : y )
-      STH2rk DEC2
-      ( x x y-1 : y )
-      ;&check JSR2 ,&continue JCN
-
-      ( x : y )
-      DUP2
-      ( x x : y )
-      STH2rk INC2
-      ( x x y+1 : y )
-      ;&check JSR2 ,&continue JCN
-
-      [ ;&v LDA ] #00 SWP INC2 ( v+1 )
-      [ ;&risk LDA2 ] ADD2 ( risk+v+1 )
-      [ ;&risk STA2 ]
-
-      ( P< "❤️  >P )
-
-      &continue
+      DUP2 2** ;column-basins ADD2 ( column-basin* ) LDA2 [ ;last-basin STA2 ]
 
       INC2 ( x+1 : y )
       DUP2 [ ,&w LDR2 ] LTH2 ;&col-loop JCN2
     POP2 ( : y )
     INC2r ( : y+1 )
+    LF
+    ;column-basins ;dump-short-list-hex JSR2 LF
     STH2rk [ ,&h LDR2 ] LTH2 ;&row-loop JCN2
   ( : y )
   POP2r
-  [ ;&risk LDA2 ]
   RTN
-  [ &w $2 &h $2 &v $1 &risk $2 ]
+  [ &w $2 &h $2 ]
 
   ( x y -- v )
   &get-at
     LIT2 [ &get-at-addr $2 ] JMP2
 
-  ( x y : islow )
-  &check
-    ;&get-at JSR2
-    ( x vl : y )
-    [ ;&v LDA ] ( x vl v : y )
-    LEQ ( x vl<=v? : y )
+( parses 1,2,256\n into 0001 0002 0100 ffff )
+( get-byte list -- )
+@parse-short-list
+  ;&list STA2
+  ( patch call site )
+  ;&get-byte STA2
+
+  ,&first-number JMP
+
+  &next-byte
+    LIT2 [ &get-byte $2 ] JSR2 ( b )
+    DUP #00 EQU ,&done JCN
+    DUP #0a EQU ,&done JCN
+    DUP #30 LTH ,&next-number JCN
+
+    #01 [ ,&started STR ]
+    #30 SUB #00 SWP
+    STH2r #000a MUL2 ADD2 STH2
+    ,&next-byte JMP
+
+  &next-number
+    ( separator ) POP ( )
+    STH2r ,&append_if_started JSR
+    &first-number
+    #00 [ ,&started STR ]
+    #0000 STH2 ( : num )
+    ,&next-byte JMP
+
+  &done
+  ( 0a ) POP ( )
+
+  ( append final number )
+  STH2r ,&append_if_started JSR
+  ( append terminator )
+  #ffff ,&append JSR
+  RTN
+
+  ( num -- )
+  &append_if_started
+    [ ,&started LDR ] ,&append JCN
+    ( num ) POP2 ( )
     RTN
+  ( num -- )
+  &append
+    [ ,&list LDR2 ] STA2
+    [ ,&list LDR2 ] INC2 INC2 [ ,&list STR2 ]
+    RTN
+
+  [ &list $2 &started $1 ]
+
+( list -- )
+@dump-short-list
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    ;print-short-decimal JSR2 SP
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  RTN
+
+( list -- )
+@dump-short-list-hex
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    ;print-short-no0x JSR2 SP
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  RTN
+
+@next-basin $2
+@column-basins $200
+@last-basin $2
+
+( basin-sizes* w -- )
+@init-basins
+  ( terminate column-basins )
+  2** ;column-basins ADD2 #ffff SWP2 STA2
+  ( basin-sizes* )
+  DUP2 [ ;next-basin STA2 ] #ffff SWP2 STA2
+  #0000 [ ;last-basin STA2 ]
+  RTN
+
+( x cell )
+@process-cell
+  [ ;&cell STA ]
+  [ ;&x STA2 ]
+  [ ;&x LDA2 ] 2** ;column-basins ADD2 ( column-basin* ) [ ;&column-basin-ptr STA2 ]
+  [ ;&cell LDA ] #09 LTH ,&not-high JCN
+    #0000 [ ;&column-basin-ptr LDA2 ] STA2
+    RTN
+    &not-high
+
+  ( get basin above )
+  [ ;&column-basin-ptr LDA2 ] LDA2
+  #0000 EQU2 ,&no-basin-above JCN
+    [ ;last-basin LDA2 ] #0000 EQU2 ,&done JCN
+    [ ;last-basin LDA2 ] [ ,&column-basin-ptr LDR2 ] LDA2 EQU2 ,&done JCN
+    [ ;last-basin LDA2 ] [ ,&column-basin-ptr LDR2 ] LDA2 ;merge-basins JSR2
+
+    ,&done JMP
+    &no-basin-above
+
+  [ ;last-basin LDA2 ] #0000 EQU2 ,&no-basin-leftwards JCN
+    [ ;last-basin LDA2 ] [ ,&column-basin-ptr LDR2 ] STA2
+    ,&done JMP
+    &no-basin-leftwards
+
+  ( allocate new basin )
+  ;alloc-basin JSR2
+  [ ,&column-basin-ptr LDR2 ] STA2
+
+  &done
+  ( get pointer to size of column-basin[x] )
+  [ ,&column-basin-ptr LDR2 ] LDA2
+  ( basin-size* ) DUP2 LDA2 INC2 SWP2 STA2
+  RTN
+  [ &x $2 &cell $1 &column-basin-ptr $2 ]
+
+( -- basin* )
+@alloc-basin
+  [ ;next-basin LDA2 ] STH2  ( : basin* )
+  #0000 STH2rk STA2
+  STH2rk INC2 INC2 [ ;next-basin STA2 ]
+  #ffff [ ;next-basin LDA2 ] STA2
+  ( : basin* )
+  STH2r
+  RTN
+
+( from into -- )
+@merge-basins
+  [ ,&into STR2 ]
+  [ ,&from STR2 ]
+  ;column-basins STH2 ( : column* )
+  &next
+    STH2rk LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    [ ,&from LDR2 ] NEQ2 ,&no-match JCN
+      [ ,&into LDR2 ] STH2rk STA2
+      &no-match
+    INC2r INC2r
+    ,&next JMP
+  &done
+  POP2
+  POP2r
+
+  [ ,&into LDR2 ] LDA2 [ ,&from LDR2 ] LDA2 ADD2 [ ,&into LDR2 ] STA2
+  #0000 [ ,&from LDR2 ] STA2
+
+  RTN
+  [ &from $2 &into $2 ]
+
+( list* -- )
+@compute-result
+  STH2
+
+  STH2rk ;find-max JSR2 DBGSHORTDECn
+  ;&result SWP2 ;short-to-64 JSR2
+
+  LIT '* EMIT
+  STH2rk ;find-max JSR2 DBGSHORTDECn
+  ;&tmp SWP2 ;short-to-64 JSR2
+  ;&result ;&tmp ;mul64 JSR2
+  ;&result ;mul64/get-lo JSR2
+
+  LIT '* EMIT
+  STH2rk ;find-max JSR2 DBGSHORTDECn
+  ;&tmp SWP2 ;short-to-64 JSR2
+  ;&result ;&tmp ;mul64 JSR2
+  ;&result ;mul64/get-lo JSR2
+
+  LIT '= EMIT
+  ;&result ;print64 JSR2
+
+  POP2r
+  LF
+  RTN
+  [ &result $8 &tmp $8 ]
+
+( list* -- max )
+@find-max
+  STH2 ( : list* )
+  #0000 ( max : list* )
+  &loop
+    STH2rk LDA2
+    ( val : list* )
+
+    DUP2 #ffff EQU2 ,&done JCN
+    ( max val : list* )
+    DUP4 GTH2 ,&not-better JCN
+      ( max val : list* )
+      SWP2 ( val oldmax )
+      STH2rk ( val oldmax list* : list* )
+      [ ,&max-ptr STR2 ]
+      ( val oldmax : list* )
+      &not-better
+    POP2
+    ( max : list* )
+    INC2r INC2r
+    ,&loop JMP
+  &done
+  POP2
+  POP2r
+  #0000 [ ,&max-ptr LDR2 ] STA2
+  RTN
+  [ &max-ptr $2 ]
+
 
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal
+
+@basin-sizes $1000

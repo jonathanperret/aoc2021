@@ -23,3 +23,261 @@ In fact, the `dump-matrix` function should work as-is.
 
 I'll use 10 as a sentinel value on the border, which `dump-matrix`
 nicely represents as '@' because ASCII.
+
+# Part 2
+
+Ok, this looks like some kind of flood fill.
+
+Hmm, do plateaus never occur below 9? Ah, not in the sample it seems,
+but I quickly found an occurrence of "22" in my input. Sneaky.
+
+What is the solution of
+
+  12321
+
+?
+There are two low points, clearly draining both "2" cells, but it isn't
+clear where the center "3" flows to.
+
+The text says "all other locations will always be part of exactly one basin"
+though. It may be more than an observation and in fact be a constraint.
+
+In fact, looking at (part of) my input with 9 replaced by █:
+
+87543████8765678█3456█8█764█8█8767█87432123█86543213567██76810245
+█865█8█87█854578█23██878█43878█6567█54210134██854101278█765421376
+1█7█87██65█1356█8██87867█6265█8█47█875321█4█8765323238█8█87563█88
+0███7678█43013467█8767568█174678█8██8████8███87543434██76█87747██
+█87565878█2124578██6534█8█0234578██8██87█78███875454678█56██85678
+2█84545678█234█8█877324█78█345█8█867█8768678███8656878█54545█78██
+1█7312378█43458█87652125678█767█865█8765458██87█76788██63234█8█54
+█862012578█55678█6541034578██7█8█543█8█734678█6█8█8███8█21234███5
+76532234678█67██8763212358████8754320█8█4778█756█0███878█25458█87
+8868434578█878███65434345678█5██6543█876568███43212█876█8█6567██8
+█8765456██1█8█78█7674567678█34█878545█8767███87645█876567█7678██8
+5█8767678█01█5678█8█568█78███56█8█7878█8█8█████75█87654568█78████
+32█87█8██3123458███4█8█6████8████6████2█4█78███867█8█2358██8███87
+212█8███865488████235█35678█7█8765678█12345678██7█76534678████876
+3348██8██765678██8█467█6█8██65██787██32356778██8███864568████8745
+5656█878█87678██878█7█8████8743█8██7653█678████78█0█8█78█8█7██534
+687█87678█888█8█867███78█8█76545███878█8█8████868█12██8██75678█21
+8█8█865678███876548█8767878█76567█0███878██8█87567█356██8███8█8██
+█4█865456█643█87656██6545678█7878█12█876█8█65434567█6██87█8██878█
+434█865678█545█8█878█432348██8█8██2█8765678█7321678██8█76567█86█8
+
+it seems clear that every basin is surrounded by "9" cells.
+
+Could I have more than 256 basins? Ah, in fact I know the exact count of basins,
+that's the result of part 1! 575, here.
+
+Hmm, so unfortunately I can't easily store the basin index in cells.
+I'd need a 16-bit matrix, which would occupy 32k of RAM… it still fits,
+barely.
+To avoid having to rewrite my entire matrix code, I can use a "high-byte"
+matrix.
+
+So what's the plan?
+  - load the matrix as in part1;
+
+Wait. I see clear delimitations by "9" cells above, but who's to say there aren't
+smaller "walls"? e.g.
+
+9999999999
+9000000009
+9055555509
+9050000509
+9055555509
+9999999999
+
+Ah, this is impossible because some cells (the "5"s above) would have no
+definite basin.
+
+So the problem really degenerates into a flood-fill starting at low points and
+stopping at "9" cells.
+
+Here's some more shading for fun:
+
+▓░∴∶∙████▓░∷∴∷░▓█∙∶∴∷█▓█░∷∶█▓█▓░∷░█▓░∶∙☆·☆∙█▓∷∴∶∙☆·∙∴∷░██░∷▓· ☆∶∴▓█░∷∙∶∴█▓∴∶∙☆░▓
+█▓∷∴█▓█▓░█▓∴∶∴░▓█☆∙██▓░▓█∶∙▓░▓█∷∴∷░█∴∶☆· ·∙∶██▓∴∶· ·☆░▓█░∷∴∶☆·∙░∷░▓█∴∶∴█▓░∷∴∶∴∷█
+·█░█▓░██∷∴█·∙∴∷█▓██▓░▓∷░█∷☆∷∴█▓█∶░█▓░∴∙☆·█∶█▓░∷∴∙☆∙☆∙▓█▓█▓░∴∷∙█▓▓▓█▓∷∴∷░█▓░∷∴▓░█
+ ███░∷░▓█∶∙ ·∙∶∷░█▓░∷░∴∷▓█·░∶∷░▓█▓██▓████▓███▓░∴∶∙∶∙∶██░∷█▓░░∶░███∷█▓∷░▓██▓░∷░▓█
+█▓░∴∷∴▓░▓█☆·☆∶∴░▓██∷∴∙∶█▓█ ☆∙∶∴░▓██▓██▓░█░▓███▓░∴∶∴∶∷░▓█∴∷██▓∴∷░▓█∴∙█░▓█▓██▓░▓█∷
+☆█▓∶∴∶∴∷░▓█☆∙∶█▓█▓░░∙☆∶█░▓█∙∶∴█▓█▓∷░█▓░∷▓∷░▓███▓∷∴∷▓░▓█∴∶∴∶∴█░▓██∴∶☆█▓█∷░▓██▓█▓░
+·█░∙·☆∙░▓█∶∙∶∴▓█▓░∷∴☆·☆∴∷░▓█░∷░█▓∷∴█▓░∷∴∶∴▓██▓░█░∷░▓▓██∷∙☆∙∶█▓█∴∶∙☆· █∶∴∷░▓██ █▓
+█▓∷☆ ·☆∴░▓█∴∴∷░▓█∷∴∶· ∙∶∴░▓██░█▓█∴∶∙█▓█░∙∶∷░▓█∷█▓█▓███▓█☆·☆∙∶███∴∶∙☆·☆∙∷░▓█▓█·██
+░∷∴∙☆☆∙∶∷░▓█∷░██▓░∷∙☆·☆∙∴▓████▓░∴∶∙☆ █▓█∶░░▓█░∴∷█ ███▓░▓█☆∴∶∴▓█▓░∷░∙☆∙∶█▓█▓░▓█▓█
+▓▓∷▓∶∙∶∴░▓█▓░▓███∷∴∶∙∶∙∶∴∷░▓█∴██∷∴∶∙█▓░∷∴∷▓███∶∙☆·☆█▓░∷█▓█∷∴∷░██▓░∴∶∴∷███∶∴∷██░▓
+█▓░∷∴∶∴∷██·█▓█░▓█░∷░∶∴∷░∷░▓█∙∶█▓░▓∴∶∴█▓░∷░███▓░∷∶∴█▓░∷∴∷░█░∷░▓██▓░∷∴∷░▓█∶∙∴█▓░∷█
+∴█▓░∷░∷░▓█ ·█∴∷░▓█▓█∴∷▓█░▓███∴∷█▓█░▓░▓█▓█▓█████░∴█▓░∷∴∶∴∷▓█░▓████▓░▓░██∶∴☆█▓░∷∴∷
+∙☆█▓░█▓██∙·☆∙∶∴▓███∶█▓█∷████▓████∷████☆█∶█░▓███▓∷░█▓█☆∙∴▓██▓███▓░█▓█▓██∙☆·☆█▓∴∶∙
+☆·☆█▓███▓∷∴∶▓▓████☆∙∴█∙∴∷░▓█░█▓░∷∴∷░▓█·☆∙∶∴∷░▓██░█░∷∴∙∶∷░▓████▓░∷▓████▓█∙██▓░∶∙☆
+∙∙∶▓██▓██░∷∴∷░▓██▓█∶∷░█∷█▓██∷∴██░▓░██∙☆∙∴∷░░▓██▓███▓∷∶∴∷▓████▓░∶∴░▓███░▓█▓█░∷∴∶∙
+∴∷∴∷█▓░▓█▓░∷░▓██▓░▓█░█▓████▓░∶∙█▓██░∷∴∙█∷░▓████░▓█ █▓█░▓█▓█░██∴∙∶▓██▓░∷∴∷░██░∷∴∷
+∷▓░█▓░∷░▓█▓▓▓█▓█▓∷░███░▓█▓█░∷∴∶∴███▓░▓█▓█▓████▓∷▓█·☆██▓██░∴∷░▓█☆·█▓█▓∷∴∶∴∷█▓█░∷░
+▓█▓█▓∷∴∷░▓███▓░∷∴∶▓█▓░∷░▓░▓█░∷∴∷░█ ███▓░▓██▓█▓░∴∷░█∙∴∷██▓███▓█▓██▓░∷∷∴∶∙∶∴∷░▓█░█
+█∶█▓∷∴∶∴∷█∷∶∙█▓░∷∴∷██∷∴∶∴∷░▓█░▓░▓█·☆█▓░∷█▓█∷∴∶∙∶∴∷░█∷██▓░█▓██▓░▓██▓∴∶∙☆·☆∙∷░██▓█
+∶∙∶█▓∷∴∷░▓█∴∶∴█▓█▓░▓█∶∙☆∙∶▓██▓█▓██☆█▓░∷∴∷░▓█░∙☆·∷░▓██▓█░∷∴∷░█▓∷█▓█▓∷∷∶∙☆∙∶∴▓███☆
+∙☆∙█▓░∷░▓██▓∴∷██▓█▓█∷∴∶·☆∙∶∴██∷██▓█▓█▓░∶∴∷░▓█☆· ·☆∙∶█░▓█∴∶∙█▓░∴∷░▓█░░∴∶∙∶∴∷░▓█∙·
+∶· ██▓░▓██▓░∷█▓░∷░█▓░∷· ∙∶∴░▓█∴█▓░▓░██▓∙∶∴██▓█☆∙∴∙∶█▓∷░▓█∴█▓░∷∶∴∷░▓██∷░∴∴∷░▓█☆· 
+∙☆█▓██▓█∷∴██▓█░∷∴∷██∴∶∙☆∙∴∷▓███▓░∷░∷░▓█☆∴█▓░∷▓█░∷░█▓∷∴▓███▓░∷∴∙∴▓∷█▓██▓░∷█▓█∶∙☆·
+∶∙█░▓██▓█∙☆·██▓░∷█▓░∷∴∶∴∶∴∷░▓█░█∷∴∷∴∷██·∷█▓∷∴░██░▓██∴∶∴∷███∷∴∶☆∙∶∴∷░▓██▓░▓█░∴∶∙█
+∷█░∷█░∷░▓██ ███▓░▓█▓█∷∴∷∷░▓▓█∶∴∷█∶∴∶░░▓██▓░∷∶∴░▓████∶∙∶∴▓█▓░∷∴∙∶░▓░▓█∴▓█▓██▓∷∴█▓
+██∷∴▓∷∴∷∷░▓█░▓██▓█ █▓░█▓████▓█∷█▓∙☆∙∶∷░█▓░∷∴∙∴∷░▓██▓∴∶∴∷░▓█▓░∷∶∴∷░▓█░∶░██∙☆██∷█▓
+▓░∴∶∙☆∙∶∴▓█░∷▓███☆·☆█▓██·∴∴∷░▓██░∴·∙∴░█▓░∷∴∙☆∙∶∴∷█▓░∷░▓░▓████▓░∷▓██░∴∙∷▓██·█▓███
+█▓∶∙☆·☆∙∴░▓█∶∴∷░▓█∙█▓█∷∙☆∙∶∴▓███▓█☆∶∴▓███▓∷∶∙∶∴∷░▓█▓█▓█▓██▓░∷█▓░█░∷█░∶∴∷░▓█▓░█▓░
+██∴∶∙ ·∙∶▓█∶∙∷∴∷░▓█▓░∷∴∶∷░▓∷███▓█∴∙∶∷█∴∙∶█░∴∷∴░░▓█∶█░████▓░∷∶∙█▓█░∴█∷∴∷▓███▓∷∴██
+
+Back to the plan:
+  - load matrix from file;
+  - clear low and high matrices;
+  - init basin index to 1;
+  - scan for low points, and for each:
+    - set low and high matrices to the high and low bytes of the low point index
+      at its coordinates.
+    - increment the basin index.
+  - clear the basin-sizes array;
+  - repeat:
+    - set cell-changed flag to 0;
+    - for each cell in the matrix:
+      - if it is 9, continue;
+      - it if has a non-zero value in the high or low matrices, continue;
+      - look for any neighbor that is ~lower~ not a 9 (there has to be one by
+        construction);
+      - copy that neighbor's low and high matrices values (basin index);
+      - increase that basin's size in the basin-sizes array;
+      - set cell-changed flag to 1.
+    - if cell-changed flag is 1, repeat.
+  - set result to 1;
+  - find max basin size, multiply result by it and clear it from the array;
+  - find max basin size, multiply result by it and clear it from the array;
+  - find max basin size, multiply result by it and clear it from the array;
+  - print result.
+
+I'm sure there's a more elegant way of doing this…
+
+If we consider a single row:
+
+.....████.......█....█.█...█.█....█........█...........██........
+
+We can already distinguish 10 basins in this row. Some may merge later,
+though.
+
+We could maintain an array of (up to) 100 basins counts.
+And an other array that associates each cell of the current row to one
+of the basins (or none, if the cell is a 9).
+
+While scanning the first row:
+  - if the current cell is 9, set its basin index to 0;
+  - otherwise, if the preceding (left) cell was <9, copy its basin index and increase
+    that basin's count;
+  - otherwise, allocate a new basin index, set its count to 1 and
+    set this cell's basin index to it.
+
+So after reading that first row, we'd get:
+
+.....████.......█....█.█...█.█....█........█...........██........
+aaaaa....bbbbbbb.cccc.d.eee.f.gggg.hhhhhhhh.iiiiiiiiiii..jjjjjjjj
+
+Processing the next row:
+  - if the current cell is 9, set its basin index to 0;
+  - otherwise, if this position's basin index is >0:
+    - copy that basin index and increase that basin's count;
+    - if the preceding (left) cell was <9, we need to merge basins:
+      - search and replace the left basin index with the top basin index within
+        the basin indices array;
+      - add the left basin's count to the top basin's count;
+      - clear the left basin's count.
+  - otherwise, if the preceding (left) cell was <9, copy its basin index and increase
+    that basin's count;
+  - otherwise, allocate a new basin index, set its count to 1 and set this
+    cell's basin index to it.
+
+aaaaa....bbbbbbb.cccc.d.eee.f.gggg.hhhhhhhh.iiiiiiiiiii..jjjjjjjj
+
+█...█.█..█......█..██...█.....█....█........██.........█.........
+
+.aaa.k.ll.bbbbbb.cc..m
+                      < here we merge m into d
+.aaa.k.ll.bbbbbb.cc..ddd.eee
+                            < merge e into f
+.aaa.k.ll.bbbbbb.cc..ddd.fffff.gggg.hhhhhhhh..iiiiiiiii.n
+                                                          < merge n into j
+.aaa.k.ll.bbbbbb.cc..ddd.fffff.gggg.hhhhhhhh..iiiiiiiii.jjjjjjjjj
+
+After two lines, we have used 14 cells (a..n) in the sizes array,
+and cleared three of those (e, m and n), so we have found 11 basins.
+
+Let's look at those two lines again:
+
+.....████.......█....█.█...█.█....█........█...........██........
+█...█.█..█......█..██...█.....█....█........██.........█.........
+
+Visually, the count of 11 basins looks right.
+
+aaaaa████bbbbbbb█cccc█d█fff█f█gggg█hhhhhhhh█iiiiiiiiiii██jjjjjjjj
+█aaa█k█ll█bbbbbb█cc██ddd█fffff█gggg█hhhhhhhh██iiiiiiiii█jjjjjjjjj
+
+Can we do this in-place in the original matrix?
+
+.....████.......█....█.█...█.█....█........█...........██........
+
+An issue is that the original matrix is byte-sized and therefore
+can't store every distinct basin index. We could work around this
+be reusing basin indices (since there will never be more than ~50
+active basins) but that sounds risky.
+
+Also, when merging basins, we would have to either replace the
+index in all the rows processed so far, or only the last processed
+row will be correct. At that point using a separate array sounds better.
+
+How can we initialize the basin index array so that the first row isn't
+a special case? Starting with the basin index array initialized to zero
+should do it.
+
+New plan:
+  @process-matrix():
+    - set next-basin to start of basin sizes buffer;
+    - clear column-basin array to 0000 (one short per column);
+      (we don't actually need to do this since our first row is a border that is all high)
+    - set column-basin[w] to ffff;
+    - for y in 0..h-1:
+      - call process-row(y);
+
+  @process-row(matrix, y):
+    - set last-basin to 0000;
+    - for x in 0..w-1:
+      - call process-cell(x, matrix[x,y]).
+      - set last-basin to column-basin[x].
+
+  @process-cell(x, cell):
+    - if cell is 9, set column-basin[x] to 0000;
+    - otherwise:
+      - if  column-basin[x] is != 0000:
+        - if last-basin != 0000 and last-basin != column-basin[x], we need to merge basins:
+          - call merge-basins(last-basin, column-basin[x]).
+        - otherwise, do nothing (leave column-basin[x] as-is).
+      - otherwise, if last-basin != 0000:
+        - set column-basin[x] to last-basin;
+      - otherwise:
+        - set *next-basin to 0;
+        - set column-basin[x] to next-basin;
+        - advance next-basin;
+        - set *next-basin to ffff.
+      - increment *column-basin[x].
+
+  @merge-basins(from, into):
+    - set ptr to column-basin;
+    - loop:
+      - if ptr == ffff break;
+      - if *ptr == from then *ptr = into;
+      - repeat.
+    - *into += *from;
+    - *from = 0.
+
+  @compute-result
+    - set result to 1;
+    - find max basin size, multiply result by it and clear it from the array;
+    - find max basin size, multiply result by it and clear it from the array;
+    - find max basin size, multiply result by it and clear it from the array;
+    - return result.
+

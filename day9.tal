@@ -39,9 +39,8 @@
   ( w h )
   [ ;matrix-h STA2 ] [ ;matrix-w STA2 ]
 
-  ;get-at [ ;matrix-w LDA2 ] [ ;matrix-h LDA2 ] ;process-matrix JSR2
-
-  DBGSHORTDEC POP2
+  ;basin-sizes ;get-at [ ;matrix-w LDA2 ] [ ;matrix-h LDA2 ] ;process-matrix JSR2
+  ;basin-sizes ;compute-result JSR2
 
   BRK
 
