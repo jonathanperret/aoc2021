@@ -7,7 +7,7 @@
   #00 [ ,&skip-unwind STR ]
 
   #00 ( stack start marker, see &unwind )
-  #ff ( dummy char that won't match any closing char, in case string starts with one )
+  #01 ( dummy char that won't match any closing char, in case string starts with one )
   &next-char
     LIT2 [ &get-byte $2 ] JSR2
     DUP #00 EQU ,&eol JCN
@@ -20,7 +20,7 @@
     ( cn-1 cn )
     DUP ;get-opener JSR2
     ( cn-1 cn opener )
-    DUP #00 EQU ,&not-closing JCN
+    LTHk ,&not-closing JCN
       ( cn-1 cn opener )
       STH OVR STHr ( cn-1 cn cn-1 opener )
       ( match previous char )
@@ -59,7 +59,7 @@
         DUP #20 LTH ,&nonprint JCN
         DUP #80 GTH ,&nonprint JCN
           DUP EMIT
-          DUP ;get-score JSR2 ( score )
+          DUP ;get-score JSR2 #00 SWP ( score )
           ;&char-score64 SWP2 ;short-to-64 JSR2
           ;&score64 #05 ;mul64-byte JSR2
           ;&score64 ;&char-score64 ;add64 JSR2
@@ -69,56 +69,24 @@
       ,&unwind-next JCN ( magic! )
     RTN
 
-( c -- score )
+( '> -- score )
 @get-score
-  DUP LIT ') NEQ ,&score-not-) JCN
-    POP #0001 RTN
-    &score-not-)
-  DUP LIT '] NEQ ,&score-not-] JCN
-    POP #0002 RTN
-    &score-not-]
-  DUP LIT '} NEQ ,&score-not-} JCN
-    POP #0003 RTN
-    &score-not-}
-  DUP LIT '> NEQ ,&score-not-> JCN
-    POP #0004 RTN
-    &score-not->
-  POP #0000
-  RTN
+  #10 SUB 20/ INC LDR RTN
+  01 04 02 03
 
 ( '> -- '< )
 @get-opener
-  DUP LIT '] NEQ ,&match-not-] JCN
-    POP LIT '[ RTN
-    &match-not-]
-  DUP LIT '} NEQ ,&match-not-} JCN
-    POP LIT '{ RTN
-    &match-not-}
-  DUP LIT ') NEQ ,&match-not-) JCN
-    POP LIT '( RTN
-    &match-not-)
-  DUP LIT '> NEQ ,&match-not-> JCN
-    POP LIT '< RTN
-    &match-not->
-  POP #00
-  RTN
-
-( '< -- '> )
 @get-closer
-  DUP LIT '[ NEQ ,&match-not-[ JCN
-    POP LIT '] RTN
-    &match-not-[
-  DUP LIT '{ NEQ ,&match-not-{ JCN
-    POP LIT '} RTN
-    &match-not-{
-  DUP LIT '( NEQ ,&match-not-( JCN
-    POP LIT ') RTN
-    &match-not-(
-  DUP LIT '< NEQ ,&match-not-< JCN
-    POP LIT '> RTN
-    &match-not-<
-  POP #00
+  INC LDR
   RTN
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 ') '( 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 '> 00 '< 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 '] 00 '[ 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 '} 00 '{ 00 00
 
 ( list* -- )
 @dump-int64-list
