@@ -1,0 +1,53 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "check_line: >P LF                                        ( EXPECT check_line: )
+  S< "[({(<(())[]>[[{[]{<()<>> 0a >S ;test-check-line JSR2     ( EXPECT [({(<(())[]>[[{[]{<()<>> 1 )
+  STKCHK
+
+  S< "((()) 0a >S ;test-check-line JSR2                         ( EXPECT ((()) 1 )
+  STKCHK
+  S< "] 0a >S ;test-check-line JSR2                             ( EXPECT ] 57 )
+  STKCHK
+  S< "( 0a >S ;test-check-line JSR2                             ( EXPECT ( 1 )
+  STKCHK
+  S< "(] 0a >S ;test-check-line JSR2                            ( EXPECT (] 57 )
+  STKCHK
+  S< "(( 0a >S ;test-check-line JSR2                            ( EXPECT (( 1 )
+  STKCHK
+  S< "[] 0a >S ;test-check-line JSR2                            ( EXPECT [] 1 )
+  STKCHK
+  ;eof-line ;test-check-line JSR2                               ( EXPECT  0 )
+  STKCHK
+  S< "[) 0a >S ;test-check-line JSR2                            ( EXPECT [) 3 )
+  STKCHK
+  S< "[} 0a >S ;test-check-line JSR2                            ( EXPECT [} 1197 )
+  STKCHK
+  S< "[> 0a >S ;test-check-line JSR2                            ( EXPECT [> 25137 )
+  STKCHK
+  S< "(() 0a >S ;test-check-line JSR2                           ( EXPECT (() 1 )
+  STKCHK
+  S< "(]A 0a >S ;test-check-line JSR2                           ( EXPECT (] 57 )
+    ;get-byte-from-test-input JSR2 DBGBYTE POP                  ( EXPECT 0x00 )
+  STKCHK
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+@eof-line 00
+
+@test-check-line
+  ;setup-test-input JSR2 ;check-line JSR2 DBGSHORTDEC POP2
+  RTN
+
+~day10_lib.tal
+~library/test.tal
+

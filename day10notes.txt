@@ -1,0 +1,17 @@
+# Part 1
+
+Ah, parenthesis matching.
+
+The only challenge I can envision is my stack size, uxn has only 256 bytes available.
+
+What's the size of the input? We have 110 lines, all around 110 characters long. This
+should fit on the uxn stack if I don't do anything stupid.
+
+A minor challenge will be to unwind the stack after an error. Pushing a marker at the
+start should be enough.
+
+Funnily enough, if the marker is 00, unwinding the stack is done in three bytes:
+
+  LIT fd JCN
+
+

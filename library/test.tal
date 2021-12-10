@@ -21,3 +21,18 @@
   POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2  POP2
 
   RTN
+
+( s* -- get-byte )
+@setup-test-input
+  ;test-input STA2
+  ;get-byte-from-test-input
+  RTN
+
+( -- b )
+@get-byte-from-test-input
+  ;test-input LDA2 LDA STH
+  ;test-input LDA2 INC2 ;test-input STA2
+  STHr
+  RTN
+
+@test-input $2

@@ -1,0 +1,92 @@
+( get-byte -- score )
+@check-line
+  [ ,&get-byte STR2 ]
+  #0000 [ ,&score STR2 ]
+  #00 [ ,&skip STR ]
+
+  #00 ( stack start marker, see &unwind )
+  #ff ( dummy char that won't match any closing char, in case string starts with one )
+  &next-char
+    LIT2 [ &get-byte $2 ] JSR2
+    DUP #00 EQU ,&eol JCN
+    DUP #0a EQU ,&eol JCN
+    LIT [ &skip 00 ] ,&not-closing JCN
+    #0001 [ ,&score STR2 ]
+    ( LIT 'i EMIT )
+    DUP EMIT
+
+    ( cn-1 cn )
+    DUP ;&get-opener JSR2
+    ( cn-1 cn opener )
+    DUP #00 EQU ,&not-closing JCN
+      ( cn-1 cn opener )
+      STH OVR STHr ( cn-1 cn cn-1 opener )
+      ( match previous char )
+      ( SP OVR EMIT LIT '= EMIT DUP EMIT LIT '? EMIT LF )
+      EQU ,&ok-opener JCN
+        ( cn-1 cn )
+        ( mismatch )
+        ,&get-score JSR [ ,&score STR2 ]
+        #01 [ ,&skip STR ]
+        ,&next-char JMP
+
+      &ok-opener
+      ( cn-1 cn )
+      POP2 #00
+    &not-closing
+    ( … cn 00 -or- … cn-2 00 )
+    POP
+
+    ,&next-char JMP
+  &eol
+  ( line-terminator ) POP
+  ,&unwind JSR
+
+  SP
+  LIT2 [ &score $2 ]
+  RTN
+
+  ( 00 a b c d … )
+  &unwind
+    #fd JCN ( magic! )
+    RTN
+
+  ( c -- score )
+  &get-score
+    DUP LIT '] NEQ ,&score-not-] JCN
+      POP #0039 RTN
+      &score-not-]
+    DUP LIT '} NEQ ,&score-not-} JCN
+      POP #04ad RTN
+      &score-not-}
+    DUP LIT ') NEQ ,&score-not-) JCN
+      POP #0003 RTN
+      &score-not-)
+    DUP LIT '> NEQ ,&score-not-> JCN
+      POP #6231 RTN
+      &score-not->
+    POP #0000
+    RTN
+
+  ( '> -- '< )
+  &get-opener
+    DUP LIT '] NEQ ,&match-not-] JCN
+      POP LIT '[ RTN
+      &match-not-]
+    DUP LIT '} NEQ ,&match-not-} JCN
+      POP LIT '{ RTN
+      &match-not-}
+    DUP LIT ') NEQ ,&match-not-) JCN
+      POP LIT '( RTN
+      &match-not-)
+    DUP LIT '> NEQ ,&match-not-> JCN
+      POP LIT '< RTN
+      &match-not->
+    POP #00
+    RTN
+
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
