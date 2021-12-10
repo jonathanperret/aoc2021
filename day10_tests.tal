@@ -7,34 +7,22 @@
 
 |0100 @program
 
-  P< "check_line: >P LF                                        ( EXPECT check_line: )
-  S< "[({(<(())[]>[[{[]{<()<>> 0a >S ;test-check-line JSR2     ( EXPECT [({(<(())[]>[[{[]{<()<>> 1 )
+  P< "check_line: >P LF                                         ( EXPECT check_line: )
+  S< "< 0a >S ;test-check-line JSR2                             ( EXPECT < >                    4 )
+  STKCHK
+  S< "<<<>> 0a >S ;test-check-line JSR2                         ( EXPECT <<<>> >                    4 )
+  STKCHK
+  S< "[[ 0a >S ;test-check-line JSR2                            ( EXPECT [[ ]]                   12 )
+  STKCHK
+  S< "[[] 0a >S ;test-check-line JSR2                           ( EXPECT [[] ]                    2 )
+  STKCHK
+  S< "[({(<(())[]>[[{[]{<()<>> 0a >S ;test-check-line JSR2      ( EXPECT [({(<(())[]>[[{[]{<()<>> }}]])})]               288957 )
+
+  S< "((]] 0a >S ;test-check-line JSR2                          ( EXPECT ((]                     0 )
+    ;get-byte-from-test-input JSR2 DBGBYTE POP                  ( EXPECT 0x00 )
   STKCHK
 
-  S< "((()) 0a >S ;test-check-line JSR2                         ( EXPECT ((()) 1 )
-  STKCHK
-  S< "] 0a >S ;test-check-line JSR2                             ( EXPECT ] 57 )
-  STKCHK
-  S< "( 0a >S ;test-check-line JSR2                             ( EXPECT ( 1 )
-  STKCHK
-  S< "(] 0a >S ;test-check-line JSR2                            ( EXPECT (] 57 )
-  STKCHK
-  S< "(( 0a >S ;test-check-line JSR2                            ( EXPECT (( 1 )
-  STKCHK
-  S< "[] 0a >S ;test-check-line JSR2                            ( EXPECT [] 1 )
-  STKCHK
-  ;eof-line ;test-check-line JSR2                               ( EXPECT  0 )
-  STKCHK
-  S< "[) 0a >S ;test-check-line JSR2                            ( EXPECT [) 3 )
-  STKCHK
-  S< "[} 0a >S ;test-check-line JSR2                            ( EXPECT [} 1197 )
-  STKCHK
-  S< "[> 0a >S ;test-check-line JSR2                            ( EXPECT [> 25137 )
-  STKCHK
-  S< "(() 0a >S ;test-check-line JSR2                           ( EXPECT (() 1 )
-  STKCHK
-  S< "(]A 0a >S ;test-check-line JSR2                           ( EXPECT (] 57 )
-    ;get-byte-from-test-input JSR2 DBGBYTE POP                  ( EXPECT 0x00 )
+  ;eof-line ;test-check-line JSR2                               ( EXPECT  eof )
   STKCHK
 
   P< "👍 0a >P
@@ -45,7 +33,17 @@
 @eof-line 00
 
 @test-check-line
-  ;setup-test-input JSR2 ;check-line JSR2 DBGSHORTDEC POP2
+  ;setup-test-input JSR2 ;check-line JSR2
+
+  ( score* )
+  DUP2 #ffff EQU2 ,&no-score JCN
+    ;print64 JSR2
+    ,&done JMP
+  &no-score
+    POP2 P< "eof >P
+  &done
+  LF
+
   RTN
 
 ~day10_lib.tal

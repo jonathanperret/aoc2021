@@ -1,8 +1,10 @@
-( get-byte -- score )
+( get-byte -- score* )
 @check-line
   [ ,&get-byte STR2 ]
-  #0000 [ ,&score STR2 ]
-  #00 [ ,&skip STR ]
+  #ffff [ ,&score STR2 ]
+  ;&score64 #0000 ;short-to-64 JSR2
+  #00 [ ,&skip-chars STR ]
+  #00 [ ,&skip-unwind STR ]
 
   #00 ( stack start marker, see &unwind )
   #ff ( dummy char that won't match any closing char, in case string starts with one )
@@ -10,13 +12,13 @@
     LIT2 [ &get-byte $2 ] JSR2
     DUP #00 EQU ,&eol JCN
     DUP #0a EQU ,&eol JCN
-    LIT [ &skip 00 ] ,&not-closing JCN
-    #0001 [ ,&score STR2 ]
+    ;&score64 [ ,&score STR2 ]
+    LIT [ &skip-chars $1 ] ,&not-closing JCN
     ( LIT 'i EMIT )
     DUP EMIT
 
     ( cn-1 cn )
-    DUP ;&get-opener JSR2
+    DUP ;get-opener JSR2
     ( cn-1 cn opener )
     DUP #00 EQU ,&not-closing JCN
       ( cn-1 cn opener )
@@ -26,8 +28,9 @@
       EQU ,&ok-opener JCN
         ( cn-1 cn )
         ( mismatch )
-        ,&get-score JSR [ ,&score STR2 ]
-        #01 [ ,&skip STR ]
+        #0000 [ ,&score STR2 ]
+        #01 [ ,&skip-chars STR ]
+        #01 [ ,&skip-unwind STR ]
         ,&next-char JMP
 
       &ok-opener
@@ -40,50 +43,176 @@
     ,&next-char JMP
   &eol
   ( line-terminator ) POP
+
   ,&unwind JSR
 
-  SP
   LIT2 [ &score $2 ]
   RTN
+  [ &score64 $8 &char-score64 $8 ]
 
   ( 00 a b c d … )
   &unwind
-    #fd JCN ( magic! )
+    SP
+    &unwind-next
+      LIT [ &skip-unwind $1 ] ,&no-unwind JCN
+        DUP ;get-closer JSR2
+        DUP #20 LTH ,&nonprint JCN
+        DUP #80 GTH ,&nonprint JCN
+          DUP EMIT
+          DUP ;get-score JSR2 ( score )
+          ;&char-score64 SWP2 ;short-to-64 JSR2
+          ;&score64 #05 ;mul64-byte JSR2
+          ;&score64 ;&char-score64 ;add64 JSR2
+          &nonprint
+        POP
+      &no-unwind
+      ,&unwind-next JCN ( magic! )
     RTN
 
-  ( c -- score )
-  &get-score
-    DUP LIT '] NEQ ,&score-not-] JCN
-      POP #0039 RTN
-      &score-not-]
-    DUP LIT '} NEQ ,&score-not-} JCN
-      POP #04ad RTN
-      &score-not-}
-    DUP LIT ') NEQ ,&score-not-) JCN
-      POP #0003 RTN
-      &score-not-)
-    DUP LIT '> NEQ ,&score-not-> JCN
-      POP #6231 RTN
-      &score-not->
-    POP #0000
-    RTN
+( c -- score )
+@get-score
+  DUP LIT ') NEQ ,&score-not-) JCN
+    POP #0001 RTN
+    &score-not-)
+  DUP LIT '] NEQ ,&score-not-] JCN
+    POP #0002 RTN
+    &score-not-]
+  DUP LIT '} NEQ ,&score-not-} JCN
+    POP #0003 RTN
+    &score-not-}
+  DUP LIT '> NEQ ,&score-not-> JCN
+    POP #0004 RTN
+    &score-not->
+  POP #0000
+  RTN
 
-  ( '> -- '< )
-  &get-opener
-    DUP LIT '] NEQ ,&match-not-] JCN
-      POP LIT '[ RTN
-      &match-not-]
-    DUP LIT '} NEQ ,&match-not-} JCN
-      POP LIT '{ RTN
-      &match-not-}
-    DUP LIT ') NEQ ,&match-not-) JCN
-      POP LIT '( RTN
-      &match-not-)
-    DUP LIT '> NEQ ,&match-not-> JCN
-      POP LIT '< RTN
-      &match-not->
-    POP #00
-    RTN
+( '> -- '< )
+@get-opener
+  DUP LIT '] NEQ ,&match-not-] JCN
+    POP LIT '[ RTN
+    &match-not-]
+  DUP LIT '} NEQ ,&match-not-} JCN
+    POP LIT '{ RTN
+    &match-not-}
+  DUP LIT ') NEQ ,&match-not-) JCN
+    POP LIT '( RTN
+    &match-not-)
+  DUP LIT '> NEQ ,&match-not-> JCN
+    POP LIT '< RTN
+    &match-not->
+  POP #00
+  RTN
+
+( '< -- '> )
+@get-closer
+  DUP LIT '[ NEQ ,&match-not-[ JCN
+    POP LIT '] RTN
+    &match-not-[
+  DUP LIT '{ NEQ ,&match-not-{ JCN
+    POP LIT '} RTN
+    &match-not-{
+  DUP LIT '( NEQ ,&match-not-( JCN
+    POP LIT ') RTN
+    &match-not-(
+  DUP LIT '< NEQ ,&match-not-< JCN
+    POP LIT '> RTN
+    &match-not-<
+  POP #00
+  RTN
+
+( list* -- )
+@dump-int64-list
+  &loop
+    DUP2 LDA2
+    ( list* b1 b2 )
+    DUP2 #ffff EQU2 ,&done JCN
+    ( list* b1 b2 )
+    POP2 DUP2 ;print64 JSR2 SP
+    #0008 ADD2
+    ,&loop JMP
+  &done
+  ( list* b1 b2 )
+  POP2 POP2
+  RTN
+
+( list* -- max* )
+@find-max64
+  STH2 ( : list* )
+  ;&intmin [ ,&max-ptr STR2 ]
+  ( : list* )
+  &loop
+    STH2rk LDA2
+    ( val : list* )
+
+    #ffff EQU2 ,&done JCN
+
+    ( : list* )
+    [ ,&max-ptr LDR2 ] STH2rk
+    ( max* val* : list* )
+    DUP4 ;greaterthan64 JSR2 ,&not-better JCN
+      ( max* val* : list* )
+      STH2rk [ ,&max-ptr STR2 ]
+      &not-better
+    ( max* val* : list* )
+    POP2
+    POP2
+    ( max* : list* )
+    LIT2r 0008 ADD2r
+    ,&loop JMP
+  &done
+  POP2r
+  ;&max-out [ ,&max-ptr LDR2 ] ;copy64 JSR2
+  [ ,&max-ptr LDR2 ] #0000 ;short-to-64 JSR2
+  ;&max-out
+  RTN
+  [ &max-ptr $2 &intmin 00 00 00 00 00 00 00 00 &max-out $8 ]
+
+( list* -- min )
+@find-min64
+  STH2 ( : list* )
+  ;&intmax [ ,&min-ptr STR2 ]
+  ( : list* )
+  &loop
+    STH2rk LDA2
+    ( val : list* )
+
+    #ffff EQU2 ,&done JCN
+
+    STH2rk ;is-non-zero64 JSR2 ,&non-zero JCN
+      ( : list* )
+      #0000 ,&continue JMP
+    &non-zero
+    ( : list* )
+
+    [ ,&min-ptr LDR2 ] STH2rk
+    ( min* val* : list* )
+    DUP4 ;greaterthan64 JSR2 NOT ,&not-better JCN
+      ( min* val* : list* )
+      STH2rk [ ,&min-ptr STR2 ]
+      &not-better
+    ( min* val* : list* )
+    POP2
+    &continue
+    POP2
+    ( min* : list* )
+    LIT2r 0008 ADD2r
+    ,&loop JMP
+  &done
+  POP2r
+  ;&min-out [ ,&min-ptr LDR2 ] ;copy64 JSR2
+  [ ,&min-ptr LDR2 ] #0000 ;short-to-64 JSR2
+  ;&min-out
+  RTN
+  [ &min-ptr $2 &intmax ff ff ff ff ff ff ff 7f &min-out $8 ]
+
+( a* b* -- f )
+@greaterthan64
+  ( OVR2 ;print64 JSR2 LIT '> EMIT DUP2 ;print64 JSR2 LIT '? EMIT SP )
+  STH2 STH2 ;&a-b STH2r STH2r ;sub64 JSR2
+  ;&a-b ;is-positive64 JSR2
+  ( DBGBYTE )
+  RTN
+  [ &a-b $8 ]
 
 
 ~library/console.lib.tal

@@ -37,13 +37,17 @@
 
   ;&result #0000 ;short-to-64 JSR2
 
+  ;&scores [ ;&next-score STA2 ]
+  #ffff [ ;&next-score LDA2 ] STA2
+
   &next-line
     ;read-byte ;check-line JSR2
-    DUP2 #0000 EQU2 ,&done JCN
-    DUP2 #0001 EQU2 ,&skip JCN
-      DBGSHORTDECn
-      ;&score OVR2 ;short-to-64 JSR2
-      ;&result ;&score ;add64 JSR2
+    DUP2 #ffff EQU2 ,&done JCN
+    DUP2 #0000 EQU2 ,&skip JCN
+      DUP2 ;print64 JSR2
+      [ ;&next-score LDA2 ] OVR2 ;copy64 JSR2
+      [ ;&next-score LDA2 ] #0008 ADD2 [ ;&next-score STA2 ]
+      #ffff [ ;&next-score LDA2 ] STA2
     &skip
     POP2
     LF
@@ -53,12 +57,29 @@
   &done
   POP2
 
+  ;&scores ;dump-int64-list JSR2 LF
+
+  &find-median
+    ;&scores ;find-min64 JSR2
+    P< "min= >P
+    ;print64 JSR2 LF
+
+    ;&scores ;find-max64 JSR2
+    P< "max= >P
+    DUP2 ;print64 JSR2 LF
+
+    ;is-non-zero64 JSR2 ,&non-zero JCN
+      BRK
+    &non-zero
+
+    ( ;&scores ;dump-int64-list JSR2 LF )
+    ,&find-median JMP
 
   ;&result ;print64 JSR2 LF
 
   BRK
 
-  [ &result $8 &score $8 ]
+  [ &result $8 &scores $1000 &next-score $2 ]
 
 @open-file
   ;argv .File/name DEO2
