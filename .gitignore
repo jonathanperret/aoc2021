@@ -1,2 +1,7 @@
 *.rom
 *.swp
+*.expected
+*.err
+*.out
+*.diff
+*.log

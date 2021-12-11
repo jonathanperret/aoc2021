@@ -14,6 +14,7 @@
 
   ;x S< "1234 >S ;parse64 JSR2
   ;x ;print64 JSR2 LF
+  ( EXPECT                  1234 )
 
   BRK !
 
