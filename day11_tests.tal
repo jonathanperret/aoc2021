@@ -1,0 +1,240 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  P< "dump_matrix: 0a >P S<
+    01 02 03 04 05
+    06 07 01 01 01
+    01 01 10 01 01
+    01 01 01 01 01
+    01 01 01 01 01
+  >S #0005 #0005 ;test-dump-matrix JSR2
+  ( EXPECT dump_matrix: )
+  ( EXPECT 12345 )
+  ( EXPECT 67111 )
+  ( EXPECT 11@11 )
+  ( EXPECT 11111 )
+  ( EXPECT 11111 )
+
+  STKCHK
+
+  P< "parse_matrix: 0a >P S<
+    "91235 0a
+    "56789 0a
+    "01234 0a
+    "56789 0a
+    "00009 0a
+  >S ;test-parse-matrix JSR2
+  ( EXPECT parse_matrix: )
+  ( EXPECT 0000000 )
+  ( EXPECT 0912350 )
+  ( EXPECT 0567890 )
+  ( EXPECT 0012340 )
+  ( EXPECT 0567890 )
+  ( EXPECT 0000090 )
+  ( EXPECT 0000000 )
+
+  STKCHK
+
+  P< "increment_matrix: 0a >P S<
+    "5483143223 0a
+    "2745854711 0a
+    "5264556173 0a
+    "6141336146 0a
+    "6357385478 0a
+    "4167524645 0a
+    "2176841721 0a
+    "6882881134 0a
+    "4846848554 0a
+    "5283751526 0a
+  >S ;test-increment-matrix JSR2
+  ( EXPECT increment_matrix: )
+  ( EXPECT 000000000000 )
+  ( EXPECT 065942543340 )
+  ( EXPECT 038569658220 )
+  ( EXPECT 063756672840 )
+  ( EXPECT 072524472570 )
+  ( EXPECT 074684965890 )
+  ( EXPECT 052786357560 )
+  ( EXPECT 032879528320 )
+  ( EXPECT 079939922450 )
+  ( EXPECT 059579596650 )
+  ( EXPECT 063948626370 )
+  ( EXPECT 000000000000 )
+
+  STKCHK
+
+  P< "flash_matrix: 0a >P S<
+    "76:5365445 0a
+    "4967:76933 0a
+    "7486778395 0a
+    "8363558368 0a
+    "85795:769: 0a
+    "6389746867 0a
+    "4398:63943 0a
+    "8::4::3356 0a
+    "6:68:6:776 0a
+    "74:5973748 0a
+  >S ;test-flash-matrix JSR2
+  ( EXPECT flash_matrix: )
+  ( EXPECT 000000000000 )
+  ( EXPECT 088074765550 )
+  ( EXPECT 050890870540 )
+  ( EXPECT 085978896080 )
+  ( EXPECT 084857696000 )
+  ( EXPECT 087009088000 )
+  ( EXPECT 066000889890 )
+  ( EXPECT 068000059430 )
+  ( EXPECT 000000074560 )
+  ( EXPECT 090000008760 )
+  ( EXPECT 087000068480 )
+  ( EXPECT 000000000000 )
+  ( EXPECT 35 )
+
+  STKCHK
+
+  P< "👍 0a >P
+  ( EXPECT 👍 )
+
+  BRK !
+
+
+~day11_lib.tal
+~library/test.tal
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  ;input LDA2 LDA STH
+  ;input LDA2 INC2 ;input STA2
+  STHr
+  RTN
+
+( s* w h -- )
+@test-dump-matrix
+  [ ;test-matrix-h STA2 ]
+  [ ;test-matrix-w STA2 ]
+  ;test-matrix-ptr STA2
+  ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;dump-matrix JSR2
+  RTN
+
+( s* -- )
+@test-parse-matrix
+  ;make-get-byte JSR2
+  ( get-byte )
+
+  ;test-matrix ;parse-matrix JSR2
+  ( w h )
+
+  ;test-matrix [ ;test-matrix-ptr STA2 ]
+  STH2 STH2 ;test-matrix-get-at STHr2 STHr2
+  ( get-at w h )
+
+  DUP2 [ ;test-matrix-h STA2 ]
+  OVR2 [ ;test-matrix-w STA2 ]
+
+  ;dump-matrix JSR2
+
+  RTN
+
+( s* -- )
+@test-increment-matrix
+  ;make-get-byte JSR2
+  ( get-byte )
+
+  ;test-matrix ;parse-matrix JSR2
+  ( w h )
+
+  [ ;test-matrix-h STA2 ]
+  [ ;test-matrix-w STA2 ]
+  ;test-matrix [ ;test-matrix-ptr STA2 ]
+
+  ;test-matrix-get-ptr-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;increment-matrix JSR2
+
+  ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;dump-matrix JSR2
+
+  RTN
+
+( s* -- )
+@test-flash-matrix
+  ;make-get-byte JSR2
+  ( get-byte )
+
+  ;test-matrix ;parse-matrix JSR2
+  ( w h )
+
+  [ ;test-matrix-h STA2 ]
+  [ ;test-matrix-w STA2 ]
+  ;test-matrix [ ;test-matrix-ptr STA2 ]
+
+  ;test-matrix-get-ptr-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;flash-matrix JSR2
+
+  STH2
+
+  ;test-matrix-get-at [ ;test-matrix-w LDA2 ] [ ;test-matrix-h LDA2 ] ;dump-matrix JSR2
+
+  STH2r DBGSHORTDEC POP2
+
+  RTN
+
+( x y -- b )
+@test-matrix-get-at
+  ;test-matrix-get-ptr-at JSR2 LDA
+  RTN
+
+( x y -- p* )
+@test-matrix-get-ptr-at
+  [ ;test-matrix-w LDA2 ] MUL2 ADD2 [ ;test-matrix-ptr LDA2 ] ADD2
+  RTN
+
+( b x y -- )
+@test-matrix-set-at
+  [ ;test-matrix-w LDA2 ] MUL2 ADD2 [ ;test-matrix-ptr LDA2 ] ADD2 STA
+  RTN
+
+( w*h must be even )
+( matrix* w h -- )
+@clear-matrix
+  MUL2 2// STH2 ( matrix* : wordcount )
+  ( clear matrix )
+  &loop
+    #0000 OVR2 STA2
+    ( advance pointer )
+    #0002 ADD2
+    ( matrix* : count )
+    DEC2r STH2rk #0000 NEQ2 ,&loop JCN
+  ( matrix* : count )
+  POP2r
+  POP2
+  RTN
+
+@input $2
+
+@test-matrix-ptr $2
+@test-matrix-w $2
+@test-matrix-h $2
+
+@test-matrix $1000
+
+@sample-matrix
+  10 10 10 10 10 10 10 10 10 10 10 10
+  10 02 01 09 09 09 04 03 02 01 00 10
+  10 03 09 08 07 08 09 04 09 02 01 10
+  10 09 08 05 06 07 08 09 08 09 02 10
+  10 08 07 06 07 08 09 06 07 08 09 10
+  10 09 08 09 09 09 06 05 06 07 08 10
+  10 10 10 10 10 10 10 10 10 10 10 10
+@sample-matrix-w 000c
+@sample-matrix-h 0007
+
+|ff00 @test-basin-sizes $100

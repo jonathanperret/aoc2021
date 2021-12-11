@@ -1,0 +1,20 @@
+# Part 1
+
+An hybrid of Life and the fish thing?
+
+Day 9 sounds like a good template, with its input matrix.
+
+By the way, the input is very small (10x10), which is worrying somehow
+for part 2. Possibly this is expecting a hashlife implementation?
+
+Do we need to add a border as we did on day 9? It may be useful to
+avoid range checks at the edges of the matrix, but we'll need to make
+sure not to flash those cells. On the other hand, since we won't be
+processing them we can initialize them at 0 and be sure they'll never
+flash.
+
+Hmm, we may actually update the border cells during the flash phase.
+But a border cell starting at 0 can never go above 5 during a single
+flash phase, I think. So if we reset them to 0 in the reset phase,
+we should be good.
+

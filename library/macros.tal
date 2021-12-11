@@ -28,6 +28,7 @@
 %20MOD { #10 AND } %20MOD2 { #0010 AND2 }
 
 %DEC { #01 SUB } %DEC2 { #0001 SUB2 }
+%DECk { DUP #01 SUB } %DEC2k { DUP2 #0001 SUB2 }
 %DECr { LITr 01 SUBr } %DEC2r { LIT2r 0001 SUB2r }
 
 ( Buttons )

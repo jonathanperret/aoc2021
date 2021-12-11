@@ -1,0 +1,483 @@
+( get-at w h -- )
+@dump-matrix
+  [ ,&h STR2 ]
+  [ ,&w STR2 ]
+  [ ,&get-at STR2 ]
+  LIT2r 0000 ( : y )
+  &row-loop
+    #0000 ( x : y )
+    &col-loop
+      DUP2 STH2rk LIT2 [ &get-at $2 ] JSR2
+      #30 ADD EMIT
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&col-loop JCN
+    POP2 ( : y )
+    LF
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ,&row-loop JCN
+  ( : y )
+  POP2r
+  RTN
+  [ &w $2 &h $2 ]
+
+( get-byte matrix* -- w h )
+@parse-matrix
+  [ ;&matrix STA2 ]
+  [ ;&get-byte-addr STA2 ]
+  #0000 [ ;&w STA2 ]
+  #0002 [ ;&h STA2 ]
+
+  ( scan first row to get width )
+  ;&parse-row JSR2
+  [ ;&row-w LDA2 ] [ ;&w STA2 ]
+
+  ( write border row into matrix )
+  ;&append-border-row JSR2
+
+  ( copy first row into matrix )
+  ;&append-row JSR2
+
+  ( parse other rows )
+  &next-row
+    ;&parse-row JSR2
+    [ ;&row-w LDA2 ] #0002 EQU2 ,&done JCN
+    ;&append-row JSR2
+    ,&next-row JMP
+
+  &done
+
+  ;&append-border-row JSR2
+
+  [ ;&w LDA2 ] [ ;&h LDA2 ] RTN
+  [ &row $100 &matrix $2 &w $2 &h $2 &row-w $2 ]
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+  &parse-row
+    ;&row STH2 ( : row* )
+    #00 STH2rk STA INC2r
+    &next-char
+      ;&get-byte JSR2
+      DUP #00 EQU ,&row-done JCN
+      DUP #0a EQU ,&row-done JCN
+      #30 SUB
+      STH2rk STA
+      INC2r
+      ,&next-char JMP
+    &row-done
+    POP
+    #00 STH2rk STA INC2r
+
+    STH2r ;&row SUB2 [ ;&row-w STA2 ]
+    RTN
+
+  &append-border-row
+    ;&row [ ;&w LDA2 ] ADD2 STH2 ( : rowend* )
+    [ ;&matrix LDA2 ] ;&row STH2 ( matrix* : row* rowend* )
+    &fill-top-next-char
+      #00 #00 SWP OVR2 STA POP
+      INC2 INC2r
+      ( loop if rowend > row )
+      GTH2rk STHr ,&fill-top-next-char JCN
+    POP2r POP2r
+    ( matrix* ) [ ;&matrix STA2 ]
+    RTN
+
+  &append-row
+    ;&row [ ;&w LDA2 ] ADD2 STH2 ( : rowend* )
+    [ ;&matrix LDA2 ] ;&row STH2 ( matrix* : row* rowend* )
+    &copy-next-char
+      STH2rk LDA #00 SWP OVR2 STA POP
+      INC2 INC2r
+      ( loop if rowend > row )
+      GTH2rk STHr ,&copy-next-char JCN
+    POP2r POP2r
+    ( matrix* ) [ ;&matrix STA2 ]
+    [ ;&h LDA2 ] INC2 [ ;&h STA2 ]
+    RTN
+
+( basin-sizes* get-at w h -- )
+@process-matrix
+  [ ;&h STA2 ]
+  [ ;&w STA2 ]
+  [ ;&get-at-addr STA2 ]
+
+  ( basin-sizes* )
+  [ ;&w LDA2 ] ;init-basins JSR2
+
+  LIT2r 0000 ( : y )
+  &row-loop
+    #0000 ( x : y )
+    #0000 [ ;last-basin STA2 ]
+    &col-loop
+      DUP2 STH2rk ;&get-at JSR2
+
+      #20 EMIT
+      #20 EMIT
+      LITr '.
+      DUP #09 LTH ,&low JCN
+        POPr LITr '#
+        &low
+      STHr EMIT
+      #20 EMIT
+      #20 EMIT
+
+      STH DUP2 STHr ;process-cell JSR2
+
+      ( x : y )
+
+      DUP2 2** ;column-basins ADD2 ( column-basin* ) LDA2 [ ;last-basin STA2 ]
+
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ;&col-loop JCN2
+    POP2 ( : y )
+    INC2r ( : y+1 )
+    LF
+    ;column-basins ;dump-short-list-hex JSR2 LF
+    STH2rk [ ,&h LDR2 ] LTH2 ;&row-loop JCN2
+  ( : y )
+  POP2r
+  RTN
+  [ &w $2 &h $2 ]
+
+  ( x y -- v )
+  &get-at
+    LIT2 [ &get-at-addr $2 ] JMP2
+
+( parses 1,2,256\n into 0001 0002 0100 ffff )
+( get-byte list -- )
+@parse-short-list
+  ;&list STA2
+  ( patch call site )
+  ;&get-byte STA2
+
+  ,&first-number JMP
+
+  &next-byte
+    LIT2 [ &get-byte $2 ] JSR2 ( b )
+    DUP #00 EQU ,&done JCN
+    DUP #0a EQU ,&done JCN
+    DUP #30 LTH ,&next-number JCN
+
+    #01 [ ,&started STR ]
+    #30 SUB #00 SWP
+    STH2r #000a MUL2 ADD2 STH2
+    ,&next-byte JMP
+
+  &next-number
+    ( separator ) POP ( )
+    STH2r ,&append_if_started JSR
+    &first-number
+    #00 [ ,&started STR ]
+    #0000 STH2 ( : num )
+    ,&next-byte JMP
+
+  &done
+  ( 0a ) POP ( )
+
+  ( append final number )
+  STH2r ,&append_if_started JSR
+  ( append terminator )
+  #ffff ,&append JSR
+  RTN
+
+  ( num -- )
+  &append_if_started
+    [ ,&started LDR ] ,&append JCN
+    ( num ) POP2 ( )
+    RTN
+  ( num -- )
+  &append
+    [ ,&list LDR2 ] STA2
+    [ ,&list LDR2 ] INC2 INC2 [ ,&list STR2 ]
+    RTN
+
+  [ &list $2 &started $1 ]
+
+( list -- )
+@dump-short-list
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    ;print-short-decimal JSR2 SP
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  RTN
+
+( list -- )
+@dump-short-list-hex
+  &loop
+    DUP2 LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    ;print-short-no0x JSR2 SP
+    INC2 INC2
+    ,&loop JMP
+  &done
+  POP2 POP2
+  RTN
+
+@next-basin $2
+@column-basins $200
+@last-basin $2
+
+( basin-sizes* w -- )
+@init-basins
+  ( terminate column-basins )
+  2** ;column-basins ADD2 #ffff SWP2 STA2
+  ( basin-sizes* )
+  DUP2 [ ;next-basin STA2 ] #ffff SWP2 STA2
+  #0000 [ ;last-basin STA2 ]
+  RTN
+
+( x cell )
+@process-cell
+  [ ;&cell STA ]
+  [ ;&x STA2 ]
+  [ ;&x LDA2 ] 2** ;column-basins ADD2 ( column-basin* ) [ ;&column-basin-ptr STA2 ]
+  [ ;&cell LDA ] #09 LTH ,&not-high JCN
+    #0000 [ ;&column-basin-ptr LDA2 ] STA2
+    RTN
+    &not-high
+
+  ( get basin above )
+  [ ;&column-basin-ptr LDA2 ] LDA2
+  #0000 EQU2 ,&no-basin-above JCN
+    [ ;last-basin LDA2 ] #0000 EQU2 ,&done JCN
+    [ ;last-basin LDA2 ] [ ,&column-basin-ptr LDR2 ] LDA2 EQU2 ,&done JCN
+    [ ;last-basin LDA2 ] [ ,&column-basin-ptr LDR2 ] LDA2 ;merge-basins JSR2
+
+    ,&done JMP
+    &no-basin-above
+
+  [ ;last-basin LDA2 ] #0000 EQU2 ,&no-basin-leftwards JCN
+    [ ;last-basin LDA2 ] [ ,&column-basin-ptr LDR2 ] STA2
+    ,&done JMP
+    &no-basin-leftwards
+
+  ( allocate new basin )
+  ;alloc-basin JSR2
+  [ ,&column-basin-ptr LDR2 ] STA2
+
+  &done
+  ( get pointer to size of column-basin[x] )
+  [ ,&column-basin-ptr LDR2 ] LDA2
+  ( basin-size* ) DUP2 LDA2 INC2 SWP2 STA2
+  RTN
+  [ &x $2 &cell $1 &column-basin-ptr $2 ]
+
+( -- basin* )
+@alloc-basin
+  [ ;next-basin LDA2 ] STH2  ( : basin* )
+  #0000 STH2rk STA2
+  STH2rk INC2 INC2 [ ;next-basin STA2 ]
+  #ffff [ ;next-basin LDA2 ] STA2
+  ( : basin* )
+  STH2r
+  RTN
+
+( from into -- )
+@merge-basins
+  [ ,&into STR2 ]
+  [ ,&from STR2 ]
+  ;column-basins STH2 ( : column* )
+  &next
+    STH2rk LDA2
+    DUP2 #ffff EQU2 ,&done JCN
+    [ ,&from LDR2 ] NEQ2 ,&no-match JCN
+      [ ,&into LDR2 ] STH2rk STA2
+      &no-match
+    INC2r INC2r
+    ,&next JMP
+  &done
+  POP2
+  POP2r
+
+  [ ,&into LDR2 ] LDA2 [ ,&from LDR2 ] LDA2 ADD2 [ ,&into LDR2 ] STA2
+  #0000 [ ,&from LDR2 ] STA2
+
+  RTN
+  [ &from $2 &into $2 ]
+
+( get-ptr-at w h -- )
+@increment-matrix
+  ;&increment-cell ;visit-matrix JMP2
+
+  ( cell* -- cell* )
+  &increment-cell
+    STH2k LDA INC STH2rk STA STH2r
+    RTN
+
+( get-ptr-at w h visitor[ x y cell* -- x y cell* ] -- )
+@visit-matrix
+  [ ;&visitor STA2 ]
+  #0001 SUB2 [ ,&h STR2 ]
+  #0001 SUB2 [ ,&w STR2 ]
+  [ ,&get-ptr-at STR2 ]
+  LIT2r 0001 ( : y )
+  &row-loop
+    #0001 ( x : y )
+    &col-loop
+      DUP2 STH2rk LIT2 [ &get-ptr-at $2 ] JSR2
+      ( x cell* : y )
+
+      ( visit cell )
+
+      STH2rk SWP2 ( x y cell* : y )
+
+      LIT2 [ &visitor $2 ] JSR2
+
+      POP2 POP2
+       ( x cell* : y )
+
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&col-loop JCN
+    POP2 ( : y )
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ,&row-loop JCN
+  ( : y )
+  POP2r
+  RTN
+  [ &w $2 &h $2 ]
+
+( get-ptr-at w h -- )
+@dump-ptr-matrix
+  [ ,&h STR2 ]
+  [ ,&w STR2 ]
+  [ ,&get-ptr-at STR2 ]
+  LIT2r 0000 ( : y )
+  &row-loop
+    #0000 ( x : y )
+    &col-loop
+      DUP2 STH2rk LIT2 [ &get-ptr-at $2 ] JSR2
+      LDA #30 ADD EMIT
+      INC2 ( x+1 : y )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&col-loop JCN
+    POP2 ( : y )
+    LF
+    INC2r ( : y+1 )
+    STH2rk [ ,&h LDR2 ] LTH2 ,&row-loop JCN
+  ( : y )
+  POP2r
+  RTN
+  [ &w $2 &h $2 ]
+
+( get-ptr-at w h -- flashcount )
+@flash-matrix
+  [ ,&h STR2 ]
+  [ ,&w STR2 ]
+  [ ,&get-ptr-at STR2 ]
+  #0000 [ ,&flashtotal STR2 ]
+
+  &again
+    #00 [ ;&flashcount STA ]
+    [ ,&get-ptr-at LDR2 ] [ ,&w LDR2 ] [ ,&h LDR2 ] ;&flash-cell ;visit-matrix JSR2
+    ( LF [ ,&get-ptr-at LDR2 ] [ ,&w LDR2 ] [ ,&h LDR2 ] ;dump-ptr-matrix JSR2 LF )
+    #00 [ ,&flashcount LDR ] [ ,&flashtotal LDR2 ] ADD2 [ ,&flashtotal STR2 ]
+    [ ,&flashcount LDR ] ,&again JCN
+
+  [ ,&get-ptr-at LDR2 ] [ ,&w LDR2 ] [ ,&h LDR2 ] ;&cool-cell ;visit-matrix JSR2
+
+  ;&clear-border JSR2
+
+  [ ,&flashtotal LDR2 ]
+
+  RTN
+
+  [ &get-ptr-at $2 &flashcount $1 &w $2 &h $2 &flashtotal $2 ]
+
+  &clear-border
+    #0000 ( x )
+    &y-clear-loop
+      DUP2 #0000 ( x x 0 )
+      ;&clear-cell JSR2
+
+      DUP2 [ ,&h LDR2 ] DEC2 ( x x h-1 )
+      ;&clear-cell JSR2
+
+      INC2 ( x+1 )
+      DUP2 [ ,&w LDR2 ] LTH2 ,&y-clear-loop JCN
+    POP2
+
+    #0000 ( y )
+    &x-clear-loop
+      DUP2 #0000 SWP2 ( x 0 x )
+      ;&clear-cell JSR2
+
+      DUP2 [ ,&w LDR2 ] DEC2 SWP2 ( y w-1 y )
+      ;&clear-cell JSR2
+
+      INC2 ( y+1 )
+      DUP2 [ ,&h LDR2 ] LTH2 ,&x-clear-loop JCN
+
+    POP2
+    RTN
+
+  ( x y -- )
+  &clear-cell
+    [ ,&get-ptr-at LDR2 ] JSR2 ( cell* )
+    #0000 SWP2 STA POP
+    RTN
+
+  ( x y cell* )
+  &flash-cell
+    LDAk ( cell )
+    #09 LEQ ,&not-flashing JCN
+    LDAk #80 GTH ,&not-flashing JCN
+      ( x y cell* )
+      ( set flag )
+      [ ,&flashcount LDR ] INC [ ,&flashcount STR ]
+      ( make cell negative enough that it doesn't flash again this turn )
+      STH2 #f0 STH2rk STA STH2r
+      STH2 STH2 ( x : y cell* )
+
+      INC2k STH2rk ( x x+1 y : y cell* )
+      ,&inc-cell JSR
+
+      INC2k STH2rk INC2 ( x x+1 y+1 : y cell* )
+      ,&inc-cell JSR
+
+      INC2k STH2rk DEC2 ( x x+1 y-1 : y cell* )
+      ,&inc-cell JSR
+
+      DEC2k STH2rk ( x x-1 y : y cell* )
+      ,&inc-cell JSR
+
+      DEC2k STH2rk INC2 ( x x-1 y+1 : y cell* )
+      ,&inc-cell JSR
+
+      DEC2k STH2rk DEC2 ( x x-1 y-1 : y cell* )
+      ,&inc-cell JSR
+
+      DUP2 STH2rk INC2 ( x x y+1 : y cell* )
+      ,&inc-cell JSR
+
+      DUP2 STH2rk DEC2 ( x x y-1 : y cell* )
+      ,&inc-cell JSR
+
+      STH2r STH2r
+      &not-flashing
+    RTN
+
+  ( x y -- )
+  &inc-cell
+    [ ;&get-ptr-at LDA2 ] JSR2
+    ( cell* )
+    STH2k LDA INC STH2r STA
+    RTN
+
+  ( x y cell* )
+  &cool-cell
+    LDAk ( cell )
+    #f0 LTH ,&not-flashed JCN
+      STH2k #00 STH2r STA
+      &not-flashed
+    RTN
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+@basin-sizes $1000
