@@ -18,3 +18,17 @@ But a border cell starting at 0 can never go above 5 during a single
 flash phase, I think. So if we reset them to 0 in the reset phase,
 we should be good.
 
+# Part 2
+
+Let's just keep it running to see if it synchronizes soon enough.
+
+I immediately get the right answer for the sample (195).
+
+But my input synchronizer after only 104 steps! Unsurprisingly,
+my answer is too low. Weird.
+
+Aah, but my step counter wraps around because I used DEC instead
+of DEC2 🤦
+
+And 360 is the right answer! That was surprisingly easy.
+

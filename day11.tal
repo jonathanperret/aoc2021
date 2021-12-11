@@ -41,21 +41,21 @@
 
   ;get-at [ ;matrix-h LDA2 ] [ ;matrix-h LDA2 ] ;dump-matrix JSR2
 
-  #0000 [ ;&result STA2 ]
-
-  #0064 ( steps )
+  #fffe ( steps )
   &next
-    DUP2 #0065 SWP2 SUB2 DBGSHORTDECn POP2 LIT ': EMIT LF
+    DUP2 #ffff SWP2 SUB2 DBGSHORTDECn POP2 LIT ': EMIT LF
     ;get-ptr-at [ ;matrix-h LDA2 ] [ ;matrix-h LDA2 ] ;increment-matrix JSR2
     ;get-ptr-at [ ;matrix-h LDA2 ] [ ;matrix-h LDA2 ] ;flash-matrix JSR2
-
     ;get-at [ ;matrix-h LDA2 ] [ ;matrix-h LDA2 ] ;dump-matrix JSR2
-    [ ;&result LDA2 ] ADD2 [ ;&result STA2 ]
 
-    DEC
-    DUP2 #0000 NEQ2 ,&next JCN
+    P< "flashes= >P DBGSHORTDECn LF
 
-  P< "result= >P [ ;&result LDA2 ] DBGSHORTDEC POP2
+    #0064 EQU2 ,&done JCN
+
+    DEC2
+    DUP2 #0000 NEQ2 ;&next JCN2
+
+  &done
   BRK
 
   [ &result $2 ]
