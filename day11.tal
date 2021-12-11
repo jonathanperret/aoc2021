@@ -35,7 +35,7 @@
 
   ;open-file JSR2
 
-  ;read-byte ;matrix ;parse-matrix JSR2
+  ;read-byte ;matrix #f0 ;parse-matrix JSR2
   ( w h )
   [ ;matrix-h STA2 ] [ ;matrix-w STA2 ]
 

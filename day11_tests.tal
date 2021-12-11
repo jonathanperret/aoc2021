@@ -133,7 +133,7 @@
   ;make-get-byte JSR2
   ( get-byte )
 
-  ;test-matrix ;parse-matrix JSR2
+  ;test-matrix #00 ;parse-matrix JSR2
   ( w h )
 
   ;test-matrix [ ;test-matrix-ptr STA2 ]
@@ -152,7 +152,7 @@
   ;make-get-byte JSR2
   ( get-byte )
 
-  ;test-matrix ;parse-matrix JSR2
+  ;test-matrix #00 ;parse-matrix JSR2
   ( w h )
 
   [ ;test-matrix-h STA2 ]
@@ -170,7 +170,7 @@
   ;make-get-byte JSR2
   ( get-byte )
 
-  ;test-matrix ;parse-matrix JSR2
+  ;test-matrix #00 ;parse-matrix JSR2
   ( w h )
 
   [ ;test-matrix-h STA2 ]

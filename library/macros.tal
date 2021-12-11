@@ -31,6 +31,19 @@
 %DECk { DUP #01 SUB } %DEC2k { DUP2 #0001 SUB2 }
 %DECr { LITr 01 SUBr } %DEC2r { LIT2r 0001 SUB2r }
 
+%4++ { #0004 ADD2 }
+
+( Multi-byte ops )
+
+%LDA4 { LDA2 STH2 DUP2 INC2 INC2 LDA2 STH2r }
+%STH4 { STH2 STH2 }
+%STHr4 { STHr2 STHr2 }
+
+( Variable ops )
+
+%*INC  { DUP2 LDA  INC  ROT ROT STA }
+%*INC2 { DUP2 LDA2 INC2 SWP2 STA2 }
+
 ( Buttons )
 
 %B_UP { #10 } %B_DOWN { #20 } %B_LEFT   { #40 } %B_RIGHT { #80 }
