@@ -33,6 +33,7 @@
 %DECr { LITr 01 SUBr } %DEC2r { LIT2r 0001 SUB2r }
 
 %2++ { #0002 ADD2 }
+%2-- { #0002 SUB2 }
 %4++ { #0004 ADD2 }
 
 ( Multi-byte ops )
@@ -50,10 +51,14 @@
 
 ( Variable ops )
 
-%*INC  { DUP2 LDA  INC  ROT ROT STA }
-%*INC2 { DUP2 LDA2 INC2 SWP2 STA2 }
-%*2++  { DUP2 LDA2 2++ SWP2 STA2 }
-%*4++  { DUP2 LDA2 4++ SWP2 STA2 }
+%*INC  { LDAk  INC  ROT ROT STA }
+%*INC2 { LDAk2 INC2 SWP2 STA2 }
+%*DEC  { LDAk  DEC  ROT ROT STA }
+%*DEC2 { LDAk2 DEC2 SWP2 STA2 }
+%*2++  { LDAk2 2++ SWP2 STA2 }
+%*2--  { LDAk2 2-- SWP2 STA2 }
+%*4++  { LDAk2 4++ SWP2 STA2 }
+%*ADD  { LDAk  STH ROT STHr ADD ROT ROT STA }
 
 ( Buttons )
 

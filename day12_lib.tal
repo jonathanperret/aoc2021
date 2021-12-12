@@ -39,6 +39,10 @@
   #ffff [ ;paths STA2 ]
   ;paths [ ;paths-end STA2 ]
   #0000 [ ;path-count STA2 ]
+  ;path-so-far [ ;path-so-far-end STA2 ]
+  #00 [ ;path-so-far STA ]
+  #00 [ ;second-visit-done STA ]
+  #00 #2000 ;visited ;memset JSR2
   RTN
 
 ( -- )
@@ -81,137 +85,177 @@
   &skip
   POP4 RTN
 
+%PATH_FROM { LDA2 }
+%PATH_TO { 2++ LDA2 }
+%PATH_ISTERMINATOR { LDA2 #ffff NEQ2 }
+
 ( -- )
 @walk-paths
   #ffff
   ;initial-path ( path* )
+  DUP2 PATH_TO ;enter-room JSR2
   ;walk-path JSR2
   POP2
   POP2
   RTN
 
-( last-path* -- )
+( -- )
 @walk-path
   ( LIT '< EMIT SP ;unwind-path-always JSR2 )
 
-  ;paths ( last-path* path* )
+  ;paths ( path* )
   &next
-  ( last-path* path* )
-  LDA2k ( last-path* path* path-start )
+    ( path* )
+    DUP2 PATH_ISTERMINATOR ;&not-done JCN2
+      ( path* )
+      POP2
+      RTN
+      &not-done
 
-  DUP2 #ffff EQU2 ,&done JCN
-    ( last-path* path* path-start )
-    STH2 OVR2 #fffe AND2 2++ LDA2 STH2r ( last-path* path* current-room path-start )
-    EQU2 ,&room-matches JCN
-      ,&continue JMP
-    &room-matches
-    ;check-visited JSR2 ,&continue JCN
+    ( path* )
+    DUP2 PATH_FROM ;get-current-room JSR2 NEQ2 ,&try-next JCN
 
-    ( last-path* matching-path* )
-    ( P< "taking 20 >P DUP2 #fffe AND2 LDA2 DBGSHORTCHAR POP2 LIT '- EMIT DUP2 #fffe AND2 2++ LDA2 DBGSHORTCHAR POP2 LF )
-    ;unwind-path JSR2
+    DUP2 PATH_TO ;can-visit JSR2 NOT ;&already-visited JCN2
 
-    ( recurse 😱 )
-    ;walk-path JSR2
+      ( save second visit flag )
+      [ ;second-visit-done LDA ] STH
 
-    &continue
-    ( clear low bit ) #fffe AND2
-    4++ ( last-path* path* )
+      ( matching-path* )
+      LIT '> ;&trace JSR2 POP
+
+      ( path* )
+      DUP2 PATH_TO ;enter-room JSR2
+
+      ;unwind-path JSR2
+
+      ( recurse 😱 )
+      ;walk-path JSR2
+
+      LIT '< ;&trace JSR2 POP
+
+      ;leave-room JSR2
+
+      ( restore second visit flag )
+      STHr [ ;second-visit-done STA ]
+
+      &already-visited
+
+    &try-next
+
+    4++ ( path* )
     ,&next JMP
-  &done
-  ( last-path* path* ffff )
-  POP2
-  POP2
 
+  &trace
+    RTN
+    EMIT SP DUP2 LDA2 DBGSHORTCHAR POP2 LIT '- EMIT DUP2 2++ LDA2 DBGSHORTCHAR POP2 LF #00
+
+( room -- )
+@enter-room
+  ( P< "entering 20 >P DBGSHORTCHAR LF )
+  STH2k #01 STH2r ;add-visitcount JSR2
+  DUP2 ;get-visitcount JSR2 #01 LEQ ,&not-second-visit JCN
+    DUP2 [ ;twice-visited-room STA2 ]
+    &not-second-visit
+
+  [ ;path-so-far-end LDA2 ] STA2
+  [ ;path-so-far-end *2++ ]
+  #00 [ ;path-so-far-end LDA2 ] STA
+  ( ;path-so-far ;print JSR2 LF )
   RTN
 
-( ffff path1* path2* ... )
+( -- )
+@leave-room
+  ( P< "leaving 20 >P ;get-current-room JSR2 DBGSHORTCHAR POP2 LF )
+  ;get-current-room JSR2 [ ;twice-visited-room LDA2 ]
+  NEQ2 ,&not-second-exit JCN
+    #0000 [ ;twice-visited-room STA2 ]
+    &not-second-exit
+
+  #ff ;get-current-room JSR2 ;add-visitcount JSR2
+
+  #00 [ ;path-so-far-end LDA2 ] STA
+  [ ;path-so-far-end *2-- ]
+  ( ;path-so-far ;print JSR2 LF )
+  RTN
+
+( -- room )
+@get-current-room
+  [ ;path-so-far-end LDA2 ] 2-- LDA2
+  RTN
+
+( delta room -- )
+@add-visitcount
+  ;get-visitcount-ptr JSR2
+  DUP2 #0000 EQU2 ,&nope JCN
+    *ADD
+    RTN
+  &nope
+  POP2 POP
+  RTN
+
+( room -- )
+@get-visitcount
+  ;get-visitcount-ptr JSR2
+  DUP2 #0000 EQU2 ,&nope JCN
+    LDA
+    RTN
+  &nope
+  POP2
+  #00
+  RTN
+
+( room -- visited-ptr )
+@get-visitcount-ptr
+  DUP2 LIT2 "aa LTH2 ,&big-room JCN
+    LIT2 "aa SUB2 ;visited ADD2
+    RTN
+  &big-room
+  POP2 #0000
+  RTN
+
+@dump-visited
+  LIT 'V EMIT
+  ;visited ( p* )
+  #0000 STH2 ( p* : cnt )
+  &loop
+    DUP2 LDA #00 EQU ,&skip JCN
+      STH2rk LIT2 "aa ADD2 DBGSHORTCHAR POP2 SP
+      &skip
+    INC2 INC2r
+    STH2rk #2000 LTH2 ,&loop JCN
+  POP2r
+  POP2
+  LF
+  RTN
+
+( -- )
 @unwind-path
   ( check if last path arrives at end )
-  DUP2 #fffe AND2 2++ LDA2 LIT2 "en EQU2 ,&to-end JCN
+  ;get-current-room JSR2 LIT2 "en EQU2 ,&at-end JCN
     RTN
-  &to-end
+    &at-end
   ;path-count #01 ;add64-byte JSR2
   ;unwind-path-always JMP2
 
-( ffff path1* path2* ... )
+( -- )
 @unwind-path-always
-  LIT2r ffff
-  ( move all paths to return stack )
-  &move
-    DUP2 #ffff EQU2 ,&done-moving JCN
-    STH2
-    ,&move JMP
-  &done-moving
-  &move-back
-    DUP2r LIT2r ffff EQU2r STHr ,&done-moving-back JCN
-    ( print target room )
-    STH2r ( path* )
-    ( DBGSHORTn SP )
-    DUP2 ( path* path* ) #fffe AND2 ( clear low bit )
-    ( load target room ) 2++ LDA2 DBGSHORTCHAR POP2
-    DUP #01 AND NOT ,&not-second-visit JCN
-      LIT '2 EMIT
-    &not-second-visit
-    ,&move-back JMP
-  &done-moving-back
-  ( : ffff )
-  POP2r
-  LIT '. EMIT LF
+  ;path-so-far ;print JSR2 LIT '. EMIT LF
   RTN
 
-( ffff path1* path2* ... test-path* -- [ keep stack ] flag )
-@check-visited
-  ( LIT '? EMIT ;unwind-path-always JSR2 )
-  ( get last path's target room )
-  DUP2 #fffe AND2 2++ LDA2 [ ;&target-room STA2 ]
-  #00 [ ;&visit-count STA ]
-  #00 [ ;&second-visit-seen STA ]
+( room -- visited )
+@can-visit
+  (
+  LIT '? EMIT ;unwind-path-always JSR2
+  ;dump-visited JSR2
+  )
 
-  ( if target room is big, it's ok to revisit, don't check )
-  [ ;&target-room LDA2 ] LIT2 "aa GTH2 ,&is-small JCN
-    #00 RTN
-  &is-small
+  ( allow if visitcount is 0 )
+  ;get-visitcount JSR2 #00 EQU
 
-  LIT2r ffff
-  ( move all paths to return stack )
-  &move
-    DUP2 #ffff EQU2 ,&done-moving JCN
-    STH2
-    ,&move JMP
-  &done-moving
-  &move-back
-    DUP2r LIT2r ffff EQU2r STHr ,&done-moving-back JCN
-    STH2r
+  ( also allow if the double-visit slot is free )
+  [ ;twice-visited-room LDA2 ] #0000 EQU2
 
-    ( check if this was a second visit, by looking at low bit )
-    DUP #01 AND [ ,&second-visit-seen LDR ] ORA [ ,&second-visit-seen STR ]
-
-    ( load target room )
-    DUP2 #fffe AND2 ( clear low bit ) 2++ LDA2
-    ( DBGSHORTCHAR LIT '= EMIT )
-    [ ,&target-room LDR2 ]
-    ( DBGSHORTCHAR LIT '? EMIT SP )
-    EQU2 [ ,&visit-count LDR ] ADD [ ,&visit-count STR ]
-    ( [ ,&visit-count LDR ] DBGBYTEn SP POP )
-    ,&move-back JMP
-  &done-moving-back
-  ( : ffff )
-  POP2r
-  ( [ ,&visit-count LDR ] DBGBYTEn POP LIT '! EMIT LIT '; EMIT LF )
-  ( set the path pointer's low bit if this is the second visit )
-  ( LIT 'v EMIT [ ,&visit-count LDR ] DBGBYTEn POP SP )
-  [ ,&visit-count LDR ] #02 NEQ ,&first-visit JCN
-    [ ,&second-visit-seen LDR ] ,&first-visit JCN
-    #0001 ORA2
-    #00
-    ( DBGBYTEn LIT '! EMIT LF )
-    RTN
-  &first-visit
-  [ ,&visit-count LDR ] #01 NEQ
-  ( DBGBYTEn LIT '! EMIT LF )
-  RTN
-  [ &target-room $2 &visit-count $1 &second-visit-seen $1 ]
+  ORA RTN
 
 ~library/console.lib.tal
 ~library/string.tal
@@ -226,5 +270,14 @@
   $1000
 @paths-end $2
 @path-count $8
+
+@path-so-far $100
+@path-so-far-end $2
+
+@second-visit-done $1
+@twice-visited-room $2
+
+|b000
+@visited $2000
 
 

@@ -55,6 +55,17 @@
   POP2r POP2 POP2
   RTN
 
+( byte cnt dest* -- )
+@memset
+  SWP2 OVR2 ADD2 ( byte dest* end* )
+  ( byte dest* end* )
+  &loop
+    STH2 STAk INC2 STH2r
+    ( byte dest+1* end* )
+    NEQ2k ,&loop JCN
+  ( byte dest* end* )
+  POP2 POP2 POP
+  RTN
 
 ( short out* -- )
 @string-short

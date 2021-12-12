@@ -34,7 +34,7 @@
   >S ;test-walk-paths JSR2
   ( EXPECT st-ab st-bc ab-bc bc-ab bc-en  )
   ( EXPECT stabbcen. )
-  ( EXPECT stbcabbc2en. )
+  ( EXPECT stbcabbcen. )
   ( EXPECT stbcen. )
   ( EXPECT                     3 )
   S<
@@ -43,7 +43,7 @@
     "AB-end 0a
   >S ;test-walk-paths JSR2
   ( EXPECT st-AB AB-bc bc-AB AB-en  )
-  ( EXPECT stABbcABbc2ABen. )
+  ( EXPECT stABbcABbcABen. )
   ( EXPECT stABbcABen. )
   ( EXPECT stABen. )
   ( EXPECT                     3 )
