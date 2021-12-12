@@ -21,7 +21,8 @@ for testfile in $testlist; do
 
   < $testfile awk '
     /\( EXPECT/ { sub(".*\\( EXPECT ",""); sub(" \\)$",""); print; }
-    /STKCHK/ { print("🥞"); }
+    / T</ { sub(".*T< \"",""); sub(" >T.*",""); print("🥞"); print; }
+    /^[^%].*STKCHK/ { print("🥞"); }
   ' > ${testfile%.tal}.expected.out
 
   set +e

@@ -126,7 +126,7 @@ s/#007c/ on [4mAND2r[24m/
 s/#007d/ on [4mORA2r[24m/
 s/#007e/ on [4mEOR2r[24m/
 s/#007f/ on [4mSFT2r[24m/
-s/#0080/ on [4mLITk[24m/
+s/#0080/ on [4mLIT[24m/
 s/#0081/ on [4mINCk[24m/
 s/#0082/ on [4mPOPk[24m/
 s/#0083/ on [4mDUPk[24m/
@@ -158,7 +158,7 @@ s/#009c/ on [4mANDk[24m/
 s/#009d/ on [4mORAk[24m/
 s/#009e/ on [4mEORk[24m/
 s/#009f/ on [4mSFTk[24m/
-s/#00a0/ on [4mLIT2k[24m/
+s/#00a0/ on [4mLIT2[24m/
 s/#00a1/ on [4mINC2k[24m/
 s/#00a2/ on [4mPOP2k[24m/
 s/#00a3/ on [4mDUP2k[24m/
@@ -190,7 +190,7 @@ s/#00bc/ on [4mAND2k[24m/
 s/#00bd/ on [4mORA2k[24m/
 s/#00be/ on [4mEOR2k[24m/
 s/#00bf/ on [4mSFT2k[24m/
-s/#00c0/ on [4mLITrk[24m/
+s/#00c0/ on [4mLITr[24m/
 s/#00c1/ on [4mINCrk[24m/
 s/#00c2/ on [4mPOPrk[24m/
 s/#00c3/ on [4mDUPrk[24m/
@@ -222,7 +222,7 @@ s/#00dc/ on [4mANDrk[24m/
 s/#00dd/ on [4mORArk[24m/
 s/#00de/ on [4mEORrk[24m/
 s/#00df/ on [4mSFTrk[24m/
-s/#00e0/ on [4mLIT2rk[24m/
+s/#00e0/ on [4mLIT2r[24m/
 s/#00e1/ on [4mINC2rk[24m/
 s/#00e2/ on [4mPOP2rk[24m/
 s/#00e3/ on [4mDUP2rk[24m/

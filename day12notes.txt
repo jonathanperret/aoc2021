@@ -1,0 +1,154 @@
+# Part 1
+
+Graph path enumeration.
+
+How do I store the room names?
+
+Ah, apart from "start" and "end", room names have exactly two letters. Well,
+except from the first sample, so let's discard that one (rather, I'll manually
+double its room names). This makes a single short integer a convenient storage
+for room names.
+
+Checking whether a room is big or small will just be testing whether it's
+larger than 'ZZ' (in which case the room is small).
+
+Also, no room is called "st" or "en" so we can use those names for "start"
+and "end". Even further, no room name starts with "s" or "e" apart from those.
+
+@sample1
+  's 't 'A 'A
+  's 't 'b 'b
+  'A 'A 'c 'c
+  'A 'A 'b 'b
+  'b 'b 'd 'd
+  'A 'A 'e 'n
+  'b 'b 'e 'n
+
+Start from "st"… Would a recursive approach fit my stack? Let's see, we have
+13 rooms (including "start" and "end"), 3 of which are big. So the maximum
+path length would be 10 + some repetition of the other 3. Which can't be that
+much repetition, can it? In particular, two large rooms are never connected —
+that's probably why the text doesn't bother saying that useless paths such as
+those that oscillate between big rooms shouldn't be counted.
+
+Here's my input, courtesy of https://arthursonzogni.com/Diagon/#GraphDAG (and some
+massaging in Vim) :
+
+          ┌─────────┐
+          │start    │
+          └┬─────┬─┬┘
+           │     │ │
+          ┌▽────┐│ │
+          │WI   ││ │
+          └┬┬┬─┬┘│ │
+           │││┌┴─▽┐│
+           ││││jo ││
+           │││└┬─┬┘│
+           │││ │┌┴─▽───┐
+           │││ ││LM    │
+           │││ │└┬┬──┬─┘
+           │││ │ ││  │
+           │││ │ ││  │
+          ┌┘│└┐│┌┘│┌─┴───┐
+          │┌┘ │││ ││hw   │
+          ││┌─│┘│ │└┬─┬┬─┘
+          │││ │ │ │ │ ││
+          │││┌┴─┴┐│ │ ││
+          ││││jb ││─│─┘│
+          │││└┬┬┬┘│ │  │
+          │││ │││ │ │  │
+          │││ │││┌│─┘  │
+          │││ ││││└───┐│
+          │││ ││└│───┐││
+          ││└─││─│──┐│││
+          │└──││─│─┐││││
+          │┌──┘│ │ │││││
+          ││┌──┴┐│┌┴┴┴┴┴┐
+          │││hz │││xi   │
+          ││└┬┬┬┘│└┬────┘
+          ││ │││ └─│──┐
+          │└┐│└│───│─┐│
+          └┐││ └┐  │ ││
+           │││  │  │ ││
+           │││ ┌┴──┴┐││
+           │││ │ry  │││
+           │││ └┬──┬┘││
+  ┌──┐    ┌┴┴┴──┴┐ │ ││
+  │IO◁┅┅┅┅┤jf    │ │ ││
+  └──┘    └─┬────┘ │ ││
+            ┆      │ ││
+          ┌─▽┐     │ ││
+          │kd│    ┌▽─▽▽┐
+          └──┘    │end │
+                  └────┘
+
+We can see right away that a couple of rooms are completely useless :
+  - "kd" because its only connection is to another small room;
+  - "IO" for the same reason.
+
+That leaves us with only two big rooms. I've got an OK feeling about the stack.
+
+Should I renumber the rooms for faster lookup? Hmm, doesn't look that useful,
+since there are still multiple outgoing paths from any room.
+
+The stack again. At worst I visit every small room once, with one big room
+visit between each pair of small rooms, e.g.
+
+  st->AB->ab->CD->ef->GH->ij->KL->mn->OP->qr…
+
+So an upper bound for the required stack depth would be about 20 steps.
+With a minimum of two bytes for the return address, that leaves about
+10 bytes of local state if we're recursing.
+
+What local state do we need?
+  - the current room name (a short)
+  - the current path (a short, or a byte)
+In fact, just a pointer to the current path might be enough, if I have duplicated
+all paths to make them directional (the current room would be the start
+of the current path). To find the next path to try, I'll just have to
+walk the path list until I find another path with the same starting room.
+
+@paths
+  "st "WI
+  "st "LM
+  "WI "jb
+  "jb "WI
+  …
+
+Let's get on with the boring part: parsing.
+
+OK, took a while but I think I've got the parsing done.
+
+Argh, my answers are correct on all three of the samples but too high (5920) on the input.
+An interesting bit of information, the server tells me this answer is right for someone
+else… which means I have to be in the ballpark!
+
+`uniq` says my paths are unique, so some of them must be wrong.
+
+As analyzed above, none of my paths visit IO nor kd.
+
+Oh, wait. I did login as a different user yesterday to get a different input 🤦
+
+That was it. That feature of the server just saved me a couple hours!
+
+# Part 2
+
+It looks like this will be trivial with my representation, yay.
+
+Ah, but I get 54 paths on the first sample, not 36. I probably get duplicates!
+
+Oops, I misread. A *single* small cave can be visited twice.
+
+Also, I don't have duplicates, which is a relief.
+
+I can improve check-visited, or I can try counting paths once for each existing
+small cave while marking it as double-visitable.
+
+I went for improving check-visited. Tried to be clever, using the low-order byte
+of path pointers to remember which room had been taken twice, but that took a
+lot of head-scratching to get working.
+
+Now I get the right answer for samples, but on the input I get (after a few seconds…)
+more than 65535 paths, so time to quickly upgrade to a 64-bit counter.
+
+And that's it for today!

@@ -1,0 +1,27 @@
+LM -> jb
+start -> LM
+start -> WI
+start -> jo
+WI -> jb
+WI -> jf
+WI -> jo
+hw -> LM
+hw -> jb
+hz -> jf
+hz -> ry
+jb -> hz
+jb -> xi
+jf -> IO
+xi -> ry
+jo -> LM
+jo -> xi
+kd -> jf
+ry -> jf
+jb -> jf
+WI -> xi
+LM -> xi
+hw -> xi
+hz -> end
+ry -> end
+hw -> end
+

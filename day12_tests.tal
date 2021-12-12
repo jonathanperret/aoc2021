@@ -1,0 +1,95 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+%T< { STKCHK P< }
+%>T { >P LF }
+
+|0100 @program
+
+  T< "parse-line: >T
+  S< >S ;test-parse-line JSR2                  ( EXPECT 0x00  )
+  S< "start-end 0a 'A >S ;test-parse-line JSR2 ( EXPECT 0x01 st-en  )
+    ;get-byte-from-input JSR2 EMIT LF          ( EXPECT A )
+  S< "AB-CD 0a >S ;test-parse-line JSR2        ( EXPECT 0x01 AB-CD CD-AB  )
+  S< "start-AB 0a >S ;test-parse-line JSR2     ( EXPECT 0x01 st-AB  )
+  S< "AB-end 0a >S ;test-parse-line JSR2       ( EXPECT 0x01 AB-en  )
+
+  T< "parse-lines: >T
+  S<
+    "AB-CD 0a
+    "start-AB 0a
+    "AB-end 0a
+  >S ;test-parse-lines JSR2                    ( EXPECT AB-CD CD-AB st-AB AB-en  )
+
+  T< "walk-paths: >T
+  S<
+    "start-ab 0a
+    "start-bc 0a
+    "ab-bc 0a
+    "bc-end 0a
+  >S ;test-walk-paths JSR2
+  ( EXPECT st-ab st-bc ab-bc bc-ab bc-en  )
+  ( EXPECT stabbcen. )
+  ( EXPECT stbcabbc2en. )
+  ( EXPECT stbcen. )
+  ( EXPECT                     3 )
+  S<
+    "start-AB 0a
+    "AB-bc 0a
+    "AB-end 0a
+  >S ;test-walk-paths JSR2
+  ( EXPECT st-AB AB-bc bc-AB AB-en  )
+  ( EXPECT stABbcABbc2ABen. )
+  ( EXPECT stABbcABen. )
+  ( EXPECT stABen. )
+  ( EXPECT                     3 )
+
+  T< "👍 >T
+  BRK !
+
+~day12_lib.tal
+~library/test.tal
+
+( s* -- )
+@test-parse-line
+  ;init-paths JSR2
+  ;make-get-byte JSR2 ;parse-line JSR2 DBGBYTEn POP SP
+  ;dump-paths JSR2
+  LF
+  RTN
+
+( s* -- )
+@test-parse-lines
+  ;init-paths JSR2
+  ;make-get-byte JSR2 ;parse-lines JSR2
+  ;dump-paths JSR2
+  LF
+  RTN
+
+( s* -- )
+@test-walk-paths
+  ;init-paths JSR2
+  ;make-get-byte JSR2 ;parse-lines JSR2
+  ;dump-paths JSR2 LF
+  ;walk-paths JSR2
+  ;path-count ;print64 JSR2 LF
+  RTN
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2

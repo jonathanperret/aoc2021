@@ -1,0 +1,230 @@
+( get-byte -- success )
+@parse-line
+  [ ;&get-byte-addr STA2 ]
+
+  ;&get-byte JSR2
+  DUP #00 NEQ ,&not-done JCN
+    POP #00 RTN
+  &not-done
+
+  ;&get-byte JSR2
+
+  &scan-for-dash
+    ;&get-byte JSR2
+    LIT '- NEQ ,&scan-for-dash JCN
+
+  ;&get-byte JSR2 ;&get-byte JSR2
+
+  ;append-bi-path JSR2
+
+  &scan-for-lf
+    ;&get-byte JSR2
+    #0a NEQ ,&scan-for-lf JCN
+
+  #01
+  RTN
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+( get-byte -- )
+@parse-lines
+  &more
+    DUP2 ;parse-line JSR2 ,&more JCN
+  POP2
+  RTN
+
+( -- )
+@init-paths
+  #ffff [ ;paths STA2 ]
+  ;paths [ ;paths-end STA2 ]
+  #0000 [ ;path-count STA2 ]
+  RTN
+
+( -- )
+@dump-paths
+  ;paths ( path* )
+
+  &next
+  DUP2 2++ SWP2 LDA2
+  DUP2 #ffff EQU2 ,&done JCN
+    OVR #80 AND NOT ,&not-modified JCN
+      LIT '* EMIT
+      SWP #7f AND SWP
+    &not-modified
+    DBGSHORTCHAR POP2
+    P< "- >P
+    DUP2 2++ SWP2 LDA2 DBGSHORTCHAR POP2
+    SP
+    ,&next JMP
+  &done
+  POP2
+  POP2
+  RTN
+
+( from to -- )
+@append-bi-path
+  DUP4 ;append-path JSR2
+  SWP2 ;append-path JSR2
+  RTN
+
+( from to -- )
+@append-path
+  DUP2 LIT2 "st EQU2 ,&skip JCN
+  OVR2 LIT2 "en EQU2 ,&skip JCN
+
+  [ ;paths-end LDA2 ] STA4
+  [ ;paths-end *4++ ]
+  #ffff [ ;paths-end LDA2 ] STA2
+  RTN
+
+  &skip
+  POP4 RTN
+
+( -- )
+@walk-paths
+  #ffff
+  ;initial-path ( path* )
+  ;walk-path JSR2
+  POP2
+  POP2
+  RTN
+
+( last-path* -- )
+@walk-path
+  ( LIT '< EMIT SP ;unwind-path-always JSR2 )
+
+  ;paths ( last-path* path* )
+  &next
+  ( last-path* path* )
+  LDA2k ( last-path* path* path-start )
+
+  DUP2 #ffff EQU2 ,&done JCN
+    ( last-path* path* path-start )
+    STH2 OVR2 #fffe AND2 2++ LDA2 STH2r ( last-path* path* current-room path-start )
+    EQU2 ,&room-matches JCN
+      ,&continue JMP
+    &room-matches
+    ;check-visited JSR2 ,&continue JCN
+
+    ( last-path* matching-path* )
+    ( P< "taking 20 >P DUP2 #fffe AND2 LDA2 DBGSHORTCHAR POP2 LIT '- EMIT DUP2 #fffe AND2 2++ LDA2 DBGSHORTCHAR POP2 LF )
+    ;unwind-path JSR2
+
+    ( recurse 😱 )
+    ;walk-path JSR2
+
+    &continue
+    ( clear low bit ) #fffe AND2
+    4++ ( last-path* path* )
+    ,&next JMP
+  &done
+  ( last-path* path* ffff )
+  POP2
+  POP2
+
+  RTN
+
+( ffff path1* path2* ... )
+@unwind-path
+  ( check if last path arrives at end )
+  DUP2 #fffe AND2 2++ LDA2 LIT2 "en EQU2 ,&to-end JCN
+    RTN
+  &to-end
+  ;path-count #01 ;add64-byte JSR2
+  ;unwind-path-always JMP2
+
+( ffff path1* path2* ... )
+@unwind-path-always
+  LIT2r ffff
+  ( move all paths to return stack )
+  &move
+    DUP2 #ffff EQU2 ,&done-moving JCN
+    STH2
+    ,&move JMP
+  &done-moving
+  &move-back
+    DUP2r LIT2r ffff EQU2r STHr ,&done-moving-back JCN
+    ( print target room )
+    STH2r ( path* )
+    ( DBGSHORTn SP )
+    DUP2 ( path* path* ) #fffe AND2 ( clear low bit )
+    ( load target room ) 2++ LDA2 DBGSHORTCHAR POP2
+    DUP #01 AND NOT ,&not-second-visit JCN
+      LIT '2 EMIT
+    &not-second-visit
+    ,&move-back JMP
+  &done-moving-back
+  ( : ffff )
+  POP2r
+  LIT '. EMIT LF
+  RTN
+
+( ffff path1* path2* ... test-path* -- [ keep stack ] flag )
+@check-visited
+  ( LIT '? EMIT ;unwind-path-always JSR2 )
+  ( get last path's target room )
+  DUP2 #fffe AND2 2++ LDA2 [ ;&target-room STA2 ]
+  #00 [ ;&visit-count STA ]
+  #00 [ ;&second-visit-seen STA ]
+
+  ( if target room is big, it's ok to revisit, don't check )
+  [ ;&target-room LDA2 ] LIT2 "aa GTH2 ,&is-small JCN
+    #00 RTN
+  &is-small
+
+  LIT2r ffff
+  ( move all paths to return stack )
+  &move
+    DUP2 #ffff EQU2 ,&done-moving JCN
+    STH2
+    ,&move JMP
+  &done-moving
+  &move-back
+    DUP2r LIT2r ffff EQU2r STHr ,&done-moving-back JCN
+    STH2r
+
+    ( check if this was a second visit, by looking at low bit )
+    DUP #01 AND [ ,&second-visit-seen LDR ] ORA [ ,&second-visit-seen STR ]
+
+    ( load target room )
+    DUP2 #fffe AND2 ( clear low bit ) 2++ LDA2
+    ( DBGSHORTCHAR LIT '= EMIT )
+    [ ,&target-room LDR2 ]
+    ( DBGSHORTCHAR LIT '? EMIT SP )
+    EQU2 [ ,&visit-count LDR ] ADD [ ,&visit-count STR ]
+    ( [ ,&visit-count LDR ] DBGBYTEn SP POP )
+    ,&move-back JMP
+  &done-moving-back
+  ( : ffff )
+  POP2r
+  ( [ ,&visit-count LDR ] DBGBYTEn POP LIT '! EMIT LIT '; EMIT LF )
+  ( set the path pointer's low bit if this is the second visit )
+  ( LIT 'v EMIT [ ,&visit-count LDR ] DBGBYTEn POP SP )
+  [ ,&visit-count LDR ] #02 NEQ ,&first-visit JCN
+    [ ,&second-visit-seen LDR ] ,&first-visit JCN
+    #0001 ORA2
+    #00
+    ( DBGBYTEn LIT '! EMIT LF )
+    RTN
+  &first-visit
+  [ ,&visit-count LDR ] #01 NEQ
+  ( DBGBYTEn LIT '! EMIT LF )
+  RTN
+  [ &target-room $2 &visit-count $1 &second-visit-seen $1 ]
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+|8000
+
+@initial-path
+  "__ "st
+@paths
+  ( from to )
+  $1000
+@paths-end $2
+@path-count $8
+
+
