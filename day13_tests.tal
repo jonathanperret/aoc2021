@@ -30,13 +30,12 @@
   ( EXPECT 6,10 5,14 n=2 )
   ( EXPECT x=1 y=34  )
 
-  T< "process-fold: >T
+  T< "process-horizontal-fold: >T
   S< "6,10 0a
      "5,14 0a
      "1,15 0a
      0a
-     "fold 20 "along 20 "x=3 0a
-     "fold 20 "along 20 "y=34 0a >S ;test-process-fold JSR2
+     "fold 20 "along 20 "x=3 0a >S ;test-process-fold JSR2
   ( EXPECT 6,10 5,14 1,15 n=3 )
   ( EXPECT 0,10 1,14 1,15 n=3 )
 
@@ -46,6 +45,26 @@
      "1,2 0a
      0a >S ;test-distinct-dots JSR2
   ( EXPECT 3,4 1,2 n=2 )
+
+  T< "process-vertical-fold: >T
+  S< "16,5 0a
+     "5,14 0a
+     "1,15 0a
+     0a
+     "fold 20 "along 20 "y=10 0a >S ;test-process-fold JSR2
+  ( EXPECT 16,5 5,14 1,15 n=3 )
+  ( EXPECT 16,5 5,6 1,5 n=3 )
+
+  T< "process-folds: >T
+  S< "16,5 0a
+     "5,14 0a
+     "1,15 0a
+     0a
+     "fold 20 "along 20 "x=9 0a
+     "fold 20 "along 20 "y=10 0a >S ;test-process-folds JSR2
+  ( EXPECT 16,5 5,14 1,15 n=3 )
+  ( EXPECT 2,5 5,14 1,15 n=3 )
+  ( EXPECT 2,5 5,6 1,5 n=3 )
 
   T< "👍 >T
   BRK !
@@ -82,6 +101,14 @@
   ;folds ;process-fold JSR2
 
   ;dump-dots JSR2
+  RTN
+
+( s* -- )
+@test-process-folds
+  ;make-get-byte JSR2 ;parse-lines JSR2
+  ;dump-dots JSR2
+
+  ;process-folds JSR2
   RTN
 
 ( s* -- )

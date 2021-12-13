@@ -50,3 +50,9 @@ Horizontal folding:
 
 After another hour, the first horizontal fold is executed.
 Turns out there was no negative coordinate involved.
+
+# Part 2
+
+No big surprise here. I still need two things:
+  - implement vertical folding
+  - draw the resulting matrix

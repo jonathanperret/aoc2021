@@ -159,21 +159,59 @@
 
 ( fold* -- )
 @process-fold
-  LDA2 [ ;&fold-val STA2 ]
+  LDA2k [ ;&fold-val STA2 ]
+  2++ LDA [ ;&fold-axis STA ]
 
   ;dots
   ( dots* )
   &next
     LDA2k ( dots* x )
     DUP2 #ffff EQU2 ,&done JCN
-    ( x )
-    [ ,&fold-val LDR2 ]
+    ( dots* x )
+    LIT2 [ &fold-val $2 ] STH2
+    ( dots* x : fold-val )
+    [ ;&fold-axis LDA ]
+    ( dots* x fold-axis : fold-val )
+
+    LIT 'x EQU
+
+    ( dots* x fold-axis=x? : fold-val )
+
+    ,&axis-is-x JCN
+      ( dots* x : fold-val )
+      POP2
+      ( dots* : fold-val )
+      DUP2 2++ LDA2
+
+      ( dots* y : fold-val )
+
+      STH2r
+      ( dots* y fold-val )
+      DUP4 LTH2 ,&above JCN
+        2** SWP2 SUB2
+        ( dots* 2*foldy-y )
+        OVR2 2++ STA2
+        ,&continue JMP
+      &above
+      ( dots* y fold-val )
+      POP2 POP2
+
+      ( dots* )
+      ,&continue JMP
+
+    &axis-is-x
+
+    ( dots* x : fold-val )
+    STH2r
+    ( dots* x fold-val )
     DUP4 LTH2 ,&left JCN
-      2** SWP2 SUB2 ( 2*foldx-x )
+      2** SWP2 SUB2 ( dots* 2*foldx-x )
       OVR2 STA2
       ,&continue JMP
     &left
+    ( dots* x fold-val )
     POP2 POP2
+    ( dots* )
     &continue
     4++
     ,&next JMP
@@ -181,7 +219,7 @@
   ( dots* ffff )
   POP2 POP2
   RTN
-  [ &fold-val $2 ]
+  [ &fold-axis $1 ]
 
 ( -- )
 @distinct-dots
@@ -240,6 +278,27 @@
   RTN
   [ &x $2 &y $2 ]
 
+( -- )
+@process-folds
+  ;folds
+  ( folds* )
+  &next
+    LDA2k ( folds* x )
+    DUP2 #ffff EQU2 ,&done JCN
+      ( folds* x )
+      POP2
+      ( folds* )
+      DUP2 ;process-fold JSR2
+      ( folds* )
+      ;distinct-dots JSR2
+      ;dump-dots JSR2
+    #0003 ADD2
+    ,&next JMP
+  &done
+  ( folds* ffff )
+  POP2 POP2
+  RTN
+
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal
@@ -248,4 +307,3 @@
 
 @dots $1000
 @folds $100
-
