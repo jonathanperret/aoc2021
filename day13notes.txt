@@ -1,0 +1,52 @@
+# Part 1
+
+"The transparent paper is pretty big"… how big exactly? There are
+735 points in my input, and the maximum coordinate is 1309.
+
+Great, this doesn't fit in memory. I still have my page file experiment
+from day 5 if necessary, but I'd rather find a more elegant solution.
+
+One-row-at-a-time did work pretty well for day 5. This looks easy to do
+for folds along x=…, but folding vertically will most likely require
+multiple file reads.
+
+But for now, we only need to realize a single fold.
+
+Annoyingly, the sample has the first fold done vertically, but my input
+has it horizontal.
+
+But the text shows how the sample is supposed to look like after its first
+(vertical) fold, so:
+
+  awk '{for(i=1;i<=length($0);i++){if(substr($0,i,1)=="#") printf "%d,%d\n", i-1,NR-1}}'|sort -g
+
+gives me the dot list for that output.
+
+Curious, how big will my final output be? I have 5 horizontal folds to make,
+and 7 vertical. That will divide the width by 32, and the height by 128,
+bringing the size down to a much more manageable 40x10 grid…
+
+  (((((40*2+1)*2+1)*2+1)*2+1)*2+1) = 1311
+  (((((((10*2+1)*2+1)*2+1)*2+1)*2+1)*2+1)*2+1) = 1407
+
+Something to watch out for: after a fold, some dots may end up with negative coordinates.
+
+Wait a second, why on earth have I been thinking in terms of a matrix? I really
+only need to handle the dot coordinate pairs!
+
+Storing 735 short pairs will be easy. I just need to count how many distinct pairs remain
+after the folds. I could try doing something smart… or just go for the n^2 algorithm, with
+such a small n!
+
+Parsing done, after a long hour…
+
+Horizontal folding:
+
+  fold along x=3
+
+  f(x) = 3 - (x - 3) = 2*3 - x
+  f(4) = 3 - (4 - 3) = 3 - 1 = 2
+  f(6) = 3 - (6 - 3) = 3 - 3 = 0
+
+After another hour, the first horizontal fold is executed.
+Turns out there was no negative coordinate involved.

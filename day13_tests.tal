@@ -1,0 +1,107 @@
+
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+%T< { STKCHK P< }
+%>T { >P LF }
+
+|0100 @program
+
+  T< "parse-dot-line: >T
+  S< 0a >S ;test-parse-dot-line JSR2               ( EXPECT 65535 65535 )
+  S< "6,10 0a 'A >S ;test-parse-dot-line JSR2      ( EXPECT 6 10 )
+    ;get-byte-from-input JSR2 EMIT LF              ( EXPECT A )
+
+  T< "parse-fold-line: >T
+  S< >S ;test-parse-fold-line JSR2                          ( EXPECT 65535 0xff )
+  STKCHK
+  S< "fold 20 "along 20 "x=12 0a >S ;test-parse-fold-line JSR2 ( EXPECT 12 0x78 )
+
+  T< "parse-lines: >T
+  S< "6,10 0a
+     "5,14 0a
+     0a
+     "fold 20 "along 20 "x=1 0a
+     "fold 20 "along 20 "y=34 0a >S ;test-parse-lines JSR2
+  ( EXPECT 6,10 5,14 n=2 )
+  ( EXPECT x=1 y=34  )
+
+  T< "process-fold: >T
+  S< "6,10 0a
+     "5,14 0a
+     "1,15 0a
+     0a
+     "fold 20 "along 20 "x=3 0a
+     "fold 20 "along 20 "y=34 0a >S ;test-process-fold JSR2
+  ( EXPECT 6,10 5,14 1,15 n=3 )
+  ( EXPECT 0,10 1,14 1,15 n=3 )
+
+  T< "distinct-dots: >T
+  S< "1,2 0a
+     "3,4 0a
+     "1,2 0a
+     0a >S ;test-distinct-dots JSR2
+  ( EXPECT 3,4 1,2 n=2 )
+
+  T< "👍 >T
+  BRK !
+
+~day13_lib.tal
+
+|a000
+~library/test.tal
+
+( s* -- )
+@test-parse-dot-line
+  ;make-get-byte JSR2 ;parse-dot-line JSR2
+  STH2 DBGSHORTDECn POP2 SP STH2r DBGSHORTDEC POP2
+  RTN
+
+( s* -- )
+@test-parse-fold-line
+  ;make-get-byte JSR2 ;parse-fold-line JSR2
+  STH DBGSHORTDECn POP2 SP STHr DBGBYTE POP
+  RTN
+
+( s* -- )
+@test-parse-lines
+  ;make-get-byte JSR2 ;parse-lines JSR2
+  ;dump-dots JSR2
+  ;dump-folds JSR2
+  RTN
+
+( s* -- )
+@test-process-fold
+  ;make-get-byte JSR2 ;parse-lines JSR2
+  ;dump-dots JSR2
+
+  ;folds ;process-fold JSR2
+
+  ;dump-dots JSR2
+  RTN
+
+( s* -- )
+@test-distinct-dots
+  ;make-get-byte JSR2 ;parse-lines JSR2
+  ;distinct-dots JSR2
+  ;dump-dots JSR2
+  RTN
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2

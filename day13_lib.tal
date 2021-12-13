@@ -1,0 +1,251 @@
+( get-byte -- x-or-ffff y-or-ffff )
+@parse-dot-line
+  [ ;&get-byte-addr STA2 ]
+
+  #0000 ( x )
+  &parse-x-char
+    ;&get-byte JSR2 ( b )
+    DUP #0a NEQ ,&not-empty JCN
+      POP POP2 #ffff #ffff  RTN
+    &not-empty
+    DUP #30 LTH ,&x-done JCN
+
+    #30 SUB #00 SWP STH2
+    #000a MUL2 STH2r ADD2
+    ,&parse-x-char JMP
+
+  &x-done
+  ( ', )
+  POP
+
+  #0000 ( x y )
+  &parse-y-char
+    ;&get-byte JSR2 ( b )
+    DUP #30 LTH ,&done JCN
+
+    #30 SUB #00 SWP STH2
+    #000a MUL2 STH2r ADD2
+    ,&parse-y-char JMP
+
+  &done
+  ( x y 0a )
+  POP
+  ( x y )
+  RTN
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+( get-byte -- num-or-ffff 'x-or-'y-or-ff )
+@parse-fold-line
+  [ ;&get-byte-addr STA2 ]
+  &skip-to-axis
+    ;&get-byte JSR2 ( b )
+    DUP #00 NEQ ,&not-empty JCN
+      POP #ffff #ff RTN
+    &not-empty
+
+    DUP LIT 'x EQU ,&axis-found JCN
+    DUP LIT 'y EQU ,&axis-found JCN
+    POP
+    ,&skip-to-axis JMP
+
+  &axis-found
+  ( 'x-or-'y )
+
+  ( eat '= )
+  ;&get-byte JSR2 POP
+
+  STH
+
+  #0000 ( n )
+  &parse-digit
+    ;&get-byte JSR2 ( b )
+    DUP #30 LTH ,&done JCN
+
+    #30 SUB #00 SWP STH2
+    #000a MUL2 STH2r ADD2
+    ,&parse-digit JMP
+
+  &done
+  POP
+
+  STHr
+
+  RTN
+
+  &get-byte
+    LIT2 [ &get-byte-addr $2 ] JMP2
+
+( get-byte -- )
+@parse-lines
+  [ ;&get-byte-addr STA2 ]
+  #ffff ;dots STA2
+  #ffff ;folds STA2
+
+  ;dots ( dots* )
+  &next-dot
+    [ ;&get-byte-addr LDA2 ] ;parse-dot-line JSR2
+    DUP2 #ffff EQU2 ,&dots-done JCN
+    STH2 OVR2 STA2 STH2r
+    OVR2 2++ STA2
+    4++
+    ,&next-dot JMP
+
+  &dots-done
+  ( dots* ffff ffff )
+  POP2 POP2
+  #ffff SWP2 STA2
+
+  ;folds ( folds* )
+  &next-fold
+    [ ;&get-byte-addr LDA2 ] ;parse-fold-line JSR2
+    DUP2 #ffff EQU2 ,&folds-done JCN
+    ( folds* num xy )
+    STH OVR2 STA2
+    DUP2 2++ STHr ROT ROT STA
+    #0003 ADD2
+    ,&next-fold JMP
+
+  &folds-done
+  ( folds* ffff ff )
+  POP POP2
+  #ffff SWP2 STA2
+
+  RTN
+  [ &get-byte-addr $2 ]
+
+( -- )
+@dump-dots
+  ;dots
+  #0000 STH2
+  ( dots* : cnt )
+  &next
+    LDA2k ( dots* x )
+    DUP2 #ffff EQU2 ,&done JCN
+    DBGSHORTDECn LIT ', EMIT POP2
+    DUP2 2++ LDA2 DBGSHORTDECn SP POP2
+    INC2r
+    4++
+    ,&next JMP
+  &done
+  ( dots* ffff )
+  POP2 POP2
+  P< "n= >P
+  STH2r DBGSHORTDECn POP2
+  LF
+  RTN
+
+( -- )
+@dump-folds
+  ;folds
+  ( folds* )
+  &next
+    LDA2k ( folds* x )
+    DUP2 #ffff EQU2 ,&done JCN
+    STH2
+    DUP2 2++ LDA EMIT
+    LIT '= EMIT
+    STH2r
+    DBGSHORTDECn POP2
+    SP
+    #0003 ADD2
+    ,&next JMP
+  &done
+  ( folds* ffff )
+  POP2 POP2
+  LF
+  RTN
+
+( fold* -- )
+@process-fold
+  LDA2 [ ;&fold-val STA2 ]
+
+  ;dots
+  ( dots* )
+  &next
+    LDA2k ( dots* x )
+    DUP2 #ffff EQU2 ,&done JCN
+    ( x )
+    [ ,&fold-val LDR2 ]
+    DUP4 LTH2 ,&left JCN
+      2** SWP2 SUB2 ( 2*foldx-x )
+      OVR2 STA2
+      ,&continue JMP
+    &left
+    POP2 POP2
+    &continue
+    4++
+    ,&next JMP
+  &done
+  ( dots* ffff )
+  POP2 POP2
+  RTN
+  [ &fold-val $2 ]
+
+( -- )
+@distinct-dots
+  ;dots STH2 ( : dest-dots* )
+  ;dots ( src-dots* : dest-dots* )
+  &next
+    LDA2k ( src-dots* x : dest-dots* )
+    DUP2 #ffff EQU2 ;&done JCN2
+    ( src-dots* x : dest-dots* )
+    [ ;&x STA2 ]
+    ( src-dots* : dest-dots* )
+    DUP2 2++ LDA2 [ ;&y STA2 ]
+
+    ( scan right to find a duplicate )
+    ( P< "scanning 20 >P DBGSHORT )
+    ( src-dots* : dest-dots* )
+    DUP2 4++
+    ( src-dots* dots* : dest-dots* )
+    &scan-next
+      ( P< 20 "vs 20 >P DBGSHORT )
+      LDA2k ( dots* x )
+      DUP2 #ffff EQU2 ,&scan-done JCN
+      ( dots* x )
+      ( DBGSHORTDECn LIT '= EMIT [ ;&x LDA2 ] DBGSHORTDECn POP2 LIT '? EMIT LF )
+      [ ;&x LDA2 ] NEQ2 ,&scan-continue JCN
+      ( dots* )
+      DUP2 2++ LDA2 ( dots* y )
+      [ ;&y LDA2 ] NEQ2 ,&scan-continue JCN
+
+      ( P< "dup 0a >P )
+      ( duplicate found )
+      #0000 ,&scan-done JMP
+
+      &scan-continue
+      ( dots* )
+      4++ ,&scan-next JMP
+    &scan-done
+    ( dots* 0000-or-ffff )
+    NIP2 #ffff NEQ2
+    ( has-duplicate? )
+    ,&not-unique JCN
+      ( copy to output list )
+      ( src-dots* : dest-dots* )
+      DUP2 LDA2 STH2rk STA2
+      DUP2 2++ LDA2 STH2rk 2++ STA2
+      STH2r 4++ STH2
+      ( DBGSHORTn SP LIT ': EMIT SP STH2rk DBGSHORT POP2 )
+    &not-unique
+
+    4++
+    ;&next JMP2
+  &done
+  ( src-dots* ffff : dest-dots* )
+  POP2 POP2
+  #ffff STH2r STA2
+  RTN
+  [ &x $2 &y $2 ]
+
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+|8000
+
+@dots $1000
+@folds $100
+
