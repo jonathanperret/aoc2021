@@ -132,3 +132,27 @@
 ( Testing )
 %STKCHK { ;stkchk JSR2 }
 
+( Looping )
+%HEREr { #00 JSR }
+%DO { STH2 HEREr } ( i : addr max )
+%LOOP {
+  INC2
+  OVR2r
+  STH2k
+  GTH2r STHr
+  STH2rk
+  JCN2
+  POP2 POP2r POP2r
+}
+(
+                    [ i   : addr max ]
+  INC2              [ i+1 : addr max ]
+  OVR2r             [ i+1 : max addr max ]
+  STH2k             [ i+1 : i+1 max addr max ]
+  GTH2r STHr        [ i+1 i+1<max? : addr max ]
+  STH2rk            [ i+1 i+1<max? addr : max ]
+  JCN2              [ i+1 : addr max ]
+  POP2 POP2r POP2r  [ ]
+)
+
+

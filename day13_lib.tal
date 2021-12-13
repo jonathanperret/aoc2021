@@ -162,6 +162,11 @@
   ;dots ;dots2 #1000 ;memcpy JSR2
   RTN
 
+@save-dots2
+  ( src* dest* cnt -- )
+  ;dots ;dots3 #1000 ;memcpy JSR2
+  RTN
+
 @restore-dots
   ( src* dest* cnt -- )
   ;dots2 ;dots #1000 ;memcpy JSR2
@@ -222,10 +227,10 @@
       ( y fold-val distance : yptr )
 
       [ ;fold-scale LDA2 ]
-      MUL2 10//
+      MUL2 20//
 
       ( y fold-val scale*distance : yptr )
-      [ ;fold-outside LDA ] ,&stay-outside JCN
+      [ ;fold-inside LDA ] NOT ,&stay-outside JCN
         SUB2
         ,&fold-done JMP
       &stay-outside
@@ -300,38 +305,6 @@
   RTN
   [ &x $2 &y $2 ]
 
-( fold* -- )
-@anim-fold
-  #01 [ ;fold-outside STA ]
-  LIT2r 000f ( :scale )
-  &scale-down
-    ;save-dots JSR2
-    STH2rk [ ;fold-scale STA2 ]
-    DUP2 ;process-fold JSR2
-    ;draw-dots JSR2
-    ;restore-dots JSR2
-
-    DEC2r
-    STH2rk #0001 GTH2 ,&scale-down JCN
-  POP2r
-
-  #00 [ ;fold-outside STA ]
-  LIT2r 0000 ( :scale )
-  &scale-up
-    ;save-dots JSR2
-    STH2rk [ ;fold-scale STA2 ]
-    DUP2 ;process-fold JSR2
-    ;draw-dots JSR2
-    ;restore-dots JSR2
-
-    INC2r
-    STH2rk #0010 LTH2 ,&scale-up JCN
-  POP2r
-
-  #0010 [ ;fold-scale STA2 ]
-  ;process-fold JSR2
-  RTN
-
 ( -- )
 @process-folds
   ;folds
@@ -343,27 +316,6 @@
       POP2
       ( folds* )
       DUP2 ;process-fold JSR2
-      ( folds* )
-      ;distinct-dots JSR2
-      [ ;post-fold-hook LDA2 ] JSR2
-    #0003 ADD2
-    ,&next JMP
-  &done
-  ( folds* ffff )
-  POP2 POP2
-  RTN
-
-( -- )
-@process-folds-anim
-  ;folds
-  ( folds* )
-  &next
-    LDA2k ( folds* x )
-    DUP2 #ffff EQU2 ,&done JCN
-      ( folds* x )
-      POP2
-      ( folds* )
-      DUP2 ;anim-fold JSR2
       ( folds* )
       ;distinct-dots JSR2
       [ ;post-fold-hook LDA2 ] JSR2
@@ -426,12 +378,13 @@
 ~library/string.tal
 ~library/math.tal
 
-|8000
+|7000
 
 @dots $1000
 @dots-w $2 @dots-h $2
-@fold-scale 0010
-@fold-outside 00
+@fold-scale 0020
+@fold-inside 01
 @dots2 $1000
+@dots3 $1000
 @folds $100
 @row $1000

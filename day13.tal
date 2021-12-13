@@ -39,19 +39,166 @@
   ( ;dump-dots JSR2 )
   ( ;dump-folds JSR2 )
 
-  #0200 [ ;dots-w STA2 ]
-  #0080 [ ;dots-h STA2 ]
-  ;post-fold-draw-dots [ ;post-fold-hook STA2 ]
+  #00 [ ;fold-inside STA ]
 
-  ;process-folds-anim JSR2
+  ;folds [ ;current-fold STA2 ]
+
+  ( theme )
+  #05af .System/r DEO2
+  #05af .System/g DEO2 
+  #05af .System/b DEO2 
+
+  ;on-frame .Screen/vector DEO2
 
   &done
   BRK
 
-  [ &result $2 ]
+
+@on-frame
+  ;process-folds-anim JSR2 POP
+  ;erase-dots JSR2
+  ;render-dots JSR2
+  [ ;&framecounter *INC2 ]
+  BRK
+  [ &framecounter $2 ]
+
+@current-fold $2
+
+( -- again )
+@process-folds-anim
+  [ ;current-fold LDA2 ]
+  ( fold* )
+  LDA2k ( fold* x )
+  DUP2 #ffff EQU2 ,&done JCN
+    ( fold* x )
+    POP2
+    ( fold* )
+    DUP2 ;anim-fold JSR2
+    LF
+    NOT ,&fold-done JCN
+      POP2
+      #01
+      RTN
+    &fold-done
+    ( fold* )
+  #0003 ADD2
+  [ ;current-fold STA2 ]
+  #01 RTN
+  &done
+  ( fold* ffff )
+  POP2 POP2
+  #00
+  RTN
+
+( fold* -- again )
+@anim-fold
+  ( are we inside already? )
+  [ ;fold-inside LDA ] #01 EQU ,&folding-inside JCN
+
+  ( if scale is 0, the outside fold is done )
+  [ ;fold-scale LDA2 ] #0000 EQU2 ,&outside-done JCN
+    P< "outside >P
+
+    [ ;fold-scale *DEC2 ]
+    P< "scale= >P [ ;fold-scale LDA2 ] DBGSHORTDECn POP2
+
+    ;save-dots JSR2
+    ;process-fold JSR2
+    ;save-dots2 JSR2
+    ;restore-dots JSR2
+
+    #01 ( run again )
+    RTN
+
+  &outside-done
+
+  #01 [ ;fold-inside STA ]
+
+  POP2
+  #01 ( run again )
+  RTN
+
+  &folding-inside
+
+  ( if scale is maximal, the inside fold is done )
+  [ ;fold-scale LDA2 ] #001f EQU2 ,&inside-done JCN
+
+    P< "inside >P
+
+    [ ;fold-scale *INC2 ]
+
+    P< "scale= >P [ ;fold-scale LDA2 ] DBGSHORTDECn POP2
+
+    ;save-dots JSR2
+    ;process-fold JSR2
+    ;save-dots2 JSR2
+    ;restore-dots JSR2
+
+    #01 ( run again )
+    RTN
+
+  &inside-done
+
+  P< "finishing >P
+
+  #0020 [ ;fold-scale STA2 ]
+  ;process-fold JSR2
+  ;distinct-dots JSR2
+  ;save-dots JSR2
+  ;save-dots2 JSR2
+
+  [ ;render-scale LDA2 ] #002c MUL2 20// [ ;render-scale STA2 ]
+
+  ( restart outside for next fold )
+  #00 [ ;fold-inside STA ]
+
+  ( fold complete, don't run again )
+  #00
+  RTN
 
 @post-fold-draw-dots
   ;draw-dots JSR2
+  RTN
+
+@render-scale 0008
+
+( -- )
+@render-dots
+  ;dots3 ( dots* )
+  &next
+    LDA2k ( dots* x )
+    DUP2 #ffff EQU2 ,&done JCN
+    OVR2 2++ LDA2 ( dots* x y )
+    [ ;render-scale LDA2 ] MUL2 20// 
+    DUP2 [ ;render-scale LDA2 ] 20//  ADD2
+    DO
+      DUP2 .Screen/y DEO2
+      OVR2 [ ;render-scale LDA2 ] MUL2 20//
+      DUP2 [ ;render-scale LDA2 ] 20// ADD2
+      DO
+        DUP2 .Screen/x DEO2
+        #03 .Screen/pixel DEO
+      LOOP
+    LOOP
+    POP2
+
+    4++
+    ,&next JMP
+  &done
+  ( dots* ffff )
+  POP2 POP2
+  RTN
+
+( -- )
+@erase-dots
+  #01 .Screen/auto DEO
+  #0000 .Screen/height DEI2 DO
+    DUP2 .Screen/y DEO2
+    #0000 .Screen/x DEO2
+    #0000 .Screen/width DEI2 DO
+    #01 .Screen/pixel DEO
+    LOOP
+  LOOP
   RTN
 
 @open-file

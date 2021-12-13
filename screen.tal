@@ -1,0 +1,69 @@
+( dev/screen )
+
+
+~library/macros.tal
+
+( devices )
+
+|00 @System     [ &vector $2 &wst      $1 &rst    $1 &pad   $4 &r      $2 &g      $2 &b    $2 &debug  $1 &halt $1 ]
+|20 @Screen     [ &vector $2 &width    $2 &height $2 &auto $1 &pad $1  &x      $2 &y     $2 &addr $2 &pixel $1 &sprite $1 ]
+|10 @Console    [ &vector $2 &read $1 &pad    $5 &write $1 &error  $1 ]
+
+( variables )
+
+|0000
+
+@count $2
+@center
+	&x $2 &y $2
+
+( init )
+
+|0100 ( -> )
+	
+	( vector )
+	;on-frame .Screen/vector DEO2
+
+	( theme ) 
+	#05af .System/r DEO2
+	#05af .System/g DEO2 
+	#05af .System/b DEO2 
+
+	( find screen center )
+	.Screen/width DEI2 #01 SFT2 #0020 SUB2 .center/x STZ2
+	.Screen/height DEI2 #01 SFT2 .center/y STZ2
+
+	
+BRK
+
+@on-frame ( -> )
+  [ ;scale *INC2 ]
+  [ ;scale LDA2 ] #003f AND2 #0001 ORA2 [ ;scale STA2 ]
+
+  ;draw-pixels JSR2
+BRK
+
+[ @scale $2 ]
+
+@draw-pixels ( -- )
+
+  #01 .Screen/auto DEO
+  #0000 .Screen/x DEO2
+
+  #0000 .Screen/height DEI2
+  DO
+    DUP2 .Screen/y DEO2
+    #0000 .Screen/x DEO2
+    #0000 .Screen/width DEI2
+    DO
+    OVR2 .Screen/height DEI2 2// SUB2
+    DUP2 MUL2
+    OVR2 .Screen/width DEI2 2// SUB2
+    DUP2 MUL2
+    ADD2 [ ;scale LDA2 ] DIV2 NIP .Screen/pixel DEO
+    LOOP
+  LOOP
+
+RTN
+
+~library/console.lib.tal
