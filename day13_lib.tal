@@ -157,6 +157,16 @@
   LF
   RTN
 
+@save-dots
+  ( src* dest* cnt -- )
+  ;dots ;dots2 #1000 ;memcpy JSR2
+  RTN
+
+@restore-dots
+  ( src* dest* cnt -- )
+  ;dots2 ;dots #1000 ;memcpy JSR2
+  RTN
+
 ( fold* -- )
 @process-fold
   LDA2k [ ;&fold-val STA2 ]
@@ -166,60 +176,72 @@
   ( dots* )
   &next
     LDA2k ( dots* x )
-    DUP2 #ffff EQU2 ,&done JCN
-    ( dots* x )
-    LIT2 [ &fold-val $2 ] STH2
-    ( dots* x : fold-val )
-    [ ;&fold-axis LDA ]
-    ( dots* x fold-axis : fold-val )
-
+    #ffff EQU2 ,&done JCN
+    ( dots* )
+    LIT2 [ &fold-val $2 ]
+    ( dots* fold-val )
+    LIT [ &fold-axis $1 ]
+    ( dots* fold-val fold-axis )
     LIT 'x EQU
-
-    ( dots* x fold-axis=x? : fold-val )
+    ( dots* fold-val fold-axis=x? )
 
     ,&axis-is-x JCN
-      ( dots* x : fold-val )
-      POP2
-      ( dots* : fold-val )
-      DUP2 2++ LDA2
-
-      ( dots* y : fold-val )
-
-      STH2r
-      ( dots* y fold-val )
-      DUP4 LTH2 ,&above JCN
-        2** SWP2 SUB2
-        ( dots* 2*foldy-y )
-        OVR2 2++ STA2
-        ,&continue JMP
-      &above
-      ( dots* y fold-val )
-      POP2 POP2
+      ( dots* fold-val )
+      OVR2 2++
+      ( dots* fold-val yptr )
+      ;&do-fold JSR2
 
       ( dots* )
       ,&continue JMP
 
     &axis-is-x
+      ( dots* fold-val )
+      OVR2
+      ( dots* fold-val xptr )
+      ;&do-fold JSR2
 
-    ( dots* x : fold-val )
-    STH2r
-    ( dots* x fold-val )
-    DUP4 LTH2 ,&left JCN
-      2** SWP2 SUB2 ( dots* 2*foldx-x )
-      OVR2 STA2
-      ,&continue JMP
-    &left
-    ( dots* x fold-val )
-    POP2 POP2
     ( dots* )
     &continue
     4++
     ,&next JMP
   &done
-  ( dots* ffff )
-  POP2 POP2
+  ( dots* )
+  POP2
   RTN
-  [ &fold-axis $1 ]
+
+  ( fold-val yptr -- )
+  &do-fold
+    STH2k ( fold-val yptr : yptr )
+    ( fold-val yptr : yptr )
+    LDA2 ( fold-val y : yptr )
+    SWP2
+    ( y fold-val : yptr )
+    LTH2k ,&inside JCN
+      ( y fold-val : yptr )
+      SUB2k
+      ( y fold-val distance : yptr )
+
+      [ ;fold-scale LDA2 ]
+      MUL2 10//
+
+      ( y fold-val scale*distance : yptr )
+      [ ;fold-outside LDA ] ,&stay-outside JCN
+        SUB2
+        ,&fold-done JMP
+      &stay-outside
+        ( y fold-val scale*distance : yptr )
+        ADD2
+      &fold-done
+      ( y (fold-val)±distance : yptr )
+      NIP2
+      ( newy : yptr )
+
+      STH2r STA2
+      RTN
+    &inside
+    ( y fold-val : yptr )
+    POP2r POP2 POP2
+    RTN
 
 ( -- )
 @distinct-dots
@@ -278,6 +300,38 @@
   RTN
   [ &x $2 &y $2 ]
 
+( fold* -- )
+@anim-fold
+  #01 [ ;fold-outside STA ]
+  LIT2r 000f ( :scale )
+  &scale-down
+    ;save-dots JSR2
+    STH2rk [ ;fold-scale STA2 ]
+    DUP2 ;process-fold JSR2
+    ;draw-dots JSR2
+    ;restore-dots JSR2
+
+    DEC2r
+    STH2rk #0001 GTH2 ,&scale-down JCN
+  POP2r
+
+  #00 [ ;fold-outside STA ]
+  LIT2r 0000 ( :scale )
+  &scale-up
+    ;save-dots JSR2
+    STH2rk [ ;fold-scale STA2 ]
+    DUP2 ;process-fold JSR2
+    ;draw-dots JSR2
+    ;restore-dots JSR2
+
+    INC2r
+    STH2rk #0010 LTH2 ,&scale-up JCN
+  POP2r
+
+  #0010 [ ;fold-scale STA2 ]
+  ;process-fold JSR2
+  RTN
+
 ( -- )
 @process-folds
   ;folds
@@ -291,13 +345,82 @@
       DUP2 ;process-fold JSR2
       ( folds* )
       ;distinct-dots JSR2
-      ;dump-dots JSR2
+      [ ;post-fold-hook LDA2 ] JSR2
     #0003 ADD2
     ,&next JMP
   &done
   ( folds* ffff )
   POP2 POP2
   RTN
+
+( -- )
+@process-folds-anim
+  ;folds
+  ( folds* )
+  &next
+    LDA2k ( folds* x )
+    DUP2 #ffff EQU2 ,&done JCN
+      ( folds* x )
+      POP2
+      ( folds* )
+      DUP2 ;anim-fold JSR2
+      ( folds* )
+      ;distinct-dots JSR2
+      [ ;post-fold-hook LDA2 ] JSR2
+    #0003 ADD2
+    ,&next JMP
+  &done
+  ( folds* ffff )
+  POP2 POP2
+  RTN
+
+@post-fold-nop
+  RTN
+
+@post-fold-hook :post-fold-nop
+
+@draw-dots
+  P< "--- >P LF
+  [ ;dots-w LDA2 ]
+  [ ;dots-h LDA2 ] DUP2 #0000 GTH2 ,&size-ok JCN
+    LIT '! EMIT LF
+    POP2 POP2 RTN
+  &size-ok
+  SWP2 STH2 STH2 ( : h w )
+  #0000 STH2 ( : row h w )
+  &next-row
+    STH2r STH2r LIT 20 [ ;dots-w LDA2 ] ;row ;memset JSR2 STH2 STH2
+    ;dots
+    ( dots* : row )
+    &next
+      LDA2k ( dots* x )
+      DUP2 #ffff EQU2 ,&done JCN
+      OVR2 2++ LDA2 STH2rk EQU2 ,&row-match JCN
+        POP2 ,&continue JMP
+      &row-match
+
+      ;row ADD2
+      ( dots* row+x )
+      STH2 LIT '# STH2r STA
+
+      &continue
+      4++
+      ,&next JMP
+    &done
+    ( dots* ffff : row h w )
+    POP2 POP2
+    STH2r STH2r
+    LIT 0a ;row STH2rk ADD2 STA
+    LIT 00 ;row STH2rk ADD2 INC2 STA
+    STH2 STH2
+    ;row ;print JSR2
+    INC2r STH2rk POP2
+    GTH2rk STHr ;&next-row JCN2
+  POP2r
+  POP2r POP2r
+  RTN
+
+
 
 ~library/console.lib.tal
 ~library/string.tal
@@ -306,4 +429,9 @@
 |8000
 
 @dots $1000
+@dots-w $2 @dots-h $2
+@fold-scale 0010
+@fold-outside 00
+@dots2 $1000
 @folds $100
+@row $1000

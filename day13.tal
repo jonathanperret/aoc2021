@@ -36,19 +36,23 @@
   ;open-file JSR2
 
   ;read-byte ;parse-lines JSR2
-  ;dump-dots JSR2
-  ;dump-folds JSR2
+  ( ;dump-dots JSR2 )
+  ( ;dump-folds JSR2 )
 
-  ;process-folds JSR2
+  #0200 [ ;dots-w STA2 ]
+  #0080 [ ;dots-h STA2 ]
+  ;post-fold-draw-dots [ ;post-fold-hook STA2 ]
 
-  ;dump-dots JSR2
-
-  ;draw-dots JSR2
+  ;process-folds-anim JSR2
 
   &done
   BRK
 
   [ &result $2 ]
+
+@post-fold-draw-dots
+  ;draw-dots JSR2
+  RTN
 
 @open-file
   ;argv .File/name DEO2
@@ -61,48 +65,5 @@
   ;&byte .File/read DEO2
   LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
   RTN
-
-@draw-dots
-  LIT 20 #0006 #0040 MUL2 ;matrix ;memset JSR2
-  ;dots
-  #0000 STH2
-  ( dots* : cnt )
-  &next
-    LDA2k ( dots* x )
-    DUP2 #ffff EQU2 ,&done JCN
-
-    STH2
-    ( dots* : x )
-    DUP2 2++ LDA2
-    ( dots* y : x )
-    #0040 MUL2
-    ( dots* y*64 : x )
-    STH2r
-    ( dots* y*64 x )
-    ADD2
-    ( dots* y*64+x )
-    ;matrix ADD2
-    ( dots* matrix+y*64+x )
-    STH2 LIT '# STH2r STA
-
-    INC2r
-    4++
-    ,&next JMP
-  &done
-  ( dots* ffff )
-  POP2 POP2
-  LIT 0a ;matrix #0040 ADD2 DEC2 STA
-  LIT 0a ;matrix #0080 ADD2 DEC2 STA
-  LIT 0a ;matrix #00c0 ADD2 DEC2 STA
-  LIT 0a ;matrix #0100 ADD2 DEC2 STA
-  LIT 0a ;matrix #0140 ADD2 DEC2 STA
-  LIT 0a ;matrix #0180 ADD2 DEC2 STA
-  LIT 0a ;matrix #01c0 ADD2 DEC2 STA
-  ;matrix ;print JSR2
-  LF
-  RTN
-
-@matrix $1000
-
 
 ~day13_lib.tal
