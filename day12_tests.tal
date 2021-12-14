@@ -5,9 +5,6 @@
 
 |0000
 
-%T< { STKCHK P< }
-%>T { >P LF }
-
 |0100 @program
 
   T< "parse-line: >T

@@ -430,6 +430,17 @@ RTN
   ;string64-decimal JSR2 ;string64-decimal/str ;print JSR2
   JMP2r
 
+  &no-pad
+    ;string64-decimal JSR2
+    ;string64-decimal/str ( s* )
+    &scan
+      LDAk #20 NEQ ,&done JCN
+      INC2
+      ,&scan JMP
+    &done
+    ;print JSR2
+    JMP2r
+
 ( r* b -> )
 @sub64-byte
   STH
@@ -463,3 +474,14 @@ RTN
     ( r* r* b : s* )
     POP POP2 POP2 POP2r
   RTN
+
+( a* b* -- f )
+@greaterthan64
+  ( OVR2 ;print64 JSR2 LIT '> EMIT DUP2 ;print64 JSR2 LIT '? EMIT SP )
+  STH2 STH2 ;&a-b STH2r STH2r ;sub64 JSR2
+  ;&a-b ;is-positive64 JSR2
+  ( DBGBYTE )
+  RTN
+  [ &a-b $8 ]
+
+

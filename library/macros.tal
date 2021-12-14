@@ -131,6 +131,8 @@
 
 ( Testing )
 %STKCHK { ;stkchk JSR2 }
+%T< { STKCHK P< }
+%>T { >P LF }
 
 ( Looping )
 %HEREr { #00 JSR }

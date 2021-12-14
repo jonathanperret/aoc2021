@@ -173,15 +173,6 @@
   RTN
   [ &min-ptr $2 &intmax ff ff ff ff ff ff ff 7f &min-out $8 ]
 
-( a* b* -- f )
-@greaterthan64
-  ( OVR2 ;print64 JSR2 LIT '> EMIT DUP2 ;print64 JSR2 LIT '? EMIT SP )
-  STH2 STH2 ;&a-b STH2r STH2r ;sub64 JSR2
-  ;&a-b ;is-positive64 JSR2
-  ( DBGBYTE )
-  RTN
-  [ &a-b $8 ]
-
 
 ~library/console.lib.tal
 ~library/string.tal

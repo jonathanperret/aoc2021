@@ -6,9 +6,6 @@
 
 |0000
 
-%T< { STKCHK P< }
-%>T { >P LF }
-
 |0100 @program
 
   T< "parse-dot-line: >T

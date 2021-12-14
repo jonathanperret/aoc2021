@@ -1,0 +1,58 @@
+# Part 1
+
+Let's get parsing done quickly today.
+
+Parsing done in 30 minutes, not so bad.
+
+Now, it looks like the naive approach may work for part 1, but will
+probably blow up one they ask for say 1000 steps. Let's try it anyway.
+
+Hmm, I want to store rules in a lookup table rather than my current list.
+
+Argh, @print doesn't correctly print empty strings 🤦
+
+One more hour debugging an inverted STA. And I'm finally realizing I'm
+headed into a wall: even for the sample, the polymer contains more than
+3000 elements.
+
+In fact, can I predict the final length of the polymer? If every pair
+of elements has an element inserted inside, a length 4 polymer becomes
+a length 7 polymer, which becomes a length 13 polymer… each element
+except the last has a new neighbor.
+
+  L(n) = 2*(n-1) + 1 = 2*n - 1
+  L(4) = 7
+  L(7) = 13
+  L(13) = 25
+  …
+
+A quick spreadsheet gives:
+  4
+  7
+  13
+  25
+  49
+  97
+  193
+  385
+  769
+  1537
+  3073
+
+My input has 20 elements.
+  20
+  39
+  77
+  153
+  305
+  609
+  1217
+  2433
+  4865
+  9729
+
+Hmm, 9729 bytes (0x2601) does fit in memory. But I'm pretty sure I'll have to 
+change my approach for the next part.
+
+
+

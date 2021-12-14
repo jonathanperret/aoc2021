@@ -1,0 +1,130 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "parse-input: >T
+  S<
+    "NNCB 0a
+    0a
+    "CH 20 "-> 20 "B 0a
+    "ZH 20 "-> 20 "N 0a
+  >S ;test-parse-input JSR2
+  ( EXPECT NNCB )
+  ( EXPECT CH>B ZH>N  )
+
+  T< "pair-counts: >T
+  S< "NNNCB 0a 0a >S ;make-get-byte JSR2 ;parse-input JSR2
+  ;pair-counts/init JSR2
+  ;pair-counts/dump JSR2 LF
+  ( EXPECT NN:2 NC:1 CB:1  )
+
+  T< "apply-rules: >T
+  ;day14sample ;make-get-byte JSR2 ;parse-input JSR2
+  ;elt-counts/init JSR2
+  ;pair-counts/init JSR2
+  ;apply-rules JSR2
+  ;pair-counts/dump JSR2 LF
+  ( EXPECT NC:1 NB:1 CN:1 CH:1 BC:1 HB:1  )
+  #0000 #0009 DO
+    ;apply-rules JSR2
+  LOOP
+  ;pair-counts/dump JSR2 LF
+  ( EXPECT NC:42 NB:796 NH:27 CN:102 CC:60 CB:115 CH:21 BN:735 BC:120 BB:812 BH:81 HN:27 HC:76 HB:26 HH:32  )
+  ;elt-counts/dump JSR2 LF
+  ( EXPECT N:865 C:298 B:1749 H:161  )
+  ;elt-counts/print-result JSR2 LF
+  ( EXPECT 1749-1588=161 )
+  #0000 #001e DO
+    ;apply-rules JSR2
+    ;elt-counts/print-result JSR2 LF
+  LOOP
+  ( EXPECT 1749-161=1588 )
+
+  T< "count-polymer: >T
+  S< "NBCCNBBBCBHCB >S ;test-count-polymer JSR2
+  ( EXPECT A: 0 B: 6 C: 4 D: 0 E: 0 F: 0 G: 0 H: 1 I: 0 J: 0 K: 0 L: 0 M: 0 N: 2 O: 0 P: 0 Q: 0 R: 0 S: 0 T: 0 U: 0 V: 0 W: 0 X: 0 Y: 0 Z: 0  )
+
+  T< "compute-result: >T
+  S< "NBCCNBBBCBHCB >S ;test-compute-result JSR2
+  ( EXPECT 6 - 1 = 5 )
+
+  T< "👍 >T
+  BRK !
+
+~day14_lib.tal
+
+@day14sample
+  "NNCB 0a
+  0a
+  "CH 20 "-> 20 "B 0a
+  "HH 20 "-> 20 "N 0a
+  "CB 20 "-> 20 "H 0a
+  "NH 20 "-> 20 "C 0a
+  "HB 20 "-> 20 "C 0a
+  "HC 20 "-> 20 "B 0a
+  "HN 20 "-> 20 "C 0a
+  "NN 20 "-> 20 "C 0a
+  "BH 20 "-> 20 "H 0a
+  "NC 20 "-> 20 "B 0a
+  "NB 20 "-> 20 "B 0a
+  "BN 20 "-> 20 "B 0a
+  "BB 20 "-> 20 "N 0a
+  "BC 20 "-> 20 "B 0a
+  "CC 20 "-> 20 "N 0a
+  "CN 20 "-> 20 "C 0a
+  00
+
+|f000
+~library/test.tal
+
+( s* -- )
+@test-parse-input
+  ;make-get-byte JSR2 ;parse-input JSR2
+  ;dump-polymer JSR2 LF
+  ;dump-rules JSR2 LF
+  RTN
+
+( s* -- )
+@test-grow-polymer
+  ;make-get-byte JSR2 ;parse-input JSR2
+  ;dump-rules JSR2 LF
+  ;dump-polymer JSR2 LF
+  ;grow-polymer JSR2
+  ;dump-polymer JSR2 LF
+  ;grow-polymer JSR2
+  ;dump-polymer JSR2 LF
+  ;grow-polymer JSR2
+  ;dump-polymer JSR2 LF
+  RTN
+
+( s* -- )
+@test-count-polymer
+  ;count-polymer JSR2
+  ;dump-counts JSR2 LF
+  RTN
+
+( s* -- )
+@test-compute-result
+  ;count-polymer JSR2
+  ;compute-result JSR2 LF
+  RTN
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2

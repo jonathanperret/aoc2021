@@ -4,6 +4,8 @@
 
 @print ( addr* -- )
 	
+  ( test ) LDAk ,&loop JCN
+    POP2 RTN
 	&loop
 		( send ) LDAk .Console/write DEO
 		( incr ) INC2
