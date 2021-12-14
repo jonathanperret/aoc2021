@@ -38,20 +38,12 @@
   ;elt-counts/dump JSR2 LF
   ( EXPECT N:865 C:298 B:1749 H:161  )
   ;elt-counts/print-result JSR2 LF
-  ( EXPECT 1749-1588=161 )
-  #0000 #001e DO
-    ;apply-rules JSR2
-    ;elt-counts/print-result JSR2 LF
-  LOOP
   ( EXPECT 1749-161=1588 )
-
-  T< "count-polymer: >T
-  S< "NBCCNBBBCBHCB >S ;test-count-polymer JSR2
-  ( EXPECT A: 0 B: 6 C: 4 D: 0 E: 0 F: 0 G: 0 H: 1 I: 0 J: 0 K: 0 L: 0 M: 0 N: 2 O: 0 P: 0 Q: 0 R: 0 S: 0 T: 0 U: 0 V: 0 W: 0 X: 0 Y: 0 Z: 0  )
-
-  T< "compute-result: >T
-  S< "NBCCNBBBCBHCB >S ;test-compute-result JSR2
-  ( EXPECT 6 - 1 = 5 )
+  #0000 #001e ( 30 more ) DO
+    ;apply-rules JSR2
+  LOOP
+  ;elt-counts/print-result JSR2 LF
+  ( EXPECT 2192039569602-3849876073=2188189693529 )
 
   T< "👍 >T
   BRK !
@@ -87,31 +79,6 @@
   ;make-get-byte JSR2 ;parse-input JSR2
   ;dump-polymer JSR2 LF
   ;dump-rules JSR2 LF
-  RTN
-
-( s* -- )
-@test-grow-polymer
-  ;make-get-byte JSR2 ;parse-input JSR2
-  ;dump-rules JSR2 LF
-  ;dump-polymer JSR2 LF
-  ;grow-polymer JSR2
-  ;dump-polymer JSR2 LF
-  ;grow-polymer JSR2
-  ;dump-polymer JSR2 LF
-  ;grow-polymer JSR2
-  ;dump-polymer JSR2 LF
-  RTN
-
-( s* -- )
-@test-count-polymer
-  ;count-polymer JSR2
-  ;dump-counts JSR2 LF
-  RTN
-
-( s* -- )
-@test-compute-result
-  ;count-polymer JSR2
-  ;compute-result JSR2 LF
   RTN
 
 ( s* -- get-byte )

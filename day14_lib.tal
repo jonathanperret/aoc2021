@@ -62,6 +62,8 @@
   &make
     SWP #40 SFT ORA
     RTN
+
+  ( pair-idx -- )
   &print
     DUP #04 SFT ;letter-map/print JSR2
         #0f AND ;letter-map/print JSR2
@@ -107,91 +109,6 @@
 ( -- )
 @dump-rules
   ;rules/dump JMP2
-
-( -- )
-@grow-polymer
-  ;polymer ;polymer-out STH2 ( in* : out* )
-  &grow-loop
-    LDA2k DUP #00 EQU ,&grow-done JCN
-    ( elt1 elt2 )
-
-    ( OVR EMIT DUP EMIT SP )
-    ( write left elt )
-    OVR STH2rk STA INC2r
-
-    ( lookup output )
-    ;pair-index/make JSR2
-    ;rules/lookup JSR2
-
-    ( write new elt )
-    STH2rk STA INC2r
-
-    INC2
-    ;&grow-loop JMP2
-  &grow-done
-  ( in* elt1 00 )
-  ( terminate output )
-  STH2r STA2
-  ( in* )
-  POP2
-  ( src* dest* cnt -- )
-  ;polymer-out ;polymer #2000 ;memcpy JSR2
-  RTN
-
-( s* -- )
-@count-polymer
-  #00 #0040 ;counts ;memset JSR2
-
-  ( s* )
-  &loop
-    LDAk #00 EQU ,&done JCN
-    LDAk
-    LIT 'A SUB #00 SWP 2** ;counts ADD2
-
-    DUP2 LDA2
-    INC2
-    SWP2 STA2
-
-    INC2
-    ,&loop JMP
-
-  &done
-  POP2
-  RTN
-
-( -- )
-@dump-counts
-  LIT2 ".A LIT2 ".Z INC2 DO
-    DUP EMIT
-    LIT ': EMIT SP
-    DUP LIT 'A SUB #00 SWP 2** ;counts ADD2 LDA2 DBGSHORTDECn POP2 SP
-  LOOP
-  RTN
-
-( -- )
-@compute-result
-  #0000 [ ;&max STA2 ]
-  #ffff [ ;&min STA2 ]
-  LIT2 ".A LIT2 ".Z INC2 DO
-    DUP LIT 'A SUB #00 SWP 2** ;counts ADD2 LDA2
-    DUP2 #0000 EQU2 ,&skip JCN
-      DUP2 [ ;&max LDA2 ] LTH2 ,&not-new-max JCN
-      DUP2 [ ;&max STA2 ]
-      &not-new-max
-
-      DUP2 [ ;&min LDA2 ] GTH2 ,&not-new-min JCN
-      DUP2 [ ;&min STA2 ]
-      &not-new-min
-    &skip
-    POP2
-  LOOP
-  [ ;&max LDA2 ] DBGSHORTDECn
-  SP LIT '- EMIT SP
-  [ ;&min LDA2 ] DBGSHORTDECn
-  SP LIT '= EMIT SP
-  SUB2 DBGSHORTDECn POP2
-  RTN
-  [ &max $2 &min $2 ]
 
 ( -- )
 @apply-rules
@@ -325,6 +242,12 @@
     POP2 POP2
     RTN
 
+  ( pair-idx -- )
+  &increment
+    ;&ptr JSR2
+    #01 ;add64-byte JSR2
+    RTN
+
   ( pair-idx -- count* )
   &ptr
     #00 SWP 8** ;&_counts ADD2
@@ -343,12 +266,6 @@
       &skip
       POP2
     LOOP
-    RTN
-
-  ( pair-idx -- )
-  &increment
-    ;&ptr JSR2
-    #01 ;add64-byte JSR2
     RTN
 
   ( -- )
@@ -378,9 +295,7 @@
 ~library/string.tal
 ~library/math.tal
 
-@counts $40
-@polymer     $2000
-@polymer-out $2000
+@polymer $20
 @rules $100
   ( -- )
   &reset

@@ -43,6 +43,7 @@
   #0001 #0029 DO
     DUP2 DBGSHORTDECn LIT ': EMIT
     ;apply-rules JSR2
+    ;elt-counts/dump JSR2 LF
     ;elt-counts/print-result JSR2 LF
   LOOP
 
