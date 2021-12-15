@@ -498,3 +498,11 @@ cell, this reduces the time to a bit over 1 second.
 What's in store for part 2, then?
 
 # Part 2
+
+Damn. The matrix is now 2500x2500, clearly that won't fit. Back to a priority
+queue, etc. ?
+
+What's the worst cost now ? (2500-1)*2*9 = 44982. This still fits in a short, yay.
+I can even still split the range to distinguish risk levels from path costs, e.g.
+if x < 16 it's a risk level otherwise its a path cost.
+

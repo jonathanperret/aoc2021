@@ -72,7 +72,7 @@
   &combine-at
     ;&ptr-at JSR2 ( val ptr )
     LDA2k ( val ptr cellval )
-    DUP2 #7fff GTH2 ,&combine-at/visited JCN
+    DUP2 #000f GTH2 ,&combine-at/visited JCN
       ROT2 ( ptr cellval val )
       ADD2 SWP2 STA2
     RTN
@@ -114,11 +114,11 @@
 
   ( -- )
   &flood-all
-    #8000 #0000 #0000 ;&set-at JSR2
-    #8000 #8708 DO
+    #0010 #0000 #0000 ;&set-at JSR2
+    #0010 #ffff DO
       DUP2 ;&flood-matching JSR2
       ;&get-end JSR2
-      #8000 LTH2 ,&flood-all/not-done JCN
+      #0010 LTH2 ,&flood-all/not-done JCN
         UNLOOP
         RTN
       &flood-all/not-done
@@ -132,7 +132,7 @@
   ( -- risk )
   &get-end-risk
     ;&get-end JSR2
-    #7fff AND2
+    #0010 SUB2
     RTN
 
 ~library/console.lib.tal
