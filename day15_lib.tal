@@ -64,40 +64,104 @@
     ;&ptr-at JSR2 LDA
     RTN
 
+%COSTLIST_SIZE { $a000 }
+
 @cost-matrix
-  [ &_costs $6000 &_w $2 &_h $2 ]
   &init
     [ ;risk-matrix/_w LDA2 ] [ ;&_w STA2 ]
     [ ;risk-matrix/_h LDA2 ] [ ;&_h STA2 ]
-    #00 #6000 ;&_costs ;memset JSR2
+    #00 ;&_costlist_end ;&_costlist SUB2 ;&_costlist ;memset JSR2
+    #ffff [ ;&_costlist STA2 ]
     RTN
 
   ( val x y -- )
   &set-at
-    ;&ptr-at JSR2 STA2
+    ( find end of costlist )
+    LIT2r :&_costlist ( : cost* )
+    &set-at/loop
+      STH2rk LDA2 #ffff EQU2 ,&set-at/at-end JCN
+      ( val x y : cost* )
+      LIT2r 0006 ADD2r
+      ,&set-at/loop JMP
+    &set-at/at-end
+    ( bounds check )
+    ;&_costlist_end STH2rk GTH2 ,&set-at/bounds-ok JCN
+      P< "costlist 20 "bounds 20 "exceeded >P
+      !
+    &set-at/bounds-ok
+
+    ( val x y : cost* )
+    SWP2 ( val y x : cost* )
+    STH2rk STA2 INC2r INC2r
+    STH2rk STA2 INC2r INC2r
+    STH2rk STA2 INC2r INC2r
+    #ffff STH2r STA2
     RTN
 
   ( x y -- val )
   &get-at
-    ;&ptr-at JSR2 LDA2
+    DUP2 [ ;&_h LDA2 ] GEQ2 ,&lga/outside JCN
+    OVR2 [ ;&_w LDA2 ] GEQ2 ,&lga/outside JCN
+
+    STH2 STH2 ( : x y )
+    ( scan costlist )
+    ;&_costlist ( cost* : x y )
+    &list-get-at/loop
+      LDA2k #ffff EQU2 ,&list-get-at/at-end JCN
+      ( cost* : x y )
+      LDA2k STH2rk NEQ2 ,&list-get-at/next JCN
+      ( cost* : x y )
+      DUP2 #0002 ADD2 LDA2 OVR2r STH2r NEQ2 ,&list-get-at/next JCN
+
+      ( found match )
+      ( cost* : x y )
+      POP2r POP2r
+      #0004 ADD2 LDA2
+      RTN
+
+      &list-get-at/next
+      #0006 ADD2
+      ,&list-get-at/loop JMP
+    &list-get-at/at-end
+    ( cost* : x y )
+    POP2 POP2r POP2r
+    #0000
+    RTN
+
+    &lga/outside
+      POP2 POP2
+      #ffff
+      RTN
+
+  ( -- count )
+  &count
+    ( scan costlist )
+    ;&_costlist ( cost* )
+    &count/loop
+      LDA2k #ffff EQU2 ,&count/at-end JCN
+      #0006 ADD2
+      ,&count/loop JMP
+    &count/at-end
+    ( cost-end* )
+    ;&_costlist SUB2 #0006 DIV2
     RTN
 
   ( val x y -- )
   &combine-at
     STH2k OVR2 STH2 ( val x y : x y )
-    ;&ptr-at JSR2 ( val ptr )
-    LDA2k ( val ptr cellval )
-    DUP2 #000f GTH2 ,&combine-at/visited JCN
-      ( val ptr 0000 : x y )
-      POP2 STH2rk OVR2r STH2r ( val ptr x y : x y )
+    ;&get-at JSR2 ( val cellval : x y )
+    #000f GTH2 ,&combine-at/visited JCN
+      ( val : x y )
+      STH2rk OVR2r STH2r ( val x y : x y )
       ;risk-matrix/get-at JSR2 #00 SWP
-      ROT2 ( ptr cellval val )
-      ADD2 SWP2 STA2
-      POP2r POP2r
+      ( val cellval : x y )
+      ADD2 ( val+cellval : x y )
+      STH2r STH2r ( val+cellval x y )
+      ;&set-at JSR2
     RTN
     &combine-at/visited
-      ( val ptr cellval )
-      POP2 POP2 POP2
+      ( val : x y )
+      POP2
       POP2r POP2r
     RTN
 
@@ -113,6 +177,29 @@
 
   ( val -- )
   &flood-matching
+    STH2 ( : val )
+    ( scan costlist )
+    ;&_costlist ( cost* : x y )
+    &flood-matching/loop
+      LDA2k #ffff EQU2 ,&flood-matching/at-end JCN
+      ( cost* : val )
+      DUP2 #0004 ADD2 LDA2 STH2rk NEQ2 ,&flood-matching/next JCN
+
+      ( found match )
+      ( cost* : val )
+      LDA2k ( cost* x : val )
+      OVR2 #0002 ADD2 LDA2 ( cost* x y : val )
+      ;&flood-from JSR2
+      ( cost* : val )
+
+      &flood-matching/next
+      #0006 ADD2
+      ,&flood-matching/loop JMP
+    &flood-matching/at-end
+    ( cost* : val )
+    POP2 POP2r
+    RTN
+
     #0000 [ ;&_w LDA2 ] DO
       #0000 [ ;&_h LDA2 ] DO
         ( val x y )
@@ -132,25 +219,11 @@
     POP2
     RTN
 
-  ( x y -- ptr )
-  &ptr-at
-    DUP2 [ ;&_h LDA2 ] GEQ2 ,&ptr-at/outside JCN
-    OVR2 [ ;&_w LDA2 ] GEQ2 ,&ptr-at/outside JCN
-    [ ;&_h LDA2 ] MUL2 ADD2 2**
-    ;&_costs ADD2
-    RTN
-
-    &ptr-at/outside
-    POP2 POP2
-    #ffff [ ;&dummy-cell STA2 ]
-    ;&dummy-cell
-    RTN
-    [ &dummy-cell $2 ]
-
   ( -- )
   &flood-all
     #0010 #0000 #0000 ;&set-at JSR2
     #0010 #ffff DO
+      ( DBGSHORTDECn SP ;&count JSR2 DBGSHORTDEC POP2 )
       DUP2 ;&flood-matching JSR2
       ;&get-end JSR2
       #0010 LTH2 ,&flood-all/not-done JCN
@@ -158,6 +231,24 @@
         RTN
       &flood-all/not-done
     LOOP
+    RTN
+
+  ( -- )
+  &list-dump
+    LIT2r :&_costlist ( : cost* )
+    &list-dump/loop
+      STH2rk LDA2 #ffff EQU2 ,&list-dump/at-end JCN
+      ( : cost* )
+      STH2rk LDA2k DBGSHORTDECn SP POP2
+      #0002 ADD2 LDA2k DBGSHORTDECn SP POP2
+      #0002 ADD2 LDA2k ;print-short-no0x JSR2
+      POP2
+      LF
+      LIT2r 0006 ADD2r
+      ,&list-dump/loop JMP
+    &list-dump/at-end
+    ( : cost* )
+    POP2r
     RTN
 
   ( -- )
@@ -184,6 +275,9 @@
     ;&get-end JSR2
     #0010 SUB2
     RTN
+
+  [ &_costlist COSTLIST_SIZE &_costlist_end
+    &_w $2 &_h $2 ]
 
 
 ~library/console.lib.tal

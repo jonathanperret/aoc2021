@@ -518,3 +518,140 @@ To get there incrementally, I'll first store them in a separate matrix and see i
 I can keep everything working.
 
 OK, it still works with separate matrices.
+
+Now, my cost matrix starts all empty (zeroes everywhere), so obviously a sparse
+storage would be very lightweight.
+
+But it ends completely full so we're not there yet. Which cells could we afford
+to forget about? We can't keep only the cells with cost >= frontier-cost, because
+that could put cells back in the "unvisited" state.
+
+Let's compare my implementation with the actual "uniform cost search"
+algorithm.  Instead of a priority queue of (cost, node) pairs, I'm storing
+costs in a matrix, but there is an equivalence: the nodes at the top of the
+priority queue would be those where I stored a cost that matches my current
+"frontier-cost". And adding a node's cost to a neighbor's risk is inserting
+that neighbor into the priority queue with that cost.
+
+Yet, the priority queue itself forgets about nodes as soon as they are
+popped — why can't I do the same for my matrix (i.e. set a cost to 0 as soon
+as frontier-cost reaches it)? As mentioned above, this would cause previously
+visited cells to be visited again…
+
+The difference is that the UCS algorithm maintains an "unvisited" set of nodes,
+of course!
+
+Can I afford 1 bit per cell in the 500x500 matrix? That would be 31,250 bytes.
+Added to the 10,000 bytes of the risk matrix, things are starting to feel
+crowded. And I still don't know how large the priority queue (or sparse cost
+matrix) is going to grow!
+
+This is an interesting paper: https://www.aaai.org/ocs/index.php/SOCS/SOCS11/paper/viewFile/4017/4357
+
+> Dijkstra’s single-source shortest-path algorithm (DA) is one of the
+> well-known, fundamental algorithms in computer science and related fields. DA
+> is commonly taught in undergrad- uate courses. Uniform-cost search (UCS) is a
+> simple version of the best-first search scheme which is logically equivalent
+> to DA. In this paper I compare the two algorithms and show their similarities
+> and differences. I claim that UCS is supe- rior to DA in almost all aspects.
+> It is easier to understand and implement. Its time and memory needs are also
+> smaller. The reason that DA is taught in universities and classes around the
+> world is probably only historical. I encourage people to stop using and
+> teaching DA, and focus on UCS only.
+
+Am I going to implement A* after all? Here's Wikipedia's version:
+
+  function reconstruct_path(cameFrom, current)
+      total_path := {current}
+      while current in cameFrom.Keys:
+          current := cameFrom[current]
+          total_path.prepend(current)
+      return total_path
+
+  // A* finds a path from start to goal.
+  // h is the heuristic function. h(n) estimates the cost to reach goal from node n.
+  function A_Star(start, goal, h)
+      // The set of discovered nodes that may need to be (re-)expanded.
+      // Initially, only the start node is known.
+      // This is usually implemented as a min-heap or priority queue rather than a hash-set.
+      openSet := {start}
+
+      // For node n, cameFrom[n] is the node immediately preceding it on the cheapest path from start
+      // to n currently known.
+      cameFrom := an empty map
+
+      // For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
+      gScore := map with default value of Infinity
+      gScore[start] := 0
+
+      // For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
+      // how short a path from start to finish can be if it goes through n.
+      fScore := map with default value of Infinity
+      fScore[start] := h(start)
+
+      while openSet is not empty
+          // This operation can occur in O(1) time if openSet is a min-heap or a priority queue
+          current := the node in openSet having the lowest fScore[] value
+          if current = goal
+              return reconstruct_path(cameFrom, current)
+
+          openSet.Remove(current)
+          for each neighbor of current
+              // d(current,neighbor) is the weight of the edge from current to neighbor
+              // tentative_gScore is the distance from start to the neighbor through current
+              tentative_gScore := gScore[current] + d(current, neighbor)
+              if tentative_gScore < gScore[neighbor]
+                  // This path to neighbor is better than any previous one. Record it!
+                  cameFrom[neighbor] := current
+                  gScore[neighbor] := tentative_gScore
+                  fScore[neighbor] := tentative_gScore + h(neighbor)
+                  if neighbor not in openSet
+                      openSet.add(neighbor)
+
+      // Open set is empty but goal was never reached
+      return failure
+
+Removing the reconstruction of the path, which I don't need:
+
+  // A* finds a path from start to goal.
+  // h is the heuristic function. h(n) estimates the cost to reach goal from node n.
+  function A_Star(start, goal, h)
+      // The set of discovered nodes that may need to be (re-)expanded.
+      // Initially, only the start node is known.
+      // This is usually implemented as a min-heap or priority queue rather than a hash-set.
+      openSet := {start}
+
+      // For node n, gScore[n] is the cost of the cheapest path from start to n currently known.
+      gScore := map with default value of Infinity
+      gScore[start] := 0
+
+      // For node n, fScore[n] := gScore[n] + h(n). fScore[n] represents our current best guess as to
+      // how short a path from start to finish can be if it goes through n.
+      fScore := map with default value of Infinity
+      fScore[start] := h(start)
+
+      while openSet is not empty
+          // This operation can occur in O(1) time if openSet is a min-heap or a priority queue
+          current := the node in openSet having the lowest fScore[] value
+          if current = goal
+              return gScore[current]
+
+          openSet.Remove(current)
+          for each neighbor of current
+              // d(current,neighbor) is the weight of the edge from current to neighbor
+              // tentative_gScore is the distance from start to the neighbor through current
+              tentative_gScore := gScore[current] + d(current, neighbor)
+              if tentative_gScore < gScore[neighbor]
+                  // This path to neighbor is better than any previous one. Record it!
+                  gScore[neighbor] := tentative_gScore
+                  fScore[neighbor] := tentative_gScore + h(neighbor)
+                  if neighbor not in openSet
+                      openSet.add(neighbor)
+
+      // Open set is empty but goal was never reached
+      return failure
+
+As mentioned in Wikipedia, Dijkstra's is equivalent to A* with h(x) = 0 for all x. Putting that
+in the pseudocode above would remove the fScore array entirely (as its values would become identical
+to those of gScore). Squinting a bit, I think this would end up looking like UCS, which is basically
+what I'm currently doing.

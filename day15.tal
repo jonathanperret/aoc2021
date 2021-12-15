@@ -37,6 +37,7 @@
 
   ;read-byte ;risk-matrix/parse JSR2
   ;cost-matrix/init JSR2
+  ;cost-matrix/dump JSR2
   ;cost-matrix/flood-all JSR2
   ;cost-matrix/dump JSR2
   ;cost-matrix/get-end-cost JSR2 DBGSHORTDEC POP2
