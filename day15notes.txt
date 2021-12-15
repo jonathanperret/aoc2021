@@ -516,3 +516,5 @@ stored costs in a separate structure (potentially shallow) from the risk levels?
 
 To get there incrementally, I'll first store them in a separate matrix and see if
 I can keep everything working.
+
+OK, it still works with separate matrices.

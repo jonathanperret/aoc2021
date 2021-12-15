@@ -4,6 +4,8 @@
   ( get-byte -- )
   &parse
     [ ;&parse/get-byte STA2 ]
+    #00 #3000 ;&_risks ;memset JSR2
+
     #0000 [ ;&_h STA2 ]
     LIT2r :&_risks ( : p* )
     #0000 [ ;&parse/w STA2 ]
@@ -63,11 +65,11 @@
     RTN
 
 @cost-matrix
-  [ &_costs $3000 &_w $2 &_h $2 ]
+  [ &_costs $6000 &_w $2 &_h $2 ]
   &init
     [ ;risk-matrix/_w LDA2 ] [ ;&_w STA2 ]
     [ ;risk-matrix/_h LDA2 ] [ ;&_h STA2 ]
-    #00 #3000 ;&_costs ;memset JSR2
+    #00 #6000 ;&_costs ;memset JSR2
     RTN
 
   ( val x y -- )
