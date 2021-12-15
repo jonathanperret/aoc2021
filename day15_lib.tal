@@ -335,11 +335,19 @@
       #0000 [ ;&_w LDA2 ] DO
         ( y x )
         DUP4 ( y x y x )
-        SWP2 DUP4 ;&get-at JSR2
-        ( x y x y cost )
-        ROT2 ROT2 ;&add-visited-bit JSR2
-        ( x y cost|bit )
-        ;print-short-no0x JSR2
+        SWP2
+        ( y x x y )
+        DUP4 ;&get-visited JSR2
+        NOT ,&dump/not-visited JCN
+          ;&get-at JSR2
+          ( x y cost )
+          ;print-short-no0x JSR2
+          ,&dump/next JMP
+        &dump/not-visited
+          ( y x x y )
+          POP2 POP2
+          P< 20 20 20 20 >P
+        &dump/next
         SP
       LOOP
       LF
