@@ -1,10 +1,14 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
 @risk-matrix
-  [ &_risks $3000 &_w $2 &_h $2 ]
+  [ &_risks $2720 &_risks_end &_w $2 &_h $2 ]
 
   ( get-byte -- )
   &parse
     [ ;&parse/get-byte STA2 ]
-    #00 #3000 ;&_risks ;memset JSR2
+    #00 ;&_risks_end ;&_risks SUB2 ;&_risks ;memset JSR2
 
     #0000 [ ;&_h STA2 ]
     LIT2r :&_risks ( : p* )
@@ -32,9 +36,16 @@
 
   ( x y -- ptr )
   &ptr-at
-    DUP2 [ ;&_h LDA2 ] GEQ2 ,&ptr-at/outside JCN
-    OVR2 [ ;&_w LDA2 ] GEQ2 ,&ptr-at/outside JCN
-    [ ;&_h LDA2 ] MUL2 ADD2
+    ( x y )
+    [ ;&_h LDA2 ] MOD2
+    ( x y%h )
+    [ ;&_w LDA2 ] MUL2 ( x y*w )
+
+    SWP2
+    ( y*w x )
+    [ ;&_w LDA2 ] MOD2
+
+    ADD2
     ;&_risks ADD2
     RTN
 
@@ -47,10 +58,10 @@
 
   ( -- )
   &dump
-    [ ;&_w LDA2 ] DBGSHORTDECn SP POP2
-    [ ;&_h LDA2 ] DBGSHORTDEC POP2
-    #0000 [ ;&_h LDA2 ] DO
-      #0000 [ ;&_w LDA2 ] DO
+    [ ;&_w LDA2 ] [ ;cost-matrix/scale LDA2 ] MUL2  DBGSHORTDECn SP POP2
+    [ ;&_h LDA2 ] [ ;cost-matrix/scale LDA2 ] MUL2  DBGSHORTDEC POP2
+    #0000 [ ;&_h LDA2 ] [ ;cost-matrix/scale LDA2 ] MUL2  DO
+      #0000 [ ;&_w LDA2 ] [ ;cost-matrix/scale LDA2 ] MUL2 DO
         DUP4 SWP2 ;&get-at JSR2
         LIT '0 ADD EMIT
         SP
@@ -61,15 +72,21 @@
 
   ( x y -- val )
   &get-at
-    ;&ptr-at JSR2 LDA
+    DUP4 ;&ptr-at JSR2 LDA
+    STH ( x y : val )
+    [ ;&_h LDA2 ] DIV2 ( x y-tile : val )
+    SWP2 [ ;&_w LDA2 ] DIV2 ( y-tile x-tile : val )
+    ADD2 ( tile : val )
+    NIP STHr ( tile8 val )
+    DEC ADD #09 MOD INC
     RTN
 
-%COSTLIST_SIZE { $5000 }
+%VISITED_SIZE { $7c00 }
 
 @cost-matrix
   &init
-    [ ;risk-matrix/_w LDA2 ] [ ;&_w STA2 ]
-    [ ;risk-matrix/_h LDA2 ] [ ;&_h STA2 ]
+    [ ;risk-matrix/_w LDA2 ] [ ;cost-matrix/scale LDA2 ] MUL2 [ ;&_w STA2 ]
+    [ ;risk-matrix/_h LDA2 ] [ ;cost-matrix/scale LDA2 ] MUL2 [ ;&_h STA2 ]
     [ ;&_w LDA2 ] DEC2 8// INC2 [ ;&_visited_w STA2 ]
     #00 ;&_costlist_end ;&_costlist SUB2 ;&_costlist ;memset JSR2
     #00 ;&_visited_end ;&_visited SUB2 ;&_visited ;memset JSR2
@@ -404,10 +421,10 @@
     ;&get-end JSR2
     RTN
 
-  [ &_costlist COSTLIST_SIZE &_costlist_end
+  [ 
     &_w $2 &_h $2 &_visited_w $2
-    &_visited $1000 &_visited_end ]
-
-~library/console.lib.tal
-~library/string.tal
-~library/math.tal
+    &_visited VISITED_SIZE &_visited_end 
+    &scale 0001
+    &_costlist
+|ff00 &_costlist_end
+  ]

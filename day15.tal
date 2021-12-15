@@ -35,14 +35,51 @@
 
   ;open-file JSR2
 
+  P< "risk_matrix_size= >P ;risk-matrix/_risks_end ;risk-matrix/_risks SUB2 DBGSHORTDEC POP2
+  P< "visited_size= >P ;cost-matrix/_visited_end ;cost-matrix/_visited SUB2 DBGSHORTDEC POP2
+  P< "costs_size= >P ;cost-matrix/_costlist_end ;cost-matrix/_costlist SUB2 DBGSHORTDEC POP2
+
   ;read-byte ;risk-matrix/parse JSR2
+  #0005 [ ;cost-matrix/scale STA2 ]
   ;cost-matrix/init JSR2
-  ;cost-matrix/flood-all JSR2
+  ;flood-all JSR2
   ;cost-matrix/get-end-cost JSR2 DBGSHORTDEC POP2
 
   BRK
 
   [ ]
+
+( -- )
+@flood-all
+  #0000 #0000 #0000 ;cost-matrix/set-at JSR2
+  #0000 #2000 DO
+    ( DBGSHORTDECn SP ;&count JSR2 DBGSHORTDEC POP2 )
+    DUP2 ;cost-matrix/flood-matching JSR2
+    ;cost-matrix/is-end-visited JSR2
+    NOT ,&flood-all/not-done JCN
+      UNLOOP
+      ;cost-matrix/dump JSR2
+      RTN
+    &flood-all/not-done
+    DUP2 #0100 MOD2 #0000 NEQ2 ,&no-render JCN
+      ;dump-visited JSR2
+      &no-render
+    ( ;cost-matrix/dump JSR2 )
+  LOOP
+  RTN
+
+( -- )
+@dump-visited
+  [ ;cost-matrix/_w LDA2 ] DBGSHORTDECn SP POP2
+  [ ;cost-matrix/_h LDA2 ] DBGSHORTDEC POP2
+  #0000 [ ;cost-matrix/_h LDA2 ] DO
+    #0000 [ ;cost-matrix/_w LDA2 ] DO
+      DUP4 SWP2 ;cost-matrix/get-visited JSR2
+      LIT '0 ADD EMIT
+    LOOP
+    LF
+  LOOP
+  RTN
 
 @open-file
   ;argv .File/name DEO2
