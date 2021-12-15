@@ -79,14 +79,39 @@
   ( val x y -- )
   &set-at
     ( P< "set 20 >P OVR2 DBGSHORTDECn POP2 SP DBGSHORTDECn SP STH4 DBGSHORTDEC STH4r )
-    DUP2 [ ;&_h LDA2 ] GEQ2 ,&set-at/outside JCN
-    OVR2 [ ;&_w LDA2 ] GEQ2 ,&set-at/outside JCN
+    DUP2 [ ;&_h LDA2 ] GEQ2 ;&set-at/outside JCN2
+    OVR2 [ ;&_w LDA2 ] GEQ2 ;&set-at/outside JCN2
+
+    DUP4 ;&mark-visited JSR2
 
     ( find end of costlist )
     LIT2r :&_costlist ( : cost* )
     &set-at/loop
       STH2rk LDA2 #ffff EQU2 ,&set-at/at-end JCN
       ( val x y : cost* )
+
+      ( is this slot usable? )
+      STH2rk ( val x y cost* : cost* )
+      #0004 ADD2 LDA2 ( val x y costval : cost* )
+      STH2 ( val x y : costval cost* )
+
+      ROT2 ( x y val : costval cost* )
+      STH2k ( x y val : val costval cost* )
+      ROT2 ROT2 ( val x y : val costval cost* )
+
+      STH2r STH2r ( val x y val costval : cost* )
+
+      #000a ADD2 ( val costval+10 )
+      LTH2  ,&set-at/not-free JCN
+
+        ( val x y : cost* )
+        STH2r ( val x y cost* )
+        ;&set-at/store JSR2 ( cost * )
+        POP2
+        RTN
+
+      &set-at/not-free
+
       LIT2r 0006 ADD2r
       ,&set-at/loop JMP
     &set-at/at-end
@@ -95,20 +120,33 @@
       P< "costlist 20 "bounds 20 "exceeded >P
       !
     &set-at/bounds-ok
-
     ( val x y : cost* )
-    DUP4 ;&mark-visited JSR2
-
-    SWP2 ( val y x : cost* )
-    STH2rk STA2 INC2r INC2r ( x )
-    STH2rk STA2 INC2r INC2r ( y )
-    STH2rk STA2 INC2r INC2r ( val )
-    #ffff STH2r STA2
+    STH2r ( val x y cost* )
+    ;&set-at/store JSR2
+    ( cost* )
+    ;&set-at/terminate JSR2
     RTN
+
+    ( val x y cost* -- cost* )
+    &set-at/store
+      ( val x y cost* )
+      STH2 ( val x y cost* )
+      SWP2 ( val y x : cost* )
+      STH2rk STA2 INC2r INC2r ( x )
+      STH2rk STA2 INC2r INC2r ( y )
+      STH2rk STA2 INC2r INC2r ( val )
+      ( : cost* )
+      STH2r ( cost* )
+      RTN
+
+    ( cost* )
+    &set-at/terminate
+      #ffff SWP2 STA2
+      RTN
 
     &set-at/outside
-    POP2 POP2 POP2
-    RTN
+      POP2 POP2 POP2
+      RTN
 
   ( x y -- byte* bitpos )
   &get-visited-ptr
@@ -301,6 +339,8 @@
         UNLOOP
         RTN
       &flood-all/not-done
+      ( ;&dump-visited JSR2 )
+      ( ;&dump JSR2 )
     LOOP
     RTN
 
@@ -366,7 +406,7 @@
 
   [ &_costlist COSTLIST_SIZE &_costlist_end
     &_w $2 &_h $2 &_visited_w $2
-    &_visited $500 &_visited_end ]
+    &_visited $1000 &_visited_end ]
 
 ~library/console.lib.tal
 ~library/string.tal
