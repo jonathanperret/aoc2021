@@ -1,3 +1,140 @@
+@matrix
+  [ &_shorts $5000 &_w $2 &_h $2 ]
+
+  ( get-byte -- )
+  &parse
+    [ ;&parse/get-byte STA2 ]
+    #0000 [ ;&_h STA2 ]
+    LIT2r :&_shorts ( : p* )
+    #0000 [ ;&parse/w STA2 ]
+    &parse/loop
+      LIT2 [ &parse/get-byte $2 ] JSR2
+      DUP #00 EQU ;&parse/done JCN2
+      DUP #0a EQU ;&parse/next-row JCN2
+      LIT '0 SUB              ( parse )
+      #00 SWP                 ( extend )
+      STH2rk STA2 INC2r INC2r ( store )
+      [ ;&parse/w *INC2 ]     ( count )
+      ;&parse/loop JMP2
+      &parse/next-row
+      POP
+      [ ;&_h *INC2 ]
+      [ ;&parse/w LDA2 ] #0000 EQU2 ,&parse/not-started JCN
+        [ ;&parse/w LDA2 ] [ ;&_w STA2 ]
+      &parse/not-started
+      #0000 [ ;&parse/w STA2 ]
+      ;&parse/loop JMP2
+    &parse/done
+    POP POP2r
+    RTN
+    [ &parse/w $2 ]
+
+  ( x y -- ptr )
+  &ptr-at
+    DUP2 [ ;&_h LDA2 ] GEQ2 ,&ptr-at/outside JCN
+    OVR2 [ ;&_w LDA2 ] GEQ2 ,&ptr-at/outside JCN
+    [ ;&_h LDA2 ] MUL2 ADD2 2**
+    ;&_shorts ADD2
+    RTN
+
+    &ptr-at/outside
+    POP2 POP2
+    #ffff [ ;&dummy-cell STA2 ]
+    ;&dummy-cell
+    RTN
+    [ &dummy-cell $2 ]
+
+  ( -- )
+  &dump
+    [ ;&_w LDA2 ] DBGSHORTDECn SP POP2
+    [ ;&_h LDA2 ] DBGSHORTDEC POP2
+    #0000 [ ;&_h LDA2 ] DO
+      #0000 [ ;&_w LDA2 ] DO
+        DUP4 SWP2 ;&ptr-at JSR2
+        LDA2 ;print-short-no0x JSR2
+        SP
+      LOOP
+      LF
+    LOOP
+    RTN
+
+  ( val x y -- )
+  &set-at
+    ;&ptr-at JSR2 STA2
+    RTN
+
+  ( x y -- val )
+  &get-at
+    ;&ptr-at JSR2 LDA2
+    RTN
+
+  ( val x y -- )
+  &combine-at
+    ;&ptr-at JSR2 ( val ptr )
+    LDA2k ( val ptr cellval )
+    DUP2 #7fff GTH2 ,&combine-at/visited JCN
+      ROT2 ( ptr cellval val )
+      ADD2 SWP2 STA2
+    RTN
+    &combine-at/visited
+      ( val ptr cellval )
+      POP2 POP2 POP2
+    RTN
+
+  ( x y -- )
+  &flood-from
+    DUP4 ;&get-at JSR2 STH2 ( : val )
+    OVR2 INC2 OVR2 STH2rk ROT2 ROT2 ;&combine-at JSR2
+    OVR2 DEC2 OVR2 STH2rk ROT2 ROT2 ;&combine-at JSR2
+    OVR2 OVR2 INC2 STH2rk ROT2 ROT2 ;&combine-at JSR2
+              DEC2 STH2rk ROT2 ROT2 ;&combine-at JSR2
+    POP2r
+    RTN
+
+  ( val -- )
+  &flood-matching
+    #0000 [ ;&_w LDA2 ] DO
+      #0000 [ ;&_h LDA2 ] DO
+        ( val x y )
+        DUP4 ;&get-at JSR2 ( val x y cellval )
+        SWP2 STH2 SWP2 STH2 OVR2 ( val cellval val : x y )
+        NEQ2 ,&flood-matching/skip JCN
+          ( val : x y )
+          STH2rk OVR2r STH2r ( val x y : x y )
+          ;&flood-from JSR2
+          ( val : x y )
+        &flood-matching/skip
+        ( val : x y )
+        STH2r STH2r
+        ( val x y )
+      LOOP
+    LOOP
+    POP2
+    RTN
+
+  ( -- )
+  &flood-all
+    #8000 #0000 #0000 ;&set-at JSR2
+    #8000 #8708 DO
+      DUP2 ;&flood-matching JSR2
+      ;&get-end JSR2
+      #8000 LTH2 ,&flood-all/not-done JCN
+        UNLOOP
+        RTN
+      &flood-all/not-done
+    LOOP
+    RTN
+
+  &get-end
+    [ ;&_w LDA2 ] DEC2 [ ;&_h LDA2 ] DEC2 ;&get-at JSR2
+    RTN
+
+  ( -- risk )
+  &get-end-risk
+    ;&get-end JSR2
+    #7fff AND2
+    RTN
+
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal

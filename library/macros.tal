@@ -136,7 +136,7 @@
 
 ( Looping )
 %HEREr { #00 JSR }
-%DO { STH2 HEREr } ( i : addr max )
+%DO { STH2 HEREr } ( i : do-addr max )
 %LOOP {
   INC2
   OVR2r
@@ -147,14 +147,14 @@
   POP2 POP2r POP2r
 }
 (
-                    [ i   : addr max ]
-  INC2              [ i+1 : addr max ]
-  OVR2r             [ i+1 : max addr max ]
-  STH2k             [ i+1 : i+1 max addr max ]
-  GTH2r STHr        [ i+1 i+1<max? : addr max ]
-  STH2rk            [ i+1 i+1<max? addr : max ]
-  JCN2              [ i+1 : addr max ]
+                    [ i   : do-addr max ]
+  INC2              [ i+1 : do-addr max ]
+  OVR2r             [ i+1 : max do-addr max ]
+  STH2k             [ i+1 : i+1 max do-addr max ]
+  GTH2r STHr        [ i+1 i+1<max? : do-addr max ]
+  STH2rk            [ i+1 i+1<max? do-addr : max ]
+  JCN2              [ i+1 : do-addr max ]
   POP2 POP2r POP2r  [ ]
 )
-
+%UNLOOP { POP2 POP2r POP2r } ( clear DO state )
 

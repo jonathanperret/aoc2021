@@ -478,3 +478,23 @@ We just need to mark each cell has visited or not:
     - if the end node has a path cost < maxint, break the loop.
 
 This looks good, but implementation will have to wait a bit.
+
+Finally found a moment to code it up, this was the working plan:
+  - set start cell to 0x8000 (the high bit represents the "visited" status,
+    the other bits are the path cost);
+  - for frontier-cost going from 0 to the worst cost (1782):
+    - for every node, if its path cost equals frontier-cost:
+      - for each neighbor, if it doesn't have the high bit set:
+        - add this node's value to neighbor's.
+          (note that this automatically sets the neighbor's high bit!)
+  - print the end cell's value minus 0x8000.
+
+This is not efficient at all (took almost 4 seconds to run on the 100x100 matrix)
+but it works.
+
+OK, I added a check to stop iterating as soon as we have a cost for the end
+cell, this reduces the time to a bit over 1 second.
+
+What's in store for part 2, then?
+
+# Part 2

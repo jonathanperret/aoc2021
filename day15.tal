@@ -1,0 +1,59 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+( init )
+
+|0100 @program
+  ;on-arg-char .Console/vector DEO2
+  BRK !
+
+@on-arg-char
+  .Console/read DEI ( char )
+  DUP #0a EQU ,&complete JCN
+  ;argv #00 ,&argptr LDR ADD2 STA
+  ,&argptr LDR INC ,&argptr STR
+  BRK !
+
+  &complete
+  POP
+
+  ;arg-received JMP2
+
+  &argptr $1
+
+@argv        $20
+
+( arg is in @argv )
+@arg-received
+  LIT ': EMIT
+  ;argv ;print JSR2
+  LF
+
+  ;open-file JSR2
+
+  ;read-byte ;matrix/parse JSR2
+  ;matrix/flood-all JSR2
+  ;matrix/dump JSR2
+  ;matrix/get-end-risk JSR2 DBGSHORTDEC POP2
+
+  BRK
+
+  [ ]
+
+@open-file
+  ;argv .File/name DEO2
+  #0001 .File/length DEO2
+  RTN
+
+( -- next-byte )
+@read-byte
+  #00 ;&byte STA ( clear byte so that EOF reads as zero )
+  ;&byte .File/read DEO2
+  LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
+  RTN
+
+~day15_lib.tal
