@@ -52,7 +52,7 @@
     #0000 [ ;&_h LDA2 ] DO
       #0000 [ ;&_w LDA2 ] DO
         DUP4 SWP2 ;&get-at JSR2
-        #00 SWP ;print-short-no0x JSR2
+        LIT '0 ADD EMIT
         SP
       LOOP
       LF
@@ -64,18 +64,24 @@
     ;&ptr-at JSR2 LDA
     RTN
 
-%COSTLIST_SIZE { $a000 }
+%COSTLIST_SIZE { $5000 }
 
 @cost-matrix
   &init
     [ ;risk-matrix/_w LDA2 ] [ ;&_w STA2 ]
     [ ;risk-matrix/_h LDA2 ] [ ;&_h STA2 ]
+    [ ;&_w LDA2 ] DEC2 8// INC2 [ ;&_visited_w STA2 ]
     #00 ;&_costlist_end ;&_costlist SUB2 ;&_costlist ;memset JSR2
+    #00 ;&_visited_end ;&_visited SUB2 ;&_visited ;memset JSR2
     #ffff [ ;&_costlist STA2 ]
     RTN
 
   ( val x y -- )
   &set-at
+    ( P< "set 20 >P OVR2 DBGSHORTDECn POP2 SP DBGSHORTDECn SP STH4 DBGSHORTDEC STH4r )
+    DUP2 [ ;&_h LDA2 ] GEQ2 ,&set-at/outside JCN
+    OVR2 [ ;&_w LDA2 ] GEQ2 ,&set-at/outside JCN
+
     ( find end of costlist )
     LIT2r :&_costlist ( : cost* )
     &set-at/loop
@@ -91,47 +97,130 @@
     &set-at/bounds-ok
 
     ( val x y : cost* )
+    DUP4 ;&mark-visited JSR2
+
     SWP2 ( val y x : cost* )
-    STH2rk STA2 INC2r INC2r
-    STH2rk STA2 INC2r INC2r
-    STH2rk STA2 INC2r INC2r
+    STH2rk STA2 INC2r INC2r ( x )
+    STH2rk STA2 INC2r INC2r ( y )
+    STH2rk STA2 INC2r INC2r ( val )
     #ffff STH2r STA2
+    RTN
+
+    &set-at/outside
+    POP2 POP2 POP2
+    RTN
+
+  ( x y -- byte* bitpos )
+  &get-visited-ptr
+    [ ;&_visited_w LDA2 ] MUL2 ( x y*w )
+    OVR2 STH2 ( x y*w : x )
+    SWP2 8// ADD2 ;&_visited ADD2 ( byte* : x )
+    STH2r NIP ( byte* xlow )
+    #07 AND ( byte* bitpos )
+    RTN
+
+  ( x y -- )
+  &mark-visited
+    ( P< "visit 20 >P OVR2 DBGSHORTDECn SP POP2 DBGSHORTDECn SP )
+    ;&get-visited-ptr JSR2 STH
+    ( byte* : bitpos )
+    LDAk ( byte* byte : bitpos )
+    #80 STHr ( byte* byte 80 bitpos )
+    SFT ( byte* byte bit )
+    ORA ( byte* byte|bit )
+    ( DBGBYTEn )
+    ROT ROT ( newbyte byte* )
+    ( DBGSHORT )
+    STA
+    RTN
+
+  ( -- )
+  &dump-visited
+    [ ;&_w LDA2 ] DBGSHORTDECn SP POP2
+    [ ;&_h LDA2 ] DBGSHORTDEC POP2
+    #0000 [ ;&_h LDA2 ] DO
+      #0000 [ ;&_w LDA2 ] DO
+        DUP4 SWP2 ;&get-visited JSR2
+        LIT '0 ADD EMIT
+        SP
+      LOOP
+      LF
+    LOOP
+    RTN
+
+  ( -- )
+  &dump-visited-bytes
+    [ ;&_visited_w LDA2 ] DBGSHORTDECn SP POP2
+    [ ;&_h LDA2 ] DBGSHORTDEC POP2
+    #0000 [ ;&_h LDA2 ] DO
+      #0000 [ ;&_visited_w LDA2 ] DO
+        ( y x )
+        DUP4 8** SWP2
+        ( y x 8*x y )
+        ;&get-visited-ptr JSR2
+        ( y x byte* bitpos )
+        POP LDA ( byte )
+        ;print-byte JSR2
+        SP
+      LOOP
+      LF
+    LOOP
+    RTN
+
+  ( x y -- flag )
+  &get-visited
+    ( LIT 'G EMIT OVR2 DBGSHORTDECn SP POP2 DBGSHORTDECn SP )
+    ;&get-visited-ptr JSR2 STH
+    ( byte* : bitpos )
+    LDA #80 STHr SFT ( byte mask )
+    AND ( masked )
+    #00 NEQ
     RTN
 
   ( x y -- val )
   &get-at
-    DUP2 [ ;&_h LDA2 ] GEQ2 ,&lga/outside JCN
-    OVR2 [ ;&_w LDA2 ] GEQ2 ,&lga/outside JCN
+    DUP2 [ ;&_h LDA2 ] GEQ2 ,&get-at/outside JCN
+    OVR2 [ ;&_w LDA2 ] GEQ2 ,&get-at/outside JCN
 
     STH2 STH2 ( : x y )
     ( scan costlist )
     ;&_costlist ( cost* : x y )
-    &list-get-at/loop
-      LDA2k #ffff EQU2 ,&list-get-at/at-end JCN
+    &get-at/loop
+      LDA2k #ffff EQU2 ,&get-at/at-end JCN
       ( cost* : x y )
-      LDA2k STH2rk NEQ2 ,&list-get-at/next JCN
+      LDA2k STH2rk NEQ2 ,&get-at/next JCN
       ( cost* : x y )
-      DUP2 #0002 ADD2 LDA2 OVR2r STH2r NEQ2 ,&list-get-at/next JCN
+      DUP2 #0002 ADD2 LDA2 OVR2r STH2r NEQ2 ,&get-at/next JCN
 
-      ( found match )
-      ( cost* : x y )
-      POP2r POP2r
-      #0004 ADD2 LDA2
-      RTN
+        ( found match )
+        ( cost* : x y )
 
-      &list-get-at/next
+        #0004 ADD2 LDA2
+
+        POP2r POP2r
+        ( cost )
+        RTN
+
+      &get-at/next
       #0006 ADD2
-      ,&list-get-at/loop JMP
-    &list-get-at/at-end
+      ,&get-at/loop JMP
+    &get-at/at-end
     ( cost* : x y )
     POP2 POP2r POP2r
     #0000
     RTN
 
-    &lga/outside
+    &get-at/outside
       POP2 POP2
       #ffff
       RTN
+
+  ( cost x y -- cost|visitbit )
+  &add-visited-bit
+    ;&get-visited JSR2
+    #00 SWP #f0 SFT2
+    ORA2
+    RTN
 
   ( -- count )
   &count
@@ -149,14 +238,14 @@
   ( val x y -- )
   &combine-at
     STH2k OVR2 STH2 ( val x y : x y )
-    ;&get-at JSR2 ( val cellval : x y )
-    #000f GTH2 ,&combine-at/visited JCN
+    ;&get-visited JSR2 ( val visited? : x y )
+    ,&combine-at/visited JCN
       ( val : x y )
       STH2rk OVR2r STH2r ( val x y : x y )
       ;risk-matrix/get-at JSR2 #00 SWP
-      ( val cellval : x y )
-      ADD2 ( val+cellval : x y )
-      STH2r STH2r ( val+cellval x y )
+      ( val riskval : x y )
+      ADD2 ( val+riskval : x y )
+      STH2r STH2r ( val+riskval x y )
       ;&set-at JSR2
     RTN
     &combine-at/visited
@@ -189,6 +278,7 @@
       ( cost* : val )
       LDA2k ( cost* x : val )
       OVR2 #0002 ADD2 LDA2 ( cost* x y : val )
+
       ;&flood-from JSR2
       ( cost* : val )
 
@@ -200,37 +290,23 @@
     POP2 POP2r
     RTN
 
-    #0000 [ ;&_w LDA2 ] DO
-      #0000 [ ;&_h LDA2 ] DO
-        ( val x y )
-        DUP4 ;&get-at JSR2 ( val x y cellval )
-        SWP2 STH2 SWP2 STH2 OVR2 ( val cellval val : x y )
-        NEQ2 ,&flood-matching/skip JCN
-          ( val : x y )
-          STH2rk OVR2r STH2r ( val x y : x y )
-          ;&flood-from JSR2
-          ( val : x y )
-        &flood-matching/skip
-        ( val : x y )
-        STH2r STH2r
-        ( val x y )
-      LOOP
-    LOOP
-    POP2
-    RTN
-
   ( -- )
   &flood-all
-    #0010 #0000 #0000 ;&set-at JSR2
-    #0010 #ffff DO
+    #0000 #0000 #0000 ;&set-at JSR2
+    #0000 #2000 DO
       ( DBGSHORTDECn SP ;&count JSR2 DBGSHORTDEC POP2 )
       DUP2 ;&flood-matching JSR2
-      ;&get-end JSR2
-      #0010 LTH2 ,&flood-all/not-done JCN
+      ;&is-end-visited JSR2
+      NOT ,&flood-all/not-done JCN
         UNLOOP
         RTN
       &flood-all/not-done
     LOOP
+    RTN
+
+  ( -- flag )
+  &is-end-visited
+    [ ;&_w LDA2 ] DEC2 [ ;&_h LDA2 ] DEC2 ;&get-visited JSR2
     RTN
 
   ( -- )
@@ -257,7 +333,12 @@
     [ ;&_h LDA2 ] DBGSHORTDEC POP2
     #0000 [ ;&_h LDA2 ] DO
       #0000 [ ;&_w LDA2 ] DO
-        DUP4 SWP2 ;&get-at JSR2
+        ( y x )
+        DUP4 ( y x y x )
+        SWP2 DUP4 ;&get-at JSR2
+        ( x y x y cost )
+        ROT2 ROT2 ;&add-visited-bit JSR2
+        ( x y cost|bit )
         ;print-short-no0x JSR2
         SP
       LOOP
@@ -273,12 +354,11 @@
   ( -- risk )
   &get-end-cost
     ;&get-end JSR2
-    #0010 SUB2
     RTN
 
   [ &_costlist COSTLIST_SIZE &_costlist_end
-    &_w $2 &_h $2 ]
-
+    &_w $2 &_h $2 &_visited_w $2
+    &_visited $500 &_visited_end ]
 
 ~library/console.lib.tal
 ~library/string.tal

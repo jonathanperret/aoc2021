@@ -211,7 +211,7 @@
         DUP2 LDA4 STH4 4++
         [ ,&neighbor-ptr STR2 ]
 
-        STHr4 ,&inc-neighbor JSR
+        STH4r ,&inc-neighbor JSR
 
         DECr STHrk ,&nloop JCN
       POPr

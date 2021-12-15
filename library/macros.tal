@@ -47,7 +47,7 @@
   STH2r 2++ STA2
 }
 %STH4 { STH2 STH2 }
-%STHr4 { STHr2 STHr2 }
+%STH4r { STHr2 STHr2 }
 
 ( Variable ops )
 
