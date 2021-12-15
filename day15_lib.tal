@@ -1,19 +1,18 @@
-@matrix
-  [ &_shorts $5000 &_w $2 &_h $2 ]
+@risk-matrix
+  [ &_risks $3000 &_w $2 &_h $2 ]
 
   ( get-byte -- )
   &parse
     [ ;&parse/get-byte STA2 ]
     #0000 [ ;&_h STA2 ]
-    LIT2r :&_shorts ( : p* )
+    LIT2r :&_risks ( : p* )
     #0000 [ ;&parse/w STA2 ]
     &parse/loop
       LIT2 [ &parse/get-byte $2 ] JSR2
       DUP #00 EQU ;&parse/done JCN2
       DUP #0a EQU ;&parse/next-row JCN2
       LIT '0 SUB              ( parse )
-      #00 SWP                 ( extend )
-      STH2rk STA2 INC2r INC2r ( store )
+      STH2rk STA INC2r        ( store )
       [ ;&parse/w *INC2 ]     ( count )
       ;&parse/loop JMP2
       &parse/next-row
@@ -33,16 +32,16 @@
   &ptr-at
     DUP2 [ ;&_h LDA2 ] GEQ2 ,&ptr-at/outside JCN
     OVR2 [ ;&_w LDA2 ] GEQ2 ,&ptr-at/outside JCN
-    [ ;&_h LDA2 ] MUL2 ADD2 2**
-    ;&_shorts ADD2
+    [ ;&_h LDA2 ] MUL2 ADD2
+    ;&_risks ADD2
     RTN
 
     &ptr-at/outside
     POP2 POP2
-    #ffff [ ;&dummy-cell STA2 ]
+    #ff [ ;&dummy-cell STA ]
     ;&dummy-cell
     RTN
-    [ &dummy-cell $2 ]
+    [ &dummy-cell $1 ]
 
   ( -- )
   &dump
@@ -50,11 +49,32 @@
     [ ;&_h LDA2 ] DBGSHORTDEC POP2
     #0000 [ ;&_h LDA2 ] DO
       #0000 [ ;&_w LDA2 ] DO
-        DUP4 SWP2 ;&ptr-at JSR2
-        LDA2 ;print-short-no0x JSR2
+        DUP4 SWP2 ;&get-at JSR2
+        #00 SWP ;print-short-no0x JSR2
         SP
       LOOP
       LF
+    LOOP
+    RTN
+
+  ( x y -- val )
+  &get-at
+    ;&ptr-at JSR2 LDA
+    RTN
+
+@cost-matrix
+  [ &_costs $3000 &_w $2 &_h $2 ]
+  &init
+    [ ;risk-matrix/_w LDA2 ] [ ;&_w STA2 ]
+    [ ;risk-matrix/_h LDA2 ] [ ;&_h STA2 ]
+    #00 #3000 ;&_costs ;memset JSR2
+    #0000 [ ;&_h LDA2 ] DO
+      #0000 [ ;&_w LDA2 ] DO
+        DUP4 SWP2 ;&ptr-at JSR2 STH2
+        DUP4 SWP2 ;risk-matrix/get-at JSR2
+        #00 SWP
+        STH2r STA2
+      LOOP
     LOOP
     RTN
 
@@ -112,6 +132,21 @@
     POP2
     RTN
 
+  ( x y -- ptr )
+  &ptr-at
+    DUP2 [ ;&_h LDA2 ] GEQ2 ,&ptr-at/outside JCN
+    OVR2 [ ;&_w LDA2 ] GEQ2 ,&ptr-at/outside JCN
+    [ ;&_h LDA2 ] MUL2 ADD2 2**
+    ;&_costs ADD2
+    RTN
+
+    &ptr-at/outside
+    POP2 POP2
+    #ffff [ ;&dummy-cell STA2 ]
+    ;&dummy-cell
+    RTN
+    [ &dummy-cell $2 ]
+
   ( -- )
   &flood-all
     #0010 #0000 #0000 ;&set-at JSR2
@@ -125,15 +160,31 @@
     LOOP
     RTN
 
+  ( -- )
+  &dump
+    [ ;&_w LDA2 ] DBGSHORTDECn SP POP2
+    [ ;&_h LDA2 ] DBGSHORTDEC POP2
+    #0000 [ ;&_h LDA2 ] DO
+      #0000 [ ;&_w LDA2 ] DO
+        DUP4 SWP2 ;&get-at JSR2
+        ;print-short-no0x JSR2
+        SP
+      LOOP
+      LF
+    LOOP
+    RTN
+
+  ( -- end-val )
   &get-end
     [ ;&_w LDA2 ] DEC2 [ ;&_h LDA2 ] DEC2 ;&get-at JSR2
     RTN
 
   ( -- risk )
-  &get-end-risk
+  &get-end-cost
     ;&get-end JSR2
     #0010 SUB2
     RTN
+
 
 ~library/console.lib.tal
 ~library/string.tal

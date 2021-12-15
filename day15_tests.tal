@@ -19,8 +19,22 @@
     "3125421639 0a
     "1293138521 0a
     "2311944581 0a
-  >S ;make-get-byte JSR2 ;matrix/parse JSR2
-  ;matrix/dump JSR2
+  >S ;make-get-byte JSR2 ;risk-matrix/parse JSR2
+  ;risk-matrix/dump JSR2
+  ( EXPECT 10 10 )
+  ( EXPECT 0001 0001 0006 0003 0007 0005 0001 0007 0004 0002  )
+  ( EXPECT 0001 0003 0008 0001 0003 0007 0003 0006 0007 0002  )
+  ( EXPECT 0002 0001 0003 0006 0005 0001 0001 0003 0002 0008  )
+  ( EXPECT 0003 0006 0009 0004 0009 0003 0001 0005 0006 0009  )
+  ( EXPECT 0007 0004 0006 0003 0004 0001 0007 0001 0001 0001  )
+  ( EXPECT 0001 0003 0001 0009 0001 0002 0008 0001 0003 0007  )
+  ( EXPECT 0001 0003 0005 0009 0009 0001 0002 0004 0002 0001  )
+  ( EXPECT 0003 0001 0002 0005 0004 0002 0001 0006 0003 0009  )
+  ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
+  ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
+  T< "cost-init: >T
+  ;cost-matrix/init JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0001 0001 0006 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0001 0003 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -33,8 +47,8 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "set-start: >T
-  #0010 #0000 #0000 ;matrix/set-at JSR2
-  ;matrix/dump JSR2
+  #0010 #0000 #0000 ;cost-matrix/set-at JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0001 0006 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0001 0003 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -47,11 +61,11 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "combine-at: >T
-  #0010 #0000 #0001 ;matrix/combine-at JSR2
-  #0010 #0001 #0000 ;matrix/combine-at JSR2
-  #0010 #0000 #ffff ;matrix/combine-at JSR2
-  #0010 #ffff #0000 ;matrix/combine-at JSR2
-  ;matrix/dump JSR2
+  #0010 #0000 #0001 ;cost-matrix/combine-at JSR2
+  #0010 #0001 #0000 ;cost-matrix/combine-at JSR2
+  #0010 #0000 #ffff ;cost-matrix/combine-at JSR2
+  #0010 #ffff #0000 ;cost-matrix/combine-at JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0006 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0003 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -64,11 +78,11 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "combine-at2: >T
-  #0011 #0002 #0000 ;matrix/combine-at JSR2
-  #0011 #0000 #0000 ;matrix/combine-at JSR2
-  #0011 #0001 #ffff ;matrix/combine-at JSR2
-  #0011 #0001 #0001 ;matrix/combine-at JSR2
-  ;matrix/dump JSR2
+  #0011 #0002 #0000 ;cost-matrix/combine-at JSR2
+  #0011 #0000 #0000 ;cost-matrix/combine-at JSR2
+  #0011 #0001 #ffff ;cost-matrix/combine-at JSR2
+  #0011 #0001 #0001 ;cost-matrix/combine-at JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0014 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -81,11 +95,11 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "combine-at3: >T
-  #0011 #0001 #0001 ;matrix/combine-at JSR2
-  #0011 #ffff #0001 ;matrix/combine-at JSR2
-  #0011 #0000 #0000 ;matrix/combine-at JSR2
-  #0011 #0000 #0002 ;matrix/combine-at JSR2
-  ;matrix/dump JSR2
+  #0011 #0001 #0001 ;cost-matrix/combine-at JSR2
+  #0011 #ffff #0001 ;cost-matrix/combine-at JSR2
+  #0011 #0000 #0000 ;cost-matrix/combine-at JSR2
+  #0011 #0000 #0002 ;cost-matrix/combine-at JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0014 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -98,8 +112,8 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "flood-from: >T
-  #0000 #0002 ;matrix/flood-from JSR2
-  ;matrix/dump JSR2
+  #0000 #0002 ;cost-matrix/flood-from JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0014 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -112,8 +126,8 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "flood-matching: >T
-  #0013 ;matrix/flood-matching JSR2
-  ;matrix/dump JSR2
+  #0013 ;cost-matrix/flood-matching JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0014 0008 0001 0003 0007 0003 0006 0007 0002  )
@@ -126,8 +140,8 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "flood-matching2: >T
-  #0014 ;matrix/flood-matching JSR2
-  ;matrix/dump JSR2
+  #0014 ;cost-matrix/flood-matching JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0014 001c 0001 0003 0007 0003 0006 0007 0002  )
@@ -140,8 +154,8 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "flood-matching3: >T
-  #0016 ;matrix/flood-matching JSR2
-  ;matrix/dump JSR2
+  #0016 ;cost-matrix/flood-matching JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 0003 0007 0005 0001 0007 0004 0002  )
   ( EXPECT 0011 0014 001c 0001 0003 0007 0003 0006 0007 0002  )
@@ -154,8 +168,8 @@
   ( EXPECT 0001 0002 0009 0003 0001 0003 0008 0005 0002 0001  )
   ( EXPECT 0002 0003 0001 0001 0009 0004 0004 0005 0008 0001  )
   T< "flood-all: >T
-  ;matrix/flood-all JSR2
-  ;matrix/dump JSR2
+  ;cost-matrix/flood-all JSR2
+  ;cost-matrix/dump JSR2
   ( EXPECT 10 10 )
   ( EXPECT 0010 0011 0017 001a 0021 0026 0027 002e 0032 0034  )
   ( EXPECT 0011 0014 001c 001b 001e 0025 0027 002d 0030 0032  )
@@ -167,8 +181,8 @@
   ( EXPECT 0022 0023 0025 002a 002e 002c 002d 0033 0034 003b  )
   ( EXPECT 0023 0025 002e 002d 002e 002f 0035 0038 0036 0037  )
   ( EXPECT 0025 0028 0029 002a 0033 0033 0037 003c 003e 0038  )
-  T< "get-end-risk: >T
-  ;matrix/get-end-risk JSR2 DBGSHORTDEC POP2
+  T< "get-end-cost: >T
+  ;cost-matrix/get-end-cost JSR2 DBGSHORTDEC POP2
   ( EXPECT 40 )
 
 

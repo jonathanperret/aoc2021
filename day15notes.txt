@@ -506,3 +506,13 @@ What's the worst cost now ? (2500-1)*2*9 = 44982. This still fits in a short, ya
 I can even still split the range to distinguish risk levels from path costs, e.g.
 if x < 16 it's a risk level otherwise its a path cost.
 
+But that still doesn't let me handle a 2500x2500 matrix. At least, the risk levels
+can be determined on-the-fly given only the 100x100 input, so we don't need any
+extra storage for that. But the path costs stored naively would need an additional
+2500x2500x2 bytes which is more than 12 MB!
+
+Can I salvage parts of my current implementation though?  For example, what if I
+stored costs in a separate structure (potentially shallow) from the risk levels?
+
+To get there incrementally, I'll first store them in a separate matrix and see if
+I can keep everything working.
