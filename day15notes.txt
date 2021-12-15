@@ -1,0 +1,480 @@
+# Part 1
+
+Rushing into parsing yesterday was a mistake. Among other things, I failed to
+appreciate the dimensions of the input: that there were only 10 distinct
+letters, and that every pair was present in the rule list.
+
+What does the input look like today? A 100x100 matrix of the digits 1 to 9.
+
+And the problem is to find a lowest-cost path from the top left to the bottom
+right. Note that nodes bear costs, not edges; I wonder if that makes a big
+difference in the applicability of standard graph algorithms.
+
+The obvious challenge is to fit the map in memory. In principle, by storing
+two nodes in one byte, I could get it down to 100x100/2 = 50000 bytes which
+would barely fit in my 64K computer. That would leave only about 14KB for
+the code and any working data. I feel like I could make this work, in fact;
+but what are the alternatives?
+
+I could use virtual memory as I experimented with on day5… or is there an
+option where only one row's worth of data needs to be stored?
+
+What if at any point in the program, I could know the lowest cost of any
+excursion into the upper part of the matrix?
+
+For example, just after reading this line:
+
+  a b c d e f g h i j
+  1 1 6 3 7 5 1 7 4 2
+
+we know that:
+  - going up into the first column (a) is pointless as it would take us
+    back to the start room;
+  - going up into b…
+
+No, this doesn't work. Let's think of it differently: is a solution to the
+problem of the best path through the first N-1 rows sufficient to get the
+solution to the full problem without reading those first N-1 rows again?
+
+Hmm, maybe not if we stick to "a solution throught the first N-1 rows" because
+that would imply knowing only the best path to the rightmost cell of row N-1.
+But if we knew the optimal cost to each of the cells in the N-1 row, wouldn't
+that allow us to compute the best path to the bottom-right corner?
+
+Alas, this probably doesn't work. Imagine '·' cells have cost 1 and '#' cells
+have cost 10 in the matrix below:
+
+  ·  #  #  #  #  #
+  ·  ·  #  #  #  #
+  #  ·  #  ·  ·  ·
+  ·  ·  ·  ·  #  ·
+
+The best costs to get to every of the next-to-last row's cells are:
+
+  ·  #  #  #  #  #
+  ·  ·  #  #  #  #
+  #  ·  #  ·  ·  ·
+ 10  3 13 14 15 16
+
+Notice how we have to go through a 9 cell to get to any of the rightmost
+1 cells in the next-to-last row.
+
+But adding the final row changes that: to get the the rightmost cell in
+row N-1, it is now cheaper to make an excursion in the last row.
+
+  ·  #  #  #  #  #
+  ·  ·  #  #  #  #
+  #  ·  #  ·  ·  · < now can be reached for cost 9
+  ·  ·  ·  ·  #  · < optimal cost to get here is 10
+
+Which means none of the paths computed until row N is read are part of
+the optimal solution.
+
+In fact, I seem to remember this (lowest-cost path) is one of the examples in
+Cormen's "Algorithms" of a problem where dynamic programming is not applicable.
+
+Let's read https://en.wikipedia.org/wiki/Shortest_path_problem for a bit.
+
+The obvious candidate is Dijkstra's algorithm: basically fill the matrix with
+best costs incrementally (of course theres' also A* but I'm not going there).
+So we'd get:
+
+  0  #  #  #  #  #
+  ·  ·  #  #  #  #
+  #  ·  #  ·  ·  ·
+  ·  ·  ·  ·  #  ·
+
+  0 10  #  #  #  #
+  1  2  #  #  #  #
+  #  ·  #  ·  ·  ·
+  ·  ·  ·  ·  #  ·
+
+  0 10 20  #  #  #
+  1  2 12  #  #  #
+ 11  3  #  ·  ·  ·
+  ·  ·  ·  ·  #  ·
+
+  0 10 20 30  #  #
+  1  2 12 22  #  #
+ 11  3 13  ·  ·  ·
+ 22  4  ·  ·  #  ·
+
+  0 10 20 30 40  #
+  1  2 12 22 32  #
+ 11  3 13 14  ·  ·
+  5  4  5  ·  #  ·
+
+  0 10 20 30 40 50
+  1  2 12 22 32 42
+ 11  3 13 14 15  ·
+  5  4  5  6  #  ·
+
+  0 10 20 30 40 50
+  1  2 12 22 32 42
+ 11  3 13  7 15 16
+  5  4  5  6  #  ·
+
+  0 10 20 30 40 50
+  1  2 12 22 32 42
+ 11  3 13  7  8 16
+  5  4  5  6 16 17
+
+  0 10 20 30 40 50
+  1  2 12 22 32 42
+ 11  3 13  7  8  9
+  5  4  5  6 16 17
+
+  0 10 20 30 40 50
+  1  2 12 22 32 42
+ 11  3 13  7  8  9
+  5  4  5  6 16 10
+
+This isn't very hard to implement; but a naive implementation would require, in
+addition to storage for the matrix itself, enough memory to store a cost for
+each cell. Going with 64-bit integers for costs — wait, what's the worst-case
+cost by the way? Any path from start to end is going to be at least as long as
+the Manhattan distance between start and end, which is (N-1)*2; so a very dumb
+and unlucky explorer plowing only through 9-cost cells would end up paying
+(N-1)*18, which in the case of our input is (100-1)*18 = 1782. Hmm, so there is
+no point in storing any cost above 1782 — any cost above that can just be
+considerered infinite, which means I don't have to use 64-bit integers after
+all. A relief, but a full matrix of intermediate costs stored as shorts is
+still 200K, bringing the total memory requirements to 250K — maybe 200K if I
+can be smart about storing the input cell costs in the same place as the
+intermediate path costs (both can actually coexist in a single short integer,
+since the cell costs fit in 4 bits (<=15) and path costs require only 11 bits
+(<=2047)).
+
+Is there really no alternative to paging?
+
+Wikipedia says (https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm):
+
+> In common presentations of Dijkstra's algorithm, initially all nodes are
+> entered into the priority queue. This is, however, not necessary: the
+> algorithm can start with a priority queue that contains only one item, and
+> insert new items as they are discovered (instead of doing a decrease-key,
+> check whether the key is in the queue; if it is, decrease its key, otherwise
+> insert it).[7]  This variant has the same worst-case bounds as the common
+> variant, but maintains a smaller priority queue in practice, speeding up the
+> queue operations.[9]
+
+> Moreover, not inserting all nodes in a graph makes it possible to extend the
+> algorithm to find the shortest path from a single source to the closest of a
+> set of target nodes on infinite graphs or those too large to represent in
+> memory. The resulting algorithm is called uniform-cost search (UCS) in the
+> artificial intelligence literature[9][18][19] and can be expressed in
+> pseudocode as
+
+>   procedure uniform_cost_search(Graph, start, goal) is
+>       node ← start
+>       cost ← 0
+>       frontier ← priority queue containing node only
+>       explored ← empty set
+>       do
+>           if frontier is empty then
+>               return failure
+>           node ← frontier.pop()
+>           if node is goal then
+>               return solution
+>           explored.add(node)
+>           for each of node's neighbors n do
+>               if n is not in explored then
+>                   frontier.add(n)
+
+Let's try this quickly (annotating frontier nodes with their cost, and marking
+explored nodes with "x"; "*" marks the node picked by `frontier.pop()`, i.e.
+any one of the cheapest nodes in the queue):
+
+[ later: this simulation is wrong, just use the scissors to skip to a correct one ]
+
+----8<----
+
+ *0     #     #     #     #     #
+  ·     ·     #     #     #     #
+  #     ·     #     ·     ·     ·
+  ·     ·     ·     ·     #     ·
+
+  x    10     #     #     #     #
+ *1     ·     #     #     #     #
+  #     ·     #     ·     ·     ·
+  ·     ·     ·     ·     #     ·
+
+  x    10     #     #     #     #
+  x    *1     #     #     #     #
+ 10     ·     #     ·     ·     ·
+  ·     ·     ·     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10    *1     #     ·     ·     ·
+  ·     ·     ·     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10     x    10     ·     ·     ·
+  ·    *1     ·     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10     x    10     ·     ·     ·
+ *1     x     1     ·     #     ·
+
+( picking the leftmost "1" node in `frontier.pop()` to see what happens )
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10     x    10     ·     ·     ·
+  x     x    *1     ·     #     ·
+
+( no node is added to frontier, because one neighbor is explored and
+  the other is already in the frontier — so we pick the other "1" node
+  in the frontier )
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10     x    10     ·     ·     ·
+  x     x    *1     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10     x    10     ·     ·     ·
+  x     x     x    *1     #     ·
+
+  x    10     #     #     #     #
+  x     x    10     #     #     #
+ 10     x    10    *1     ·     ·
+  x     x     x     x    10     ·
+
+  x    10     #     #     #     #
+  x     x    10    10     #     #
+ 10     x    10     x    *1     ·
+  x     x     x     x    10     ·
+
+  x    10     #     #     #     #
+  x     x    10    10    10     #
+ 10     x    10     x     x    *1
+  x     x     x     x    10     ·
+
+  x    10     #     #     #     #
+  x     x    10    10    10     #
+ 10     x    10     x     x    *1
+  x     x     x     x    10     ·
+
+  x    10     #     #     #     #
+  x     x    10    10    10    10
+ 10     x    10     x     x     x
+  x     x     x     x    10    *1
+
+At this point `frontier.pop()` returns the goal node so we have a solution.
+What is its cost? The pseudocode above is clearly missing something, since
+it initializes `cost` to zero but never touches it again.
+
+----8<----
+
+Ah, https://www.geeksforgeeks.org/uniform-cost-search-dijkstra-for-large-graphs/
+sheds some light on that: the cost to be stored in the priority queue is not
+just the latest edge's cost, but that added to the previous lowest cost as
+found at the top of the priority queue… Let's try again, and add a extra "wall"
+to see how the algorithm behaves when there is no longer an "easy" path:
+
+ *0     #     #     #     #     #
+  ·     ·     #     #     #     #
+  #     ·     #     ·     ·     ·
+  ·     ·     #     ·     #     ·
+
+  x    10     #     #     #     #
+ *1     ·     #     #     #     #
+  #     ·     #     ·     ·     ·
+  ·     ·     #     ·     #     ·
+
+  x    10     #     #     #     #
+  1    *2     #     #     #     #
+ 11     ·     #     ·     ·     ·
+  ·     ·     #     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    22     #     #     #
+ 11    *3     #     ·     ·     ·
+  ·     ·     #     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    22     #     #     #
+ 11     x    13     ·     ·     ·
+  ·    *4     #     ·     #     ·
+
+  x    10     #     #     #     #
+  x     x    22     #     #     #
+ 11     x    13     ·     ·     ·
+ *5     x    14     ·     #     ·
+
+As before, no node can be added to the queue here, since one neighbor is
+explored and the other is already in the queue. So we pick the next-best
+node to continue from:
+
+  x   *10     #     #     #     #
+  x     x    22     #     #     #
+ 11     x    13     ·     ·     ·
+  x     x    14     ·     #     ·
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+*11     x    13     ·     ·     ·
+  x     x    14     ·     #     ·
+
+This is interesting: the focus jumps again to another part of the matrix
+as we purge the priority queue from its lowest-cost nodes. That "11" is
+going nowhere, though:
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x   *13     ·     ·     ·
+  x     x    14     ·     #     ·
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x    14     ·     ·
+  x     x    14     ·     #     ·
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x    14     ·     ·
+  x     x   *14     ·     #     ·  (choosing randomly between "14" nodes)
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x   *14     ·     ·
+  x     x     x    15     #     ·
+
+Ah, when there is a tie at the top of the priority queue, it appears we
+will try every single one before moving on (because we have no zero-cost
+edges, every new entry from one of the lowest-cost nodes in the queue
+will necessarily be added lower in the queue):
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x     x    15     ·
+  x     x     x   *15     #     ·
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x     x   *15     ·
+  x     x     x     x    25     ·
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x     x     x   *16
+  x     x     x     x    25     ·
+
+  x     x    20     #     #     #
+  x     x    22     #     #     #
+  x     x     x     x     x     x
+  x     x     x     x    25    17
+
+The goal has been reached, at the cost of 17 which seems correct. There
+is certainly a way to reconstruct the path taken, but we don't need it
+now.
+
+How big did the priority queue get? 6 nodes apparently, for a 24-node
+matrix. We certainly can't afford to add all 100,000 nodes —
+
+Wait. Have I been computing 100x100 = 100,000 in my head from the start?
+It appears I have, which is a big 🤦. And a relief at the same time, of
+course : even without stuffing two nodes in a single byte, the matrix
+only occupies a comfortable 10K. I can even easily fit a path cost
+matrix of short integers in an additional 20K…
+
+This means I could go back to a straightforward implementation of Dijkstra's.
+
+Or even a more basic thing, which doesn't use any set or queue, but assumes
+low edge costs since it will do one full scan of the matrix for each integer
+from 0 up to the eventual best cost:
+
+  - set path cost to maxint for every node, except start which has path cost 0;
+  - for frontier-cost going from 0 to maxint:
+    - for every node, if its path cost equals frontier-cost:
+      - for each neighbor:
+        - compute cost of going into neighbor as (neighbor's node cost + this
+          node's path cost);
+        - if the result is lower that the neighbor's current path cost, replace it;
+    - if the end node has a path cost < maxint, break the loop.
+
+This looks like a plan. Let's try it once:
+
+  0     #     #     #     #     #
+  ·     ·     #     #     #     #
+  #     ·     #     ·     ·     ·
+  ·     ·     .     ·     #     ·
+
+  fc=0
+  0    10     #     #     #     #
+  1     ·     #     #     #     #
+  #     ·     #     ·     ·     ·
+  ·     ·     .     ·     #     ·
+
+  fc=1
+  0    10     #     #     #     #
+  1     2     #     #     #     #
+ 11     ·     #     ·     ·     ·
+  ·     ·     .     ·     #     ·
+
+  fc=2
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3     #     ·     ·     ·
+  ·     ·     .     ·     #     ·
+
+  fc=3
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     ·     ·     ·
+  ·     4     .     ·     #     ·
+
+  fc=4
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     ·     ·     ·
+  5     4     5     ·     #     ·
+
+  fc=5
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     ·     ·     ·
+  5     4     5     6     #     ·
+
+  fc=6
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     7     ·     ·
+  5     4     5     6    16     ·
+
+  fc=7
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     7     8     ·
+  5     4     5     6    16     ·
+
+  fc=8
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     7     8     9
+  5     4     5     6    16     ·
+
+  fc=9
+  0    10     #     #     #     #
+  1     2    12     #     #     #
+ 11     3    13     7     8     9
+  5     4     5     6    16    10
+
+In fact, we're advancing time and simulating a flood advancing through the maze
+one step at a time. This means that the first ever path cost written to a cell
+is the optimal one, so there is no need for comparison with the previous cost.
+We just need to mark each cell has visited or not:
+
+  - set path cost to maxint for every node, except start which has path cost 0;
+  - for frontier-cost going from 0 to maxint:
+    - for every node, if its path cost equals frontier-cost:
+      - for each neighbor, if its path cost is maxint:
+        - set neighbor's path cost to (neighbor's node cost + this node's path cost).
+    - if the end node has a path cost < maxint, break the loop.
+
+This looks good, but implementation will have to wait a bit.
