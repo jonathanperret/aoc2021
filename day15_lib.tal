@@ -68,14 +68,6 @@
     [ ;risk-matrix/_w LDA2 ] [ ;&_w STA2 ]
     [ ;risk-matrix/_h LDA2 ] [ ;&_h STA2 ]
     #00 #3000 ;&_costs ;memset JSR2
-    #0000 [ ;&_h LDA2 ] DO
-      #0000 [ ;&_w LDA2 ] DO
-        DUP4 SWP2 ;&ptr-at JSR2 STH2
-        DUP4 SWP2 ;risk-matrix/get-at JSR2
-        #00 SWP
-        STH2r STA2
-      LOOP
-    LOOP
     RTN
 
   ( val x y -- )
@@ -90,15 +82,21 @@
 
   ( val x y -- )
   &combine-at
+    STH2k OVR2 STH2 ( val x y : x y )
     ;&ptr-at JSR2 ( val ptr )
     LDA2k ( val ptr cellval )
     DUP2 #000f GTH2 ,&combine-at/visited JCN
+      ( val ptr 0000 : x y )
+      POP2 STH2rk OVR2r STH2r ( val ptr x y : x y )
+      ;risk-matrix/get-at JSR2 #00 SWP
       ROT2 ( ptr cellval val )
       ADD2 SWP2 STA2
+      POP2r POP2r
     RTN
     &combine-at/visited
       ( val ptr cellval )
       POP2 POP2 POP2
+      POP2r POP2r
     RTN
 
   ( x y -- )
