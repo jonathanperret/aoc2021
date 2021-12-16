@@ -2,8 +2,7 @@
 ~library/string.tal
 ~library/math.tal
 
-
-%CELLSIZE { 0002 }
+%CELLSIZE { 0008 }
 
 @decoder
   [ &_byte $1 &_shift $1 &_counter $2 
@@ -67,18 +66,23 @@
     ( is-last number8 )
     RTN
 
-  ( -- value16 )
+  ( out* -- )
   &read-value
-    #0000 ( value )
+    ;&tmp #0000 ;short-to-64 JSR2
     &read-value/next
-      #40 SFT2 ( value<<4 )
+      ;&tmp #10 ;mul64-byte JSR2
       ;&read-digit JSR2
       SWP STH
-      #00 SWP ADD2 ( value<<4+digit : is-last )
+      ( digit8 : is-last )
+      ;&tmp ROT ( tmp* digit8 )
+      ;add64-byte JSR2
+
       STHr ,&read-value/done JCN
       ,&read-value/next JMP
     &read-value/done
-    ( value )
+    ( out* )
+    ( ;short-to-64 JSR2 )
+    ;&tmp ;copy64 JSR2
     RTN
 
   ( -- length )
@@ -154,7 +158,8 @@
     &print-tree/is-lit
       ( indent type )
       POP POP2
-      ;&read-value JSR2 DBGSHORTDEC POP2
+      ;&tmp ;&read-value JSR2
+      ;&tmp ;print64/no-pad JSR2 LF
       RTN
 
     &print-tree/has-count
@@ -207,11 +212,11 @@
     &compute/is-lit
       ( type )
       POP
-      ;&read-value JSR2 DBGSHORTDECn
 
       ;&push JSR2 ( p* )
-      ( LIT '( EMIT OVR2 DBGSHORTn LIT '> EMIT POP2 DBGSHORTn LIT ') EMIT )
-      STA2
+      ;&read-value JSR2
+
+      ;&peek JSR2 ;print64 JSR2
 
       ;&stackdump JSR2 LF
       RTN
@@ -234,7 +239,6 @@
       ( type count )
       ROT ( count type )
       ;&execute JSR2
-      LF
       RTN
 
     &compute/has-length
@@ -257,17 +261,13 @@
       ( type count )
       ROT ( count type )
       ;&execute JSR2
-      LF
       RTN
 
   ( count type -- result )
   &execute
     ( count type )
-    DUP ;&print-op JSR2
-    P< 20 "-> 20 >P
     ( type count )
     ;&op-execute JSR2
-    ;&stackdump JSR2
     RTN
 
   &stackdump
@@ -276,7 +276,7 @@
     &stackdump/loop
       ( p* )
       DUP2 [ ;&_stacktop LDA2 ] GEQ2 ,&stackdump/done JCN
-      LDA2k ;print-short-decimal JSR2 SP
+      DUP2 ;print64/no-pad JSR2 SP
       ( p* )
       LIT2 CELLSIZE ADD2
       ,&stackdump/loop JMP
@@ -321,115 +321,152 @@
   ( count type -- )
   &op-execute
     ( count type )
-    #00 SWP 2** ;&op-fns ADD2 LDA2
-    ( count fn )
+    STHk #00 SWP 2** ;&op-fns ADD2 LDA2
+    ( count fn : type )
+    STHr
+    ( count fn type )
     ;&reduce JSR2
     RTN
     (         '+       '*       'm       'M       '#       '>       '<       '=       )
     [ &op-fns :&op-add :&op-mul :&op-min :&op-max :&op-nop :&op-gth :&op-lth :&op-equ ]
 
-  ( count fn -- )
+  ( count fn type -- )
   &reduce
-    SWP2 ( fn count )
+    STH
+    SWP2 ( fn count : type )
+    STHr ROT ROT ( fn type count )
     DUP2 #0001 EQU2 ,&reduce/single JCN
     #0000 SWP2 DEC2 DO
-      ( fn i )
-      OVR2 STH2
-      ( fn i : fn )
+      ( fn type i )
+      STH2
+      ( fn type : i )
+
+      DUP ;&print-op JSR2
+      P< 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 >P
+
+      ROT ROT STH2
+      ( type : fn i )
 
       ;&pop JSR2 ( n1* )
       ;&pop JSR2 ( n1* n2* )
-      ;&push JSR2 ( n1* n2* out* )
+      SWP2 ( n2* n1* )
+      ;&push JSR2 ( n2* n1* out* )
 
-      ROT2 ROT2 ( out* n1* n2* )
+      ROT2 ROT2 ( out* n2* n1* )
 
-      STH2r JSR2
-      ( fn i )
+      ( type out* n2* n1* : fn i )
+      STH2rk JSR2
+
+      ;&stackdump JSR2 LF
+
+      ( type : fn i )
+      STH2r
+      ( type fn : i )
+      ROT
+      ( fn type : i )
+      STH2r
+      ( fn type i )
     LOOP
-    ( fn )
+    ( fn type )
+    POP
     POP2
-    ;&peek JSR2 LDA2 DBGSHORTDECn POP2
     RTN
 
     &reduce/single
-      ( fn 1 )
-      POP2 POP2
-      ;&peek JSR2 LDA2 DBGSHORTDECn POP2
+      ( fn type 1 )
+      POP2
+
+      P< "# >P
+      ;&print-op JSR2
+      P< 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 >P
+
+      POP2
+      ;&stackdump JSR2 LF
       RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2 n1 -- )
   &op-nop
     POP2 POP2 POP2
     RTN
 
-  ( out* n1* n2* -- )
+  [ &tmp $8 ]
+
+  ( out* n2* n1* -- )
   &op-add
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    ADD2 ( out* n1+n2 )
-    SWP2 STA2
+    ;&tmp SWP2 ;copy64 JSR2
+    ( out* n2* )
+    ;&tmp SWP2 ;add64 JSR2
+    ( out* )
+    ;&tmp ;copy64 JSR2
     RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2* n1* -- )
   &op-mul
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    MUL2 ( out* n1*n2 )
-    SWP2 STA2
+    ;mul64 JSR2 ( out* )
+    ;mul64/get-lo JSR2
     RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2* n1* -- )
   &op-equ
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    EQU2 #00 SWP ( out* n1=n2 )
-    SWP2 STA2
+    ;&tmp ROT2 ROT2 ;sub64 JSR2
+    ;&tmp ;is-non-zero64 JSR2
+    NOT
+    ( out* f )
+    #00 SWP ;short-to-64 JSR2
     RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2* n1* -- )
   &op-lth
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    LTH2 #00 SWP ( out* n1=n2 )
-    SWP2 STA2
+    ;&tmp ROT2 ROT2 ;sub64 JSR2
+    ;&tmp ;is-positive64 JSR2
+    NOT
+    ( out* f )
+    #00 SWP ;short-to-64 JSR2
     RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2* n1* -- )
   &op-gth
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    GTH2 #00 SWP ( out* n1=n2 )
-    SWP2 STA2
+    ;&tmp ROT2 ROT2 ;sub64 JSR2
+    ;&tmp ;is-positive64 JSR2
+    ;&tmp ;is-non-zero64 JSR2
+    AND
+    ( out* f )
+    #00 SWP ;short-to-64 JSR2
     RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2* n1* -- )
   &op-min
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    DUP4 GTH2 ,&min/n2-greater JCN
-      ( out* n2 n1 )
-      POP2
-      SWP2 STA2
+    DUP4 ;&tmp ROT2 ROT2 ;sub64 JSR2
+    ;&tmp ;is-positive64 JSR2
+    ( out* n2* n1* n2>=n1 )
+    NOT
+    ,&min/n2-greater JCN
+      ( out* n2* n1* )
+      NIP2
+      ;copy64 JSR2
       RTN
 
     &min/n2-greater
-      ( out* n2 n1 )
-      NIP2
-      SWP2 STA2
+      ( out* n2* n1* )
+      POP2
+      ;copy64 JSR2
       RTN
 
-  ( out* n1* n2* -- )
+  ( out* n2 n1 -- )
   &op-max
-    LDA2 ( out* n1* n2 )
-    SWP2 LDA2 ( out* n2 n1 )
-    DUP4 GTH2 ,&max/n2-greater JCN
-      ( out* n2 n1 )
+    DUP4 ;&tmp ROT2 ROT2 ;sub64 JSR2
+    ;&tmp ;is-positive64 JSR2
+    ( out* n2* n1* n2>=n1 )
+    ,&max/n2-greater JCN
+      ( out* n2* n1* )
       NIP2
-      SWP2 STA2
+      ;copy64 JSR2
       RTN
 
     &max/n2-greater
-      ( out* n2 n1 )
+      ( out* n2* n1* )
       POP2
-      SWP2 STA2
+      ;copy64 JSR2
       RTN
+
+

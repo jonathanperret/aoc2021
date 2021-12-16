@@ -327,3 +327,309 @@ as if the input has been constructed so that intermediate results would fit in 1
 integers… alas, at least the top-level sum overflows since it includes 42188 and 27726.
 
 Looks like I'll have to implement a 64-bit integer stack.
+
+"Your answer is too low"…
+
+I just spent a few minutes reimplementing the evaluator in awk+dc to have confirmation:
+
+ $ ./uxnrun.sh day16.tal  <(echo D8005AC2A8F0) |awk 'BEGIN { print "[f] sf [1+]
+     so [0*] sz [1+]so [ sa sb 0 la lb <o ]s<  [ sa sb 0 la lb >o ]s> [ sa sb 0 la
+     lb =o ]s= [ * ]s* [ + ]s+ [r]sr [ sa sb la lb la lb >r sZ ]sM [ sa sb la lb la
+     lb <r sZ ]sm";} /\|/{printf "[%s\n]P\n", $0; op=substr($0,1,1); if(op=="#"){}
+     else if(op!=" "){print "l" op "x";}else{print substr($0,1,22);}; print
+     "f"}'|dc 2>&1
+
+  Loaded day16.rom
+
+                      5 | 5
+  5
+                     15 | 5 15
+  15
+  5
+  <                     | 1
+  1 
+
+Running on my full input, `dc` gives the exact same (wrong) answer as my code. This is
+frustrating.
+
+But I just realized how stupid I've been earlier. "It almost looks as if the
+input has been constructed so that intermediate results would fit in 16 bits
+unsigned integers", indeed… of course if I truncate the integers as I read them,
+it's no surprise that none will be above 65535!
+
+This should be a relatively quick fix.
+
+Here's the (hopefully) correct tree:
+
+  +
+   *
+    <
+     58459
+     1025718
+    56547
+   *
+    <
+     +
+      13
+      15
+      8
+     +
+      6
+      9
+      3
+    24725
+   *
+    =
+     1598
+     1058
+    9342870
+   *
+    <
+     +
+      9
+      15
+      14
+     +
+      2
+      15
+      4
+    110
+   M
+    88
+   M
+    550911
+    58753
+    130
+   m
+    1184267379
+    30294
+    15
+    22255
+    74
+   *
+    21
+    111
+    248
+    120
+   154
+   M
+    10
+    9
+    1319
+    597
+   +
+    +
+     +
+      M
+       +
+        M
+         m
+          +
+           M
+            M
+             m
+              m
+               *
+                *
+                 +
+                  m
+                   *
+                    m
+                     *
+                      m
+                       46691
+   *
+    172
+    203
+    201
+   12
+   *
+    150
+    4
+    246
+    156
+    161
+   *
+    235
+    66
+   *
+    >
+     +
+      14
+      4
+      5
+     +
+      8
+      10
+      14
+    2975066143
+   14
+   *
+    62398191639
+    >
+     25
+     237673
+   +
+    119
+    19890
+    13925553
+    32725178779
+    219471
+   *
+    882340
+    >
+     62287
+     57243825267
+   238
+   +
+    552014
+   6
+   *
+    >
+     3888
+     3888
+    2783
+   +
+    *
+     11
+     5
+     3
+    *
+     15
+     8
+     13
+    *
+     6
+     12
+     9
+   *
+    38
+    <
+     80
+     15627
+   M
+    1737543754956
+    1462
+   m
+    5337
+   m
+    13
+    117
+    2
+   *
+    9782209
+    =
+     +
+      13
+      11
+      8
+     +
+      2
+      14
+      6
+   M
+    207446
+    2357871
+    20723
+    8
+    36509658967
+   43384020875
+   191
+   3
+   m
+    30
+    3091795027
+   +
+    7
+    33
+   +
+    150395260
+    121095391
+    75
+    13987
+   *
+    1697
+    <
+     231267174
+     87
+   *
+    158787303175
+    >
+     554435
+     45376
+   +
+    523233691219
+    11
+    201427
+   *
+    49
+   259
+   1917
+   *
+    57015
+    >
+     246023942
+     568
+   *
+    +
+     15
+     8
+     4
+    +
+     5
+     7
+     14
+    +
+     10
+     14
+     7
+   m
+    220
+    2504
+    362049
+    1363
+   *
+    >
+     640297111
+     640297111
+    61360
+   *
+    102283213
+    <
+     12326
+     1
+   *
+    58973
+    =
+     96
+     200
+   *
+    =
+     36216
+     36216
+    5
+   *
+    199221153
+    >
+     +
+      11
+      5
+      12
+     +
+      10
+      9
+      6
+   *
+    <
+     3132
+     3132
+    37819315
+   *
+    158
+    <
+     17013692973305
+     17013692973305
+
+Plenty of non-16-bit values here!
+
+Running the computation again thankfully gives the right answer.

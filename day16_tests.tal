@@ -43,7 +43,8 @@
   >S ;make-get-byte JSR2 ;decoder/set-input JSR2
   ;decoder/read-version JSR2 DBGBYTEn POP SP
   ;decoder/read-type JSR2 DBGBYTEn POP SP
-  ;decoder/read-value JSR2 DBGSHORTDEC POP2
+  ;testvar/n1 ;decoder/read-value JSR2
+  ;testvar/n1 ;print64/no-pad JSR2 LF
   ( EXPECT 0x06 0x04 2021 )
 
   T< "length_type_0: >T
@@ -77,49 +78,116 @@
   ( EXPECT   2 )
   ( EXPECT   2 )
 
-  T< "compute: >T
-  S< "9C0141080250320F1802104A08 >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  T< "compute+: >T
+  S< "C200B40A82 >S ;make-get-byte JSR2 ;decoder/set-input JSR2
   ;decoder/compute JSR2
-  ( EXPECT 1 | 1  )
-  ( EXPECT 3 | 1 3  )
-  ( EXPECT + -> 4 | 4  )
-  ( EXPECT 2 | 4 2  )
-  ( EXPECT 2 | 4 2 2  )
-  ( EXPECT * -> 4 | 4 4  )
-  ( EXPECT = -> 1 | 1  )
+  ( EXPECT                     1 | 1  )
+  ( EXPECT                     2 | 1 2  )
+  ( EXPECT +                     | 3  )
 
-  T< "compute2: >T
+  T< "computem: >T
   S< "880086C3E88112 >S ;make-get-byte JSR2 ;decoder/set-input JSR2
   ;decoder/compute JSR2
-  ( EXPECT 7 | 7  )
-  ( EXPECT 8 | 7 8  )
-  ( EXPECT 9 | 7 8 9  )
-  ( EXPECT m -> 7 | 7  )
+  ( EXPECT                     7 | 7  )
+  ( EXPECT                     8 | 7 8  )
+  ( EXPECT                     9 | 7 8 9  )
+  ( EXPECT m                     | 7 8  )
+  ( EXPECT m                     | 7  )
 
-  T< "compute3: >T
+  T< "computeM: >T
   S< "CE00C43D881120 >S ;make-get-byte JSR2 ;decoder/set-input JSR2
   ;decoder/compute JSR2
-  ( EXPECT 7 | 7  )
-  ( EXPECT 8 | 7 8  )
-  ( EXPECT 9 | 7 8 9  )
-  ( EXPECT M -> 9 | 9  )
+  ( EXPECT                     7 | 7  )
+  ( EXPECT                     8 | 7 8  )
+  ( EXPECT                     9 | 7 8 9  )
+  ( EXPECT M                     | 7 9  )
+  ( EXPECT M                     | 9  )
 
-  T< "compute4: >T
+  T< "compute<: >T
   S< "D8005AC2A8F0 >S ;make-get-byte JSR2 ;decoder/set-input JSR2
   ;decoder/compute JSR2
-  ( EXPECT 5 | 5  )
-  ( EXPECT 15 | 5 15  )
-  ( EXPECT < -> 1 | 1  )
+  ( EXPECT                     5 | 5  )
+  ( EXPECT                    15 | 5 15  )
+  ( EXPECT <                     | 1  )
 
-  T< "compute5: >T
+  T< "compute>: >T
   S< "F600BC2D8F >S ;make-get-byte JSR2 ;decoder/set-input JSR2
   ;decoder/compute JSR2
-  ( EXPECT 5 | 5  )
-  ( EXPECT 15 | 5 15  )
-  ( EXPECT > -> 0 | 0  )
+  ( EXPECT                     5 | 5  )
+  ( EXPECT                    15 | 5 15  )
+  ( EXPECT >                     | 0  )
+
+  T< "compute+*=: >T
+  S< "9C0141080250320F1802104A08 >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/compute JSR2
+  ( EXPECT                     1 | 1  )
+  ( EXPECT                     3 | 1 3  )
+  ( EXPECT +                     | 4  )
+  ( EXPECT                     2 | 4 2  )
+  ( EXPECT                     2 | 4 2 2  )
+  ( EXPECT *                     | 4 4  )
+  ( EXPECT =                     | 1  )
+
+  T< "op-lth<: >T
+  ;testvar/n1 #0001 ;short-to-64 JSR2
+  ;testvar/n2 #0002 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-lth JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 1 )
+
+  T< "op-lth=: >T
+  ;testvar/n1 #0003 ;short-to-64 JSR2
+  ;testvar/n2 #0003 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-lth JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 0 )
+
+  T< "op-lth>: >T
+  ;testvar/n1 #0004 ;short-to-64 JSR2
+  ;testvar/n2 #0002 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-lth JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 0 )
+
+  T< "op-gth<: >T
+  ;testvar/n1 #0001 ;short-to-64 JSR2
+  ;testvar/n2 #0002 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-gth JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 0 )
+
+  T< "op-gth=: >T
+  ;testvar/n1 #0003 ;short-to-64 JSR2
+  ;testvar/n2 #0003 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-gth JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 0 )
+
+  T< "op-gth>: >T
+  ;testvar/n1 #0004 ;short-to-64 JSR2
+  ;testvar/n2 #0002 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-gth JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 1 )
+
+  T< "op-min: >T
+  ;testvar/n1 #2000 ;short-to-64 JSR2
+  ;testvar/n2 #7000 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-min JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 8192 )
+
+  T< "op-max: >T
+  ;testvar/n1 #2000 ;short-to-64 JSR2
+  ;testvar/n2 #7000 ;short-to-64 JSR2
+  ;testvar/out ;testvar/n1 ;testvar/n2 ;decoder/op-max JSR2
+  ;testvar/out ;print64/no-pad JSR2 LF
+  ( EXPECT 28672 )
 
   T< "🎄 >T
   BRK !
+
+@testvar [ &n1 $8 &n2 $8 &out $8 ]
 
 ( s* -- get-byte )
 @make-get-byte
