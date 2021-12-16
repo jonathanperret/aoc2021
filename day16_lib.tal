@@ -3,14 +3,20 @@
 ~library/math.tal
 
 
+%CELLSIZE { 0002 }
+
 @decoder
-  [ &_byte $1 &_shift $1 &_counter $2 ]
+  [ &_byte $1 &_shift $1 &_counter $2 
+    &_stack $1000 &_stackend
+    &_stacktop $2
+  ]
 
   ( get-byte -- )
   &set-input
     [ ;&get-byte/addr STA2 ]
     #ff [ ;&_shift STA ]
     #0000 [ ;&_counter STA2 ]
+    ;&_stack [ ;&_stacktop STA2 ]
     RTN
 
   ( -- 0-1-or-ff )
@@ -111,52 +117,319 @@
     2** ;&get-bit JSR2 ORA
     RTN
 
-  ( -- sum )
-  &version-sum
-    #0000 ( sum )
-    &version-sum-loop
-    ;&read-version JSR2 #00 SWP ADD2
-    ;&read-type JSR2 ( sum type )
-    #04 EQU ,&version-sum/is-lit JCN
-    ;&get-bit JSR2 ( sum has-count )
-    ,&version-sum/has-count JCN
-    ,&version-sum/has-length JMP
+  ( type -- char )
+  &lookup-op
+    #00 SWP ;&op-lookup ADD2 LDA
+    RTN
+    [ &op-lookup '+ '* 'm 'M '# '> '< '= ]
 
-    &version-sum/is-lit
-      ( sum )
-      ;&read-value JSR2
+  ( type -- )
+  &print-op
+    ;&lookup-op JSR2 EMIT
+    RTN
+
+  ( -- )
+  &print-tree
+    #0000
+    ;&print-tree-indent JSR2
+    RTN
+
+  ( indent -- )
+  &print-tree-indent
+    ( indent )
+    ;&read-version JSR2 POP
+    ;&read-type JSR2 STH ( indent : type )
+    DUP2 #0000 EQU2 ,&pt/no-indent JCN
+      #0000 OVR2 DO
+        #20 EMIT
+      LOOP
+    &pt/no-indent
+    STHr
+    ( indent type )
+    DUP #04 EQU ,&print-tree/is-lit JCN
+    ;&get-bit JSR2 ( indent type has-count )
+    ,&print-tree/has-count JCN
+    ,&print-tree/has-length JMP
+
+    &print-tree/is-lit
+      ( indent type )
+      POP POP2
+      ;&read-value JSR2 DBGSHORTDEC POP2
+      RTN
+
+    &print-tree/has-count
+      ( indent type )
+      ;&print-op JSR2
+      LF
+      ;&read-count11 JSR2 ( indent count )
+      &print-tree/count-more
+        DUP2 #0000 EQU2 ,&print-tree/count-done JCN
+        ( indent count )
+        OVR2 INC2 ;&print-tree-indent JSR2
+        ( indent count )
+        DEC2
+        ,&print-tree/count-more JMP
+      &print-tree/count-done
+      ( indent 0 )
+      POP2
       POP2
       RTN
 
-    &version-sum/has-count
-      ( sum )
-      ;&read-count11 JSR2 ( sum count )
-      &version-sum/count-more
-        DUP2 #0000 EQU2 ,&version-sum/count-done JCN
-        ;&version-sum JSR2 ( sum count subsum )
-        ROT2 ( count subsum sum )
-        ADD2 ( count subsum+sum )
-        SWP2 ( sum count )
-        DEC2 ( sum count-1 )
-        ,&version-sum/count-more JMP
-      &version-sum/count-done
-      ( sum 0 )
+    &print-tree/has-length
+      ( indent type )
+      ;&print-op JSR2
+      LF
+      ;&read-length15 JSR2 [ ;&_counter LDA2 ] ADD2
+      ( indent end )
+      &print-tree/length-more
+        ( indent end )
+        DUP2 [ ;&_counter LDA2 ] LEQ2 ,&print-tree/length-done JCN
+        ( indent end )
+        OVR2 INC2 ;&print-tree-indent JSR2
+        ( indent end )
+        ,&print-tree/length-more JMP
+      &print-tree/length-done
+      ( indent end )
+      POP2
       POP2
       RTN
 
-    &version-sum/has-length
-      ( sum )
-      ;&read-length15 JSR2 [ ;&_counter LDA2 ] ADD2 ( sum end )
-      &version-sum/length-more
-      ( sum end )
-      DUP2 [ ;&_counter LDA2 ] LEQ2 ,&version-sum/length-done JCN
-        ( sum end )
-        ;&version-sum JSR2 ( sum end subsum )
-        ROT2 ( end subsum sum )
-        ADD2 ( end subsum+sum )
-        SWP2 ( sum end )
-        ,&version-sum/length-more JMP
-      &version-sum/length-done
-      ( sum end )
+  ( -- )
+  &compute
+    ;&read-version JSR2 POP
+    ;&read-type JSR2 ( type )
+    ( type )
+    DUP #04 EQU ,&compute/is-lit JCN
+    ;&get-bit JSR2 ( type has-count )
+    ,&compute/has-count JCN
+    ,&compute/has-length JMP
+
+    &compute/is-lit
+      ( type )
+      POP
+      ;&read-value JSR2 DBGSHORTDECn
+
+      ;&push JSR2 ( p* )
+      ( LIT '( EMIT OVR2 DBGSHORTn LIT '> EMIT POP2 DBGSHORTn LIT ') EMIT )
+      STA2
+
+      ;&stackdump JSR2 LF
+      RTN
+
+    &compute/has-count
+      ( type )
+      ;&read-count11 JSR2 ( type count )
+      DUP2
+      ( type count counter )
+      &compute/count-more
+        DUP2 #0000 EQU2 ,&compute/count-done JCN
+        ( type count )
+        ;&compute JSR2
+        ( type count )
+        DEC2
+        ,&compute/count-more JMP
+      &compute/count-done
+      ( type count 0 )
       POP2
+      ( type count )
+      ROT ( count type )
+      ;&execute JSR2
+      LF
+      RTN
+
+    &compute/has-length
+      ( type )
+      #0000 ( type count end )
+      ;&read-length15 JSR2 [ ;&_counter LDA2 ] ADD2
+      ( type count end )
+      &compute/length-more
+        ( type count end )
+        DUP2 [ ;&_counter LDA2 ] LEQ2 ,&compute/length-done JCN
+        ( type count end )
+        ;&compute JSR2
+        ( type count end )
+        SWP2 INC2 SWP2
+        ( type count+1 end )
+        ,&compute/length-more JMP
+      &compute/length-done
+      ( type count end )
+      POP2
+      ( type count )
+      ROT ( count type )
+      ;&execute JSR2
+      LF
+      RTN
+
+  ( count type -- result )
+  &execute
+    ( count type )
+    DUP ;&print-op JSR2
+    P< 20 "-> 20 >P
+    ( type count )
+    ;&op-execute JSR2
+    ;&stackdump JSR2
+    RTN
+
+  &stackdump
+    P< 20 "| 20 >P
+    ;&_stack ( p* )
+    &stackdump/loop
+      ( p* )
+      DUP2 [ ;&_stacktop LDA2 ] GEQ2 ,&stackdump/done JCN
+      LDA2k ;print-short-decimal JSR2 SP
+      ( p* )
+      LIT2 CELLSIZE ADD2
+      ,&stackdump/loop JMP
+    &stackdump/done
+    ( p* )
+    POP2
+    RTN
+
+  ( allocates cell, returns previous top )
+  ( -- cell* )
+  &push
+    [ ;&_stacktop LDA2 ]
+    DUP2 LIT2 CELLSIZE ADD2 [ ;&_stacktop STA2 ]
+    [ ;&_stacktop LDA2 ] ;&_stackend GEQ2 ,&overflow JCN
+    ( top* )
+    RTN
+
+    &overflow
+      P< "stack_overflow >P !
+
+  ( deallocates cell, returns previous top )
+  ( -- cell* )
+  &pop
+    [ ;&_stacktop LDA2 ]
+    LIT2 CELLSIZE SUB2 DUP2 [ ;&_stacktop STA2 ]
+    [ ;&_stacktop LDA2 ] ;&_stack LTH2 ,&underflow JCN
+    ( p* )
+    RTN
+
+    &underflow
+      P< "stack_underflow >P !
+
+  ( returns current top unless stack is empty )
+  ( -- cell* )
+  &peek
+    [ ;&_stacktop LDA2 ]
+    LIT2 CELLSIZE SUB2
+    DUP2 ;&_stack LTH2 ,&underflow JCN
+    ( p* )
+    RTN
+
+  ( count type -- )
+  &op-execute
+    ( count type )
+    #00 SWP 2** ;&op-fns ADD2 LDA2
+    ( count fn )
+    ;&reduce JSR2
+    RTN
+    (         '+       '*       'm       'M       '#       '>       '<       '=       )
+    [ &op-fns :&op-add :&op-mul :&op-min :&op-max :&op-nop :&op-gth :&op-lth :&op-equ ]
+
+  ( count fn -- )
+  &reduce
+    SWP2 ( fn count )
+    DUP2 #0001 EQU2 ,&reduce/single JCN
+    #0000 SWP2 DEC2 DO
+      ( fn i )
+      OVR2 STH2
+      ( fn i : fn )
+
+      ;&pop JSR2 ( n1* )
+      ;&pop JSR2 ( n1* n2* )
+      ;&push JSR2 ( n1* n2* out* )
+
+      ROT2 ROT2 ( out* n1* n2* )
+
+      STH2r JSR2
+      ( fn i )
+    LOOP
+    ( fn )
+    POP2
+    ;&peek JSR2 LDA2 DBGSHORTDECn POP2
+    RTN
+
+    &reduce/single
+      ( fn 1 )
+      POP2 POP2
+      ;&peek JSR2 LDA2 DBGSHORTDECn POP2
+      RTN
+
+  ( out* n1* n2* -- )
+  &op-nop
+    POP2 POP2 POP2
+    RTN
+
+  ( out* n1* n2* -- )
+  &op-add
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    ADD2 ( out* n1+n2 )
+    SWP2 STA2
+    RTN
+
+  ( out* n1* n2* -- )
+  &op-mul
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    MUL2 ( out* n1*n2 )
+    SWP2 STA2
+    RTN
+
+  ( out* n1* n2* -- )
+  &op-equ
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    EQU2 #00 SWP ( out* n1=n2 )
+    SWP2 STA2
+    RTN
+
+  ( out* n1* n2* -- )
+  &op-lth
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    LTH2 #00 SWP ( out* n1=n2 )
+    SWP2 STA2
+    RTN
+
+  ( out* n1* n2* -- )
+  &op-gth
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    GTH2 #00 SWP ( out* n1=n2 )
+    SWP2 STA2
+    RTN
+
+  ( out* n1* n2* -- )
+  &op-min
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    DUP4 GTH2 ,&min/n2-greater JCN
+      ( out* n2 n1 )
+      POP2
+      SWP2 STA2
+      RTN
+
+    &min/n2-greater
+      ( out* n2 n1 )
+      NIP2
+      SWP2 STA2
+      RTN
+
+  ( out* n1* n2* -- )
+  &op-max
+    LDA2 ( out* n1* n2 )
+    SWP2 LDA2 ( out* n2 n1 )
+    DUP4 GTH2 ,&max/n2-greater JCN
+      ( out* n2 n1 )
+      NIP2
+      SWP2 STA2
+      RTN
+
+    &max/n2-greater
+      ( out* n2 n1 )
+      POP2
+      SWP2 STA2
       RTN

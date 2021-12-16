@@ -39,3 +39,291 @@ need a stack of open packets. Let's just recurse for now.
 
 Done in 107 minutes, yay.
 
+# Part 2
+
+As expected, operators now have functions. This should be quite straightforward
+to implement, the only wrinkle being how to separate sub-packet enumeration
+(by length or by count) from the operation itself.
+
+Oh, and hopefully we won't overflow. Let's just dump the hierarchy of my input
+to see if I have to expect anything.
+
+Versions can be completely skipped over for part 2.
+
+Here's my complete tree:
+
+  +              | 42188 + 27726 + …
+   *             | 0
+    <            | 0
+     58459
+     42678
+    56547     
+   *             | 0
+    <            | 0
+     +           | 36
+      13
+      15
+      8
+     +           | 18
+      6
+      9
+      3
+    24725
+   *
+    =
+     1598
+     1058
+    36758
+   *
+    <
+     +
+      9
+      15
+      14
+     +
+      2
+      15
+      4
+    110
+   M
+    88
+   M
+    26623
+    58753
+    130
+   m
+    31859
+    30294
+    15
+    22255
+    74
+   *
+    21
+    111
+    248
+    120
+   154
+   M
+    10
+    9
+    1319
+    597
+   +
+    +
+     +
+      M
+       +
+        M
+         m
+          +
+           M
+            M
+             m
+              m
+               *
+                *
+                 +
+                  m
+                   *
+                    m
+                     *
+                      m
+                       46691
+   *
+    172
+    203
+    201
+   12
+   *
+    150
+    4
+    246
+    156
+    161
+   *
+    235
+    66
+   *
+    >
+     +
+      14
+      4
+      5
+     +
+      8
+      10
+      14
+    59423
+   14
+   *
+    55319
+    >
+     25
+     41065
+   +
+    119
+    19890
+    31921
+    39323
+    22863
+   *
+    30372
+    >
+     62287
+     29811
+   238
+   +             | 27726
+    27726
+   6
+   *
+    >
+     3888
+     3888
+    2783
+   +
+    *
+     11
+     5
+     3
+    *
+     15
+     8
+     13
+    *
+     6
+     12
+     9
+   *
+    38
+    <
+     80
+     15627
+   M             | 42188
+    42188
+    1462
+   m
+    5337
+   m
+    13
+    117
+    2
+   *
+    17345
+    =
+     +
+      13
+      11
+      8
+     +
+      2
+      14
+      6
+   M             | 64111
+    10838
+    64111
+    20723
+    8
+    12119
+   40843
+   191
+   3
+   m
+    30
+    3155
+   +
+    7
+    33
+   +
+    55676
+    50399
+    75
+    13987
+   *
+    1697
+    <
+     56166
+     87
+   *            | 0
+    63239
+    >           | 0
+     30147
+     45376
+   +
+    34387
+    11
+    4819
+   *
+    49
+   259
+   1917
+   *
+    57015
+    >
+     1798
+     568
+   *
+    +
+     15
+     8
+     4
+    +
+     5
+     7
+     14
+    +
+     10
+     14
+     7
+   m
+    220
+    2504
+    34369
+    1363
+   *
+    >
+     10391
+     10391
+    61360
+   *
+    47053
+    <
+     12326
+     1
+   *
+    58973
+    =
+     96
+     200
+   *
+    =
+     36216
+     36216
+    5
+   *
+    57249
+    >
+     +
+      11
+      5
+      12
+     +
+      10
+      9
+      6
+   *
+    <
+     3132
+     3132
+    5043
+   *
+    158
+    <
+     16633
+     16633
+
+The largest literal is 64111, but it is used in a max operator, so it doesn't immediately overflow.
+Likewise, the next largest is 63239, which is immediately multiplied by zero. It almost looks
+as if the input has been constructed so that intermediate results would fit in 16 bits unsigned
+integers… alas, at least the top-level sum overflows since it includes 42188 and 27726.
+
+Looks like I'll have to implement a 64-bit integer stack.

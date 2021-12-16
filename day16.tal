@@ -36,8 +36,8 @@
   ;open-file JSR2
 
   ;read-byte ;decoder/set-input JSR2
-  ;decoder/version-sum JSR2
-  DBGSHORTDEC POP2
+  ( ;decoder/print-tree JSR2 )
+  ;decoder/compute JSR2
 
   BRK
 
