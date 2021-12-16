@@ -1,0 +1,162 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+
+@decoder
+  [ &_byte $1 &_shift $1 &_counter $2 ]
+
+  ( get-byte -- )
+  &set-input
+    [ ;&get-byte/addr STA2 ]
+    #ff [ ;&_shift STA ]
+    #0000 [ ;&_counter STA2 ]
+    RTN
+
+  ( -- 0-1-or-ff )
+  &get-bit
+    [ ;&_shift LDA ] #ff NEQ ,&get-bit/got-byte JCN
+      ;&next-byte JSR2
+    &get-bit/got-byte
+    [ ;&_byte LDA ]
+    [ ;&_shift LDA ] SFT ( shifted )
+    #01 AND ( 0-or-1 )
+    [ ;&_shift *DEC ]
+    [ ;&_counter *INC2 ]
+    RTN
+
+  &next-byte
+    ;&get-byte JSR2 ( char )
+    DUP #00 NEQ OVR #0a NEQ AND ,&next-byte/not-eof JCN
+      P< "read_past_end >P
+      !
+    &next-byte/not-eof
+    DUP LIT 'A LTH ,&next-byte/number JCN
+    ( map 'A into '0+10 )
+    #07 SUB ( number-char )
+    &next-byte/number
+    LIT '0 SUB ( byte )
+    #03 [ ;&_shift STA ]
+    [ ;&_byte STA ]
+    RTN
+
+  &get-byte
+    LIT2 [ &get-byte/addr $2 ] JMP2
+
+  ( -- number8 )
+  &read-version
+  &read-type
+    ;&get-bit JSR2 #20 SFT
+    ;&get-bit JSR2 #10 SFT ORA
+    ;&get-bit JSR2         ORA
+    RTN
+
+  ( -- is-last number8 )
+  &read-digit
+    ;&get-bit JSR2 NOT ( is-last )
+    ;&get-bit JSR2 #30 SFT
+    ;&get-bit JSR2 #20 SFT ORA
+    ;&get-bit JSR2 #10 SFT ORA
+    ;&get-bit JSR2         ORA
+    ( is-last number8 )
+    RTN
+
+  ( -- value16 )
+  &read-value
+    #0000 ( value )
+    &read-value/next
+      #40 SFT2 ( value<<4 )
+      ;&read-digit JSR2
+      SWP STH
+      #00 SWP ADD2 ( value<<4+digit : is-last )
+      STHr ,&read-value/done JCN
+      ,&read-value/next JMP
+    &read-value/done
+    ( value )
+    RTN
+
+  ( -- length )
+  &read-length15
+    #0000
+        ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    RTN
+
+  ( -- count )
+  &read-count11
+    #0000
+        ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    2** ;&get-bit JSR2 ORA
+    RTN
+
+  ( -- sum )
+  &version-sum
+    #0000 ( sum )
+    &version-sum-loop
+    ;&read-version JSR2 #00 SWP ADD2
+    ;&read-type JSR2 ( sum type )
+    #04 EQU ,&version-sum/is-lit JCN
+    ;&get-bit JSR2 ( sum has-count )
+    ,&version-sum/has-count JCN
+    ,&version-sum/has-length JMP
+
+    &version-sum/is-lit
+      ( sum )
+      ;&read-value JSR2
+      POP2
+      RTN
+
+    &version-sum/has-count
+      ( sum )
+      ;&read-count11 JSR2 ( sum count )
+      &version-sum/count-more
+        DUP2 #0000 EQU2 ,&version-sum/count-done JCN
+        ;&version-sum JSR2 ( sum count subsum )
+        ROT2 ( count subsum sum )
+        ADD2 ( count subsum+sum )
+        SWP2 ( sum count )
+        DEC2 ( sum count-1 )
+        ,&version-sum/count-more JMP
+      &version-sum/count-done
+      ( sum 0 )
+      POP2
+      RTN
+
+    &version-sum/has-length
+      ( sum )
+      ;&read-length15 JSR2 [ ;&_counter LDA2 ] ADD2 ( sum end )
+      &version-sum/length-more
+      ( sum end )
+      DUP2 [ ;&_counter LDA2 ] LEQ2 ,&version-sum/length-done JCN
+        ( sum end )
+        ;&version-sum JSR2 ( sum end subsum )
+        ROT2 ( end subsum sum )
+        ADD2 ( end subsum+sum )
+        SWP2 ( sum end )
+        ,&version-sum/length-more JMP
+      &version-sum/length-done
+      ( sum end )
+      POP2
+      RTN

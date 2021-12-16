@@ -1,0 +1,41 @@
+# Part 1
+
+Ah, binary protocol decoding, nice!
+
+Thinking of the primitives I'm going to need. Would a `get-bit` that
+returns the next bit from the input be sufficient?
+
+Or should I load an entire line's worth of data in a buffer, and then
+carve sub-buffers from that?
+
+Oh, the input contains a single line!
+
+I'm going to assume that padding bits only occur at the end of the
+outermost packet for now. The text hints at this:
+
+> The three unlabeled 0 bits at the end are extra due to the hexadecimal
+> representation and should be ignored.
+
+I think I'm going to try with `get-bit`. How should it indicate the end of
+input? Returning `ff` should be OK; in any case if all goes well we should
+never request a bit past the end, I think. I'll just add a breakpoint there.
+
+I wonder if literal values can be numbers longer than16 bits… Interestingly,
+if there are longer numbers and my 16-bit storage overflows, it shouldn't
+matter for part 1.
+
+Note that my input is 1398 bytes long.
+
+If there is indeed no extra padding inside packets, I should be able to
+ignore type 0 length, right? Oh no, because I don't know how many packets
+to parse inside.
+
+On the other hand, part 1 only asks me to sum up version numbers, so I don't
+actually need to respect the hierarchy. I'll go ahead and consider operator
+packets done after their length, which should be equivalent.
+
+Ah, but then I won't know when to stop reading, of course. Hmm, so I really
+need a stack of open packets. Let's just recurse for now.
+
+Done in 107 minutes, yay.
+

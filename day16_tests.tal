@@ -1,0 +1,117 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "input: >T
+  S<
+    "D2FE28 0a ( 110100101111111000101000 )
+  >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x01 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x01 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x00 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x01 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x00 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x00 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x01 )
+  ;decoder/get-bit JSR2 DBGBYTE POP ( EXPECT 0x00 )
+
+  T< "version: >T
+  S<
+    "D2FE28 0a ( 110100101111111000101000 )
+  >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/read-version JSR2 DBGBYTE POP ( EXPECT 0x06 )
+
+  T< "type: >T
+  ;decoder/read-type JSR2 DBGBYTE POP ( EXPECT 0x04 )
+
+  T< "digit: >T
+  ;decoder/read-digit JSR2 DBGBYTEn POP SP DBGBYTE POP
+  ( EXPECT 0x07 0x00 )
+  ;decoder/read-digit JSR2 DBGBYTEn POP SP DBGBYTE POP
+  ( EXPECT 0x0e 0x00 )
+  ;decoder/read-digit JSR2 DBGBYTEn POP SP DBGBYTE POP
+  ( EXPECT 0x05 0x01 )
+
+  T< "value: >T
+  S<
+    "D2FE28 0a ( 110100101111111000101000 )
+  >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/read-version JSR2 DBGBYTEn POP SP
+  ;decoder/read-type JSR2 DBGBYTEn POP SP
+  ;decoder/read-value JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x06 0x04 2021 )
+
+  T< "length_type_0: >T
+  S<
+    "38006F45291200 0a
+  >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/read-version JSR2 DBGBYTEn POP SP
+  ;decoder/read-type JSR2 DBGBYTEn POP SP
+  ;decoder/get-bit JSR2 DBGBYTEn POP SP
+  ;decoder/read-length15 JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x01 0x06 0x00 27 )
+
+  T< "length_type_1: >T
+  S<
+    "EE00D40C823060 0a
+  >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/read-version JSR2 DBGBYTEn POP SP
+  ;decoder/read-type JSR2 DBGBYTEn POP SP
+  ;decoder/get-bit JSR2 DBGBYTEn POP SP
+  ;decoder/read-count11 JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x07 0x03 0x01 3 )
+
+  T< "version_sum_lit: >T
+  S< "D2FE28 0a >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/version-sum JSR2 DBGSHORTDEC POP2
+  ( EXPECT 6 )
+
+  T< "version_sum_op_length: >T
+  S< "38006F45291200 0a >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/version-sum JSR2 DBGSHORTDEC POP2
+  ( EXPECT 9 )
+
+  T< "version_sum_op_count: >T
+  S< "EE00D40C823060 0a >S ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/version-sum JSR2 DBGSHORTDEC POP2
+  ( EXPECT 14 )
+
+  T< "version_sums >T
+  S< "8A004A801A8002F478 >S ;test-version-sum JSR2 ( EXPECT 16 )
+  S< "620080001611562C8802118E34 >S ;test-version-sum JSR2 ( EXPECT 12 )
+  S< "C0015000016115A2E0802F182340 >S ;test-version-sum JSR2 ( EXPECT 23 )
+  S< "A0016C880162017C3686B18A3D4780 >S ;test-version-sum JSR2 ( EXPECT 31 )
+
+  T< "🎄 >T
+  BRK !
+
+
+( s* -- )
+@test-version-sum
+  ;make-get-byte JSR2 ;decoder/set-input JSR2
+  ;decoder/version-sum JSR2
+  DBGSHORTDEC POP2
+  RTN
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2
+
+~library/test.tal
+~day16_lib.tal
