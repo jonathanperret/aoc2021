@@ -72,7 +72,7 @@ What is the useful range of dY values?
               = -t^2/2 + (dX + 3/2)·t - 1
 
     Oh. I only now realized the equations for X and Y are identical.
-    [ edit: this is not true, dX never goes below 0.]
+    [ edit: this is not true, vX never goes below 0.]
 
     Anyway, how large does dX need to be for X to reach xmin?
 
@@ -231,3 +231,86 @@ And that's it.
 
 Looking back, today's time spent analyzing the problem to death really wasn't
 well spent.
+
+# Some more observations.
+
+When dy>0, does the probe always have a step where y=0? It looks like it, e.g.
+if dy=3, y goes 0, 3, 5, 6, 6, 5, 3, 0, …
+
+The equation for y is y = -t^2/2 + (dY + 1/2)·t. It is obviously zero at t=0,
+and the next value of t that sets it to zero is :
+
+          -t^2/2 + (dY + 1/2)·t = 0
+          -t/2 + (dY + 1/2) = 0      { t>0 }
+          t = 2·dY + 1
+
+If dY is an integer, clearly this value of t will be one as well.
+
+Knowing this, the problem of part 1, where we can safely assume that only positive
+values of dY are intereting, can be reformulated a bit: given a positive dY, does
+the probe hit the target area when starting at (X(2·dY+1), 0) with a velocity of
+(vX(2·dY+1), vY(2·dY+1)) ?
+
+What is the vertical velocity of the probe as it crosses the X axis? Intuitively
+it is -dY, but let's prove it. The derivative of our y equation is:
+
+          y' = -t + (dY + 1/2)
+
+At t=2·dY+1, we get y' = -(2·dY+1) + (dY+1/2)
+                       = -2·dY -1 + dY + 1/2
+                       = -dY - 1/2 ???
+
+My math is failing me. But this is ridiculous, clearly the vertical speed at
+time t is dY-t since it starts at dY and decrements by 1 at each step.
+
+At t=(2*dY+1), we therefore have vY=-dY-1, which checks out experimentally.
+So it's not -dY after all.
+
+So, starting upwards with some positive dY is basically the same (considering only Y) as
+starting downwards with -(dY+1) as the initial vertical velocity.
+
+And in part 1, we're obviously trying to maximize dY while still reaching the target.
+Looking at the probe as it steps on the Y=0 line while going down, the fastest it can
+go downwards and still hit some point in the target area is precisely ymin, the Y
+coordinate of the area's bottom.
+
+To have that speed at Y=0, we determined that it should start with an upwards velocity
+that is one less than that, so we get dY = |ymin|-1 = ymin+1.
+
+What about X? Well, X isn't an issue for the inputs we are given. If we start with
+dY=|ymin|-1, we're going to be spending at least 2*(|ymin|-1) steps above the target area,
+the time it takes for the Y velocity to descend to 0 and then down to -|ymin| at Y=0.
+
+All we need to do is pick dX to be the smallest value that can get between xmin
+and xmax. It will most likely end up in that range with vX=0 — I don't want to
+go into proving this now, but intuitively, if the probe enters the xmin..xmax
+range with some horizontal velocity left, it probably means that it could have
+started with less initial horizontal velocity.
+
+Anyway, all we need is for that minimal dX to get the probe into the target X range in
+fewer steps than it takes for the probe to return from its excursion above the Y=0 line.
+
+For my input where xmin=192, I computed above (by solving dX^2 + dX + 1/4 - 2·xmin >= 0)
+that the minimal dX was 20.
+
+With ymin=-89, it stands to reason that if we start upwards with dY=88, the horizontal
+velocity will be extinguished (after dX=20 steps) well before the probe goes back
+to Y=0. And from that 20th step on, the probe is above the target area and falling
+like a rock without any horizontal movement.
+
+In fact, for this not to hold, xmin would have to be big enough that the minimal dX
+would be more than |ymin|. Here are solutions to the above equation for various values
+of xmin:
+            xmin=2000    dX=45
+            xmin=4000    dX=63
+            xmin=8000    dX=89
+            xmin=10000   dX=100
+
+So it looks like the target area would have to be way more to the right than it is
+below the Y=0 line for our assumption not to hold. And on the contrary, the puzzle
+inputs seem to have |ymin| and xmin in the same ballpark.
+
+Anyway, we now know the best dY is ymin+1, so whats the highest Y reached on that
+trajectory? It is simply the sum of ymin+1 down to 1, where the parabola peaks.
+
+In other words, the answer to part 1 is simply (ymin+1)·ymin / 2.
