@@ -5,12 +5,14 @@
 
 |0000
 
+%NEG2 { #0000 SWP2 SUB2 }
+
 ( init )
 
 |0100 @program
   ( #0014 #001e #fff6 #fffb ;probe/set-target JSR2 )
-  #00c0 #00fb #ffa7 #ffc5 ;probe/set-target JSR2
-  #0000 #00ff #ff01 #00ff ;probe/scan JSR2
+  #00e6 #011b #ff95 #ffc7 ;probe/set-target JSR2
+  #0001 #011b #ff95 DUP2 NEG2 ;probe/scan JSR2
 
   BRK
 

@@ -38,7 +38,7 @@
 
     #0000 #ffff DO
       ;&print JSR2
-      ;&check JSR2 ,&continue JCN
+      ;&check JSR2 ;&continue JCN2
         ,&hit JCN
           [ ;&quiet LDA ] ,&launch/no-missed-msg JCN
             P< "missed >P LF
@@ -47,6 +47,8 @@
         &hit
         P< "hit 20 "dx= >P [ ;&dx LDA2 ] ;print-short-decimal/signed JSR2 SP
         P< "dy= >P [ ;&dy LDA2 ] ;print-short-decimal/signed JSR2 SP
+        P< "x= >P [ ;&x LDA2 ] ;print-short-decimal/signed JSR2 SP
+        P< "y= >P [ ;&y LDA2 ] ;print-short-decimal/signed JSR2 SP
         P< "yreached= >P [ ;&yreached LDA2 ] ;print-short-decimal/signed JSR2 LF
         UNLOOP #01 RTN
       &continue
@@ -66,10 +68,24 @@
     &print/skip
     RTN
 
+  ( a b -- a+b or halt )
+  &add-with-overflow-check
+    ( if inputs have different signs, we're always OK )
+    EOR2k POP #80 AND ,&no-overflow JCN
+    ( add, then the result must have the same sign as the inputs )
+    ADD2k OVR2 EOR2 POP #80 AND ,&overflow JCN
+    &no-overflow
+    ADD2
+    RTN
+    &overflow
+    P< "overflow! >P
+    SWP2 ;print-short-decimal/signed JSR2 LIT '+ EMIT SWP2 ;print-short-decimal/signed JSR2 LF
+    !
+
   ( -- )
   &step
-    [ ;&x LDA2 ] [ ;&vx LDA2 ] ADD2 [ ;&x STA2 ]
-    [ ;&y LDA2 ] [ ;&vy LDA2 ] ADD2 [ ;&y STA2 ]
+    [ ;&x LDA2 ] [ ;&vx LDA2 ] ;&add-with-overflow-check JSR2 [ ;&x STA2 ]
+    [ ;&y LDA2 ] [ ;&vy LDA2 ] ;&add-with-overflow-check JSR2 [ ;&y STA2 ]
 
     [ ;&yreached LDA2 ] [ ;&y LDA2 ] SGTH2 ,&step/no-new-height JCN
       [ ;&y LDA2 ] [ ;&yreached STA2 ]
@@ -87,15 +103,15 @@
     ( are we below the target area? )
     [ ;&ymin LDA2 ] [ ;&y LDA2 ] SGTH2
     ,&check/below JCN
+    ( are we right of the target area? )
+    [ ;&x LDA2 ] [ ;&xmax LDA2 ] SGTH2
+    ,&check/right JCN
     ( are we above the target area? )
     [ ;&y LDA2 ] [ ;&ymax LDA2 ] SGTH2
     ,&check/above JCN
     ( are we left of the target area? )
     [ ;&xmin LDA2 ] [ ;&x LDA2 ] SGTH2
     ,&check/left JCN
-    ( are we right of the target area? )
-    [ ;&x LDA2 ] [ ;&xmax LDA2 ] SGTH2
-    ,&check/right JCN
 
     ( we're inside )
     ( hit,stop )
