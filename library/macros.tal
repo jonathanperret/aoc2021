@@ -141,7 +141,7 @@
   INC2
   OVR2r
   STH2k
-  GTH2r STHr
+  NEQ2r STHr
   STH2rk
   JCN2
   POP2 POP2r POP2r

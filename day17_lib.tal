@@ -118,11 +118,7 @@
   &scan
     #01 [ ;&quiet STA ]
     #0000 [ ;&hitcount STA2 ]
-    ( bump dymin/dymax to make them positive )
-    SWP2 #8000 ADD2 SWP2 #8000 ADD2
     INC2 DO
-      ( bring dy back into range )
-      #8000 SUB2
       ( dxmin dxmax dy )
       P< "dy= >P DUP2 ;print-short-decimal/signed JSR2 LF
       STH2 ( dxmin dxmax : dy )
@@ -136,8 +132,6 @@
         #00 SWP [ ;&hitcount LDA2 ] ADD2 [ ;&hitcount STA2 ]
         ( dxmin dmxax dy dx )
       LOOP
-      ( bring dy back into positive )
-      #8000 ADD2
     LOOP
     ( dxmin dxmax )
     POP2 POP2
