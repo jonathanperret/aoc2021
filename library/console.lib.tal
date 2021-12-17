@@ -61,6 +61,12 @@ RTN
 RTN
   [ &started $1 ]
 
+  &signed
+  DUP2 #7fff LTH2 ,print-short-decimal JCN
+  LIT '- EMIT
+  #0000 SWP2 SUB2
+  ,print-short-decimal JMP
+
 @char-txt "char: 20 $1
 @byte-txt "byte: 20 $1
 @short-txt "short: 20 $1

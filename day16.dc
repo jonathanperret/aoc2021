@@ -1,0 +1,45 @@
+16o 16i ? si
+
+# shift bit into b
+[
+  li 2 ~ lb 2* + sb si
+]sS
+
+# flip bits
+[
+  0 sb
+  [ lSx li 0 !=M ]sM
+  lMx
+  lb si
+]sF
+
+# next bit
+[
+  li 2 ~ r si
+]sB
+
+# flip input
+lFx
+
+0sV
+
+
+[
+  0sb
+  [
+    lBx sa lSx lSx lSx lSx
+  ]sD
+  [ lDx la 1 =N ]sN
+  lNx
+  lb
+]sL
+
+[
+]sO
+
+[v= ]n 0sb lSx lSx lSx lb p lV + sV
+[t= ]n 0sb lSx lSx lSx lb p
+
+d 4 =L
+
+0Ao psZ 16o

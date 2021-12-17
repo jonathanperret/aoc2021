@@ -1,0 +1,146 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+( compute a-b, check if result is > 0 )
+( OVR2 ;print-short-decimal/signed JSR2 LIT '> EMIT DUP2 ;print-short-decimal/signed JSR2 LIT '? EMIT SP )
+%SGTH2 {
+  SUB2 DEC2 #8000 LTH2
+}
+
+@probe
+  [ &xmin $2 &xmax $2
+    &ymin $2 &ymax $2
+    &dx $2 &dy $2
+    &x $2 &y $2 &vx $2 &vy $2
+    &yreached $2
+    &quiet 00 ]
+
+  ( xmin xmax ymin ymax )
+  &set-target
+    [ ;&ymax STA2 ]
+    [ ;&ymin STA2 ]
+    [ ;&xmax STA2 ]
+    [ ;&xmin STA2 ]
+    RTN
+
+  ( dx dy -- hit )
+  &launch
+    [ ;&dy STA2 ]
+    [ ;&dx STA2 ]
+
+    [ ;&dx LDA2 ] [ ;&vx STA2 ]
+    [ ;&dy LDA2 ] [ ;&vy STA2 ]
+    #0000 [ ;&x STA2 ]
+    #0000 [ ;&y STA2 ]
+
+    #0000 [ ;&yreached STA2 ]
+
+    #0000 #ffff DO
+      ;&print JSR2
+      ;&check JSR2 ,&continue JCN
+        ,&hit JCN
+          [ ;&quiet LDA ] ,&launch/no-missed-msg JCN
+            P< "missed >P LF
+          &launch/no-missed-msg
+          UNLOOP #00 RTN
+        &hit
+        P< "hit 20 "dx= >P [ ;&dx LDA2 ] ;print-short-decimal/signed JSR2 SP
+        P< "dy= >P [ ;&dy LDA2 ] ;print-short-decimal/signed JSR2 SP
+        P< "yreached= >P [ ;&yreached LDA2 ] ;print-short-decimal/signed JSR2 LF
+        UNLOOP #01 RTN
+      &continue
+      POP
+      ;&step JSR2
+    LOOP
+    #00
+    RTN
+
+  ( -- )
+  &print
+    [ ;&quiet LDA ] ,&print/skip JCN
+
+    [ ;&x LDA2 ] ;print-short-decimal/signed JSR2 SP
+    [ ;&y LDA2 ] ;print-short-decimal/signed JSR2 LF
+
+    &print/skip
+    RTN
+
+  ( -- )
+  &step
+    [ ;&x LDA2 ] [ ;&vx LDA2 ] ADD2 [ ;&x STA2 ]
+    [ ;&y LDA2 ] [ ;&vy LDA2 ] ADD2 [ ;&y STA2 ]
+
+    [ ;&yreached LDA2 ] [ ;&y LDA2 ] SGTH2 ,&step/no-new-height JCN
+      [ ;&y LDA2 ] [ ;&yreached STA2 ]
+    &step/no-new-height
+
+    [ ;&vx LDA2 ] #0000 EQU2 ,&step/vx0 JCN
+      [ ;&vx LDA2 ] DEC2 [ ;&vx STA2 ]
+    &step/vx0
+
+    [ ;&vy LDA2 ] DEC2 [ ;&vy STA2 ]
+    RTN
+
+  ( -- hit? continue? )
+  &check
+    ( are we below the target area? )
+    [ ;&ymin LDA2 ] [ ;&y LDA2 ] SGTH2
+    ,&check/below JCN
+    ( are we above the target area? )
+    [ ;&y LDA2 ] [ ;&ymax LDA2 ] SGTH2
+    ,&check/above JCN
+    ( are we left of the target area? )
+    [ ;&xmin LDA2 ] [ ;&x LDA2 ] SGTH2
+    ,&check/left JCN
+    ( are we right of the target area? )
+    [ ;&x LDA2 ] [ ;&xmax LDA2 ] SGTH2
+    ,&check/right JCN
+
+    ( we're inside )
+    ( hit,stop )
+    #01 #00
+    RTN
+
+    &check/below
+    &check/right
+    ( missed,stop )
+    #00 #00
+    RTN
+
+    &check/above
+    &check/left
+    ( notyet,continue )
+    #00 #01
+    RTN
+
+  ( dxmin dxmax dymin dymax )
+  &scan
+    #01 [ ;&quiet STA ]
+    #0000 [ ;&hitcount STA2 ]
+    ( bump dymin/dymax to make them positive )
+    SWP2 #8000 ADD2 SWP2 #8000 ADD2
+    INC2 DO
+      ( bring dy back into range )
+      #8000 SUB2
+      ( dxmin dxmax dy )
+      P< "dy= >P DUP2 ;print-short-decimal/signed JSR2 LF
+      STH2 ( dxmin dxmax : dy )
+      DUP4 STH2r ( dxmin dxmax dxmin dxmax dy )
+      ROT2 ROT2 ( dxmin dxmax dy dxmin dxmax )
+      INC2 DO
+        ( dxmin dmxax dy dx )
+        DUP4 SWP2 ( dxmin dxmax dy dx dx dy )
+        ( OVR2 DBGSHORTDECn SP POP2 DBGSHORTDECn SP )
+        ;&launch JSR2
+        #00 SWP [ ;&hitcount LDA2 ] ADD2 [ ;&hitcount STA2 ]
+        ( dxmin dmxax dy dx )
+      LOOP
+      ( bring dy back into positive )
+      #8000 ADD2
+    LOOP
+    ( dxmin dxmax )
+    POP2 POP2
+    P< "hitcount= >P [ ;&hitcount LDA2 ] DBGSHORTDEC POP2
+    RTN
+    [ &hitcount $2 ]

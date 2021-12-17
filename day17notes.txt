@@ -1,0 +1,233 @@
+# Part 1
+
+The input is extremely short:
+
+  target area: x=192..251, y=-89..-59
+
+
+OK, the first thing I notice is that X and Y are completely decorrelated:
+we can compute the successive values of X for a given launch angle without
+considering Y, and vice versa.
+
+So for a given start X velocity, there is a range of time values (possibly
+empty, possibly infinite on the right) where the probe is within the target X
+range. And if Y is within range for any of those times, the probe hits the
+target.
+
+Vice versa, there is a range of time values (possibly empty, but always finite)
+where the probe is within the Y range of the target, and if at any of these times
+it is also within X range, etc.
+
+Also, assuming the target is below the launch point, the requested result (the
+maximum Y reached) is independent of the starting dX value. What is the shape
+of the f(dY)=maxY curve?
+
+  - if dY <= 0, maxY is obviously the first value of Y, i.e. 0;
+  - if dY > 0, the successive Y values are dY, dy+(dY-1), dY+(dY-1)+(dY-2)…
+    i.e. at time t>0, we have Y = t·dY - (0 + 1 + … + t-2)     [ edit: this should go up to t-1 ]
+                                = t·dY - (t-2)(t-1)/2
+                                = -t^2/2 + (dY + 3/2)·t - 1
+    This parabola peaks when its derivative crosses zero. The derivative is
+    given by:
+                Y' = -t + dY + 3/2
+    It reaches 0 at a likely non-integer value of t given by:
+
+                t = dY + 3/2
+
+    The time at which the peak is reached is therefore one of
+                [ int(dY+3/2), int(dY+3/2) + 1 ]
+
+    Plugging that back into the equation for Y, we get:
+                Ymax = -(dY + 3/2)^2/2 + (dY + 3/2)^2 - 1
+                     = (dY + 3/2)^2/2 - 1
+
+This is a parabola again. We're not looking for a peak here though —
+unsurprisingly, as long as we increase the initial Y velocity we can
+increase the maximum height reached — but we need one of the steps to
+end in the target area. High-school analytics isn't going to get us
+there I'm afraid.
+
+What about dX? As noted above, the range of time values where the probe
+is within the target area for a given dX is unrelated to dY. We just
+need both ranges to intersect.
+
+So, we could first go through dX values — what is the useful range of dX?
+  - since the target area is on the right of the origin, dX has to be
+    positive as well.
+  - if dX is larger than the right-side X of the target area, the first
+    step will overshoot so we don't need to consider dX values larger
+    than the end of the area (x=251 here).
+
+For each dX between 1 and 251, we can compute the range of t values
+where the probe is within the (xmin,ymin)-(xmax,ymax) area.
+
+What is the useful range of dY values?
+  - there are dY values at or below zero that can reach the target,
+    but given that we are trying to maximize the height reached, I
+    don't think any of those are useful to test;
+  - there is an absolute minimum for dX below which xmin is never
+    reached. What is the maximum X reached for a given dX?
+    We have X = t·dX - (0 + 1 + … + t-2)
+              = t·dX - (t-2)(t-1)/2
+              = -t^2/2 + (dX + 3/2)·t - 1
+
+    Oh. I only now realized the equations for X and Y are identical.
+    [ edit: this is not true, dX never goes below 0.]
+
+    Anyway, how large does dX need to be for X to reach xmin?
+
+    This equation needs to have a (possibly non-integer) solution:
+
+         xmin = -t^2/2 + (dX + 3/2)·t - 1
+            0 = -t^2/2 + (dX + 3/2)·t - 1 - xmin
+
+    We now that for this to have a solution, b^2-4ac needs to be >= 0,
+    where a = -1, b = (dX + 3/2) and c = -1 - xmin.
+
+            (dX + 3/2)^2 - 4·(-1)·(-1 - xmin) >= 0
+            dX^2 + 3·dX + 9/4 - 4 - 4·xmin >= 0
+            dX^2 + 3·dX - 7/4 - 4·xmin >= 0
+
+    As expected, for dX = 0 we never reach the target area (assuming xmin > 0).
+
+    I'm getting tired of 2nd-degree equations so I'll just use
+    https://www.mathsisfun.com/quadratic-equation-solver.html
+    for this one. For xmin=192, we have -7/4-4·(192) = -769.75, plugging
+    that in gives us a root at dX ≈ 26.28.
+
+    The sample has xmin=20, which gives dX ≈ 10.43. Ah, this is wrong since
+    as shown in the text, dX=6 clearly reaches the target.
+
+    Aah, I also missed a difference between the X and Y equations: dX never
+    goes below zero! But this just means we should ignore the second root
+    of the equation for X=xmin (the probe doesn't come back after crossing xmin).
+
+    Found my error in the initial equation, it should be:
+
+            X = t·dX - (0 + 1 + … + t-1)
+              = t·dX - (t-1)(t)/2
+              = -t^2/2 + (dX + 1/2)·t
+
+    This is now the (simpler!) equation that needs a solution:
+
+         xmin = -t^2/2 + (dX + 1/2)·t
+            0 = -t^2/2 + (dX + 1/2)·t - xmin
+
+    The discriminant that needs to be >=0 is now:
+
+         (dX + 1/2)^2 - 4·(-1)·(-xmin) >= 0
+         (dX + 1/2)^2 - 4·xmin >= 0
+         dX^2 + dX + 1/4 - 4·xmin >= 0
+
+    Plugging xmin=20 gives dX > 8 which is still wrong!
+
+    Let's see, if dX=6 which works in the sample, we have
+
+            X = -t^2/2 + (6 + 1/2)·t
+
+    And this clearly crosses X=xmin for t=5.
+    Argh, forgot a -1/2. Again:
+
+         (dX + 1/2)^2 - 4·(-1/2)·(-xmin) >= 0
+         (dX + 1/2)^2 - 2·xmin >= 0
+         dX^2 + dX + 1/4 - 2·xmin >= 0
+
+    With xmin=20 we get dX > 5.82 which is finally consistent with the sample.
+
+    With xmin=192 we get dX > 19.
+
+OK, so why was I looking at dY again? Ah right, to find a lower bound for dY.
+If dX is so low that xmin is never reached, there's no point in looking for
+dY. But having a lower bound for dX puts an upper bound on the number of steps
+we can take and still be on the left of xmax. Or does it? Not really, since
+the horizontal velocity always ends up being 0 at which point it does not
+matter how many more steps we take. In fact, past that point X stops looking
+like a parabola and is just a constant.
+
+I'm not really getting anywhere with that, am I? Let's just brute-force it
+a bit.
+
+I'm not going to do any parsing today, I'll just plug the values in.
+
+To convert these to hex:
+
+  node -p '[20,30,-10,-5].map(x=>(x+0x10000).toString(16).slice(-4)).join(" ")'
+
+That may be considered cheating. Oh, well.
+
+Simulation was straightforward. And testing 1..255 for each of dx and dy proved
+sufficient.
+
+    hit dx=21 dy=0 yreached=0
+    hit dx=22 dy=0 yreached=0
+    hit dx=23 dy=0 yreached=0
+    hit dx=24 dy=0 yreached=0
+    hit dx=25 dy=0 yreached=0
+    hit dx=26 dy=0 yreached=0
+    hit dx=21 dy=1 yreached=1
+    hit dx=22 dy=1 yreached=1
+    hit dx=23 dy=1 yreached=1
+    hit dx=24 dy=1 yreached=1
+    hit dx=25 dy=1 yreached=1
+    hit dx=20 dy=2 yreached=3
+    hit dx=21 dy=2 yreached=3
+    hit dx=22 dy=2 yreached=3
+    hit dx=23 dy=2 yreached=3
+    hit dx=24 dy=2 yreached=3
+    hit dx=20 dy=3 yreached=6
+    hit dx=21 dy=3 yreached=6
+    hit dx=22 dy=3 yreached=6
+    hit dx=23 dy=3 yreached=6
+    hit dx=20 dy=4 yreached=10
+    hit dx=21 dy=4 yreached=10
+    hit dx=22 dy=4 yreached=10
+    hit dx=20 dy=5 yreached=15
+    hit dx=21 dy=5 yreached=15
+    hit dx=22 dy=5 yreached=15
+    hit dx=20 dy=6 yreached=21
+    hit dx=21 dy=6 yreached=21
+    hit dx=22 dy=6 yreached=21
+    hit dx=20 dy=7 yreached=28
+    hit dx=21 dy=7 yreached=28
+    hit dx=20 dy=8 yreached=36
+    hit dx=21 dy=8 yreached=36
+    hit dx=20 dy=9 yreached=45
+    hit dx=21 dy=9 yreached=45
+    hit dx=20 dy=10 yreached=55
+    hit dx=21 dy=10 yreached=55
+    hit dx=20 dy=11 yreached=66
+    hit dx=21 dy=11 yreached=66
+    hit dx=20 dy=12 yreached=78
+    hit dx=21 dy=12 yreached=78
+    hit dx=20 dy=13 yreached=91
+    hit dx=21 dy=13 yreached=91
+    hit dx=20 dy=14 yreached=105
+    …
+    hit dx=20 dy=87 yreached=3828
+    hit dx=21 dy=87 yreached=3828
+    hit dx=20 dy=88 yreached=3916
+    hit dx=21 dy=88 yreached=3916
+
+As expected, all of the hits occurred with dx near 20 (between 20 and 26). And
+once we reached dy=7, only dx=20 and dx=21 were hits. This makes sense, because
+when launching the probe upwards we quickly reach a point where X velocity is
+extinguished well before we hit the target area.
+
+Anyway, on to part 2.
+
+# Part 2
+
+Hmm, is that just the count of lines from my part 1 output? No, at least because
+negative dy values must now be considered.
+
+That was not complicated. But by answer of 1126 is too low? Weird.
+
+Ah of course, when doubling the size of the searched dy range to -255…255 I
+figured that I could simultaneously reduce the dx range to 0…128 to keep
+the iteration count constant. That was… misguided. Searching from 0 to 255
+for dx, I now get 2986 hits.
+
+And that's it.
+
+Looking back, today's time spent analyzing the problem to death really wasn't
+well spent.

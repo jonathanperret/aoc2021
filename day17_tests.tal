@@ -1,0 +1,63 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "hit: >T
+  #0014 #001e #fff6 #fffb ( x=20..30, y=-10..-5 ) ;probe/set-target JSR2
+  #0007 #0002 ;probe/launch JSR2 DBGBYTE POP
+  ( EXPECT 0 0 )
+  ( EXPECT 7 2 )
+  ( EXPECT 13 3 )
+  ( EXPECT 18 3 )
+  ( EXPECT 22 2 )
+  ( EXPECT 25 0 )
+  ( EXPECT 27 -3 )
+  ( EXPECT 28 -7 )
+  ( EXPECT hit dx=7 dy=2 yreached=3 )
+  ( EXPECT 0x01 )
+
+  T< "missed: >T
+  #0005 #0002 ;probe/launch JSR2 DBGBYTE POP
+  ( EXPECT 0 0 )
+  ( EXPECT 5 2 )
+  ( EXPECT 9 3 )
+  ( EXPECT 12 3 )
+  ( EXPECT 14 2 )
+  ( EXPECT 15 0 )
+  ( EXPECT 15 -3 )
+  ( EXPECT 15 -7 )
+  ( EXPECT 15 -12 )
+  ( EXPECT missed )
+  ( EXPECT 0x00 )
+
+  T< "negative_dy_hit: >T
+  #0017 #fff6 ;probe/launch JSR2 DBGBYTE POP
+  ( EXPECT 0 0 )
+  ( EXPECT 23 -10 )
+  ( EXPECT hit dx=23 dy=-10 yreached=0 )
+  ( EXPECT 0x01 )
+
+  T< "scan: >T
+  #0004 #0006 #0001 #0005 ;probe/scan JSR2
+  ( EXPECT dy=1 )
+  ( EXPECT hit dx=6 dy=1 yreached=1 )
+  ( EXPECT dy=2 )
+  ( EXPECT hit dx=6 dy=2 yreached=3 )
+  ( EXPECT dy=3 )
+  ( EXPECT hit dx=6 dy=3 yreached=6 )
+  ( EXPECT dy=4 )
+  ( EXPECT hit dx=6 dy=4 yreached=10 )
+  ( EXPECT dy=5 )
+  ( EXPECT hit dx=6 dy=5 yreached=15 )
+  ( EXPECT hitcount=5 )
+
+  T< "🎄 >T
+  BRK !
+
+~library/test.tal
+~day17_lib.tal

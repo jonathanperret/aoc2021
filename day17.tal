@@ -1,0 +1,17 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+( init )
+
+|0100 @program
+  ( #0014 #001e #fff6 #fffb ;probe/set-target JSR2 )
+  #00c0 #00fb #ffa7 #ffc5 ;probe/set-target JSR2
+  #0000 #00ff #ff01 #00ff ;probe/scan JSR2
+
+  BRK
+
+~day17_lib.tal
