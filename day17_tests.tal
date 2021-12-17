@@ -18,7 +18,7 @@
   ( EXPECT 25 0 )
   ( EXPECT 27 -3 )
   ( EXPECT 28 -7 )
-  ( EXPECT hit dx=7 dy=2 yreached=3 )
+  ( EXPECT hit dx=7 dy=2 x=28 y=-7 yreached=3 )
   ( EXPECT 0x01 )
 
   T< "missed: >T
@@ -39,21 +39,21 @@
   #0017 #fff6 ;probe/launch JSR2 DBGBYTE POP
   ( EXPECT 0 0 )
   ( EXPECT 23 -10 )
-  ( EXPECT hit dx=23 dy=-10 yreached=0 )
+  ( EXPECT hit dx=23 dy=-10 x=23 y=-10 yreached=0 )
   ( EXPECT 0x01 )
 
   T< "scan: >T
   #0004 #0006 #0001 #0005 ;probe/scan JSR2
   ( EXPECT dy=1 )
-  ( EXPECT hit dx=6 dy=1 yreached=1 )
+  ( EXPECT hit dx=6 dy=1 x=20 y=-5 yreached=1 )
   ( EXPECT dy=2 )
-  ( EXPECT hit dx=6 dy=2 yreached=3 )
+  ( EXPECT hit dx=6 dy=2 x=21 y=-7 yreached=3 )
   ( EXPECT dy=3 )
-  ( EXPECT hit dx=6 dy=3 yreached=6 )
+  ( EXPECT hit dx=6 dy=3 x=21 y=-9 yreached=6 )
   ( EXPECT dy=4 )
-  ( EXPECT hit dx=6 dy=4 yreached=10 )
+  ( EXPECT hit dx=6 dy=4 x=21 y=-5 yreached=10 )
   ( EXPECT dy=5 )
-  ( EXPECT hit dx=6 dy=5 yreached=15 )
+  ( EXPECT hit dx=6 dy=5 x=21 y=-6 yreached=15 )
   ( EXPECT hitcount=5 )
 
   T< "🎄 >T
