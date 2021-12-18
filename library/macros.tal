@@ -32,7 +32,8 @@
 %DECk { DUP #01 SUB } %DEC2k { DUP2 #0001 SUB2 }
 %DECr { LITr 01 SUBr } %DEC2r { LIT2r 0001 SUB2r }
 
-%2++ { #0002 ADD2 }
+%2++  { #0002 ADD2 }
+%2++r { LIT2r 0002 ADD2r }
 %2-- { #0002 SUB2 }
 %4++ { #0004 ADD2 }
 

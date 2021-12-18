@@ -60,12 +60,6 @@
         &parse/not-started
       RTN
 
-  ( sn* -- )
-  &print
-    ;&print-rec JSR2
-    POP2
-    RTN
-
   ( sn* -- sn* word )
   &load-node
     ( sn* )
@@ -74,6 +68,12 @@
     ( SP LIT '( EMIT OVR2 DEC2 DEC2 DBGSHORTn POP2 LIT ': EMIT DBGSHORTn LIT ') EMIT SP )
     ( sn* word )
     DUP2 #ffff EQU2 ;&end-of-tree JCN2
+    RTN
+
+  ( sn* -- )
+  &print
+    ;&print-rec JSR2
+    POP2
     RTN
 
   ( sn* -- sn* )
@@ -189,24 +189,19 @@
 
   ( sn* -- )
   &shift-left4
-    DUP2 ;&shift-left JSR2
-    ;&shift-left JMP2
-
-  ( sn* -- )
-  &shift-left
     ( sn* )
-    DUP2 2++ LDA2k ( sn* sn+2* word[sn+2] )
-    DUP2 #ffff EQU2 ;&shift-left/done JCN2
-      ( sn* sn+2* word )
-      STH2 ( sn* sn+2* : word )
-      SWP2 STH2 ( sn+2* : sn* word )
-      STA2r ( sn+2* )
-      ;&shift-left JMP2
+    DUP2 4++ SWP2 STH2 ( sn+4* : sn* )
 
-    &shift-left/done
-    ( sn* sn+2* ffff )
-    NIP2 ( sn* ffff )
-    SWP2 STA2
+    &shift-left4/loop
+      LDA2k ( sn+4* word[sn+4] : sn* )
+      DUP2 STH2rk STA2 ( sn+4* : sn* )
+      #ffff EQU2 ,&shift-left4/done JCN
+      2++ 2++r ( sn+6* : sn+2* )
+      ,&shift-left4/loop JMP
+
+    &shift-left4/done
+    ( sn+x+4* : sn*+x )
+    POP2 POP2r
     RTN
 
   ( sn* -- )
@@ -233,3 +228,86 @@
       ( sn* word+value )
       SWP2 STA2
       RTN
+
+  ( sn* -- didsplit )
+  &split
+    ;&split-rec JSR2
+    NIP NIP
+    RTN
+
+  ( sn* -- sn* didsplit )
+  &split-rec
+    ;&load-node JSR2
+    ( sn* word )
+    DUP2 #8000 NEQ2 ,&split/not-[ JCN
+      POP2
+      ( sn* )
+      ;&split-rec JSR2
+      ,&split/splitted JCN
+      ;&split-rec JSR2
+      ,&split/splitted JCN
+      ( sn* )
+      #00
+      RTN
+
+      &split/not-[
+    ( sn* value )
+    ( DBGSHORTDEC )
+    DUP2 #000a LTH2 ,&split/not-big JCN
+
+    ( sn* value )
+
+    ( make room for two more nodes )
+    OVR2 ;&shift-right4 JSR2
+
+    ( create parent node )
+    OVR2 2-- #8000 SWP2 STA2
+
+    ( write left leaf )
+    OVR2 OVR2 #01 SFT2 SWP2 STA2
+
+    ( write right leaf )
+    OVR2 2++ OVR2 INC2 #01 SFT2 SWP2 STA2
+
+    ( signal split, unwind )
+    ( sn* value )
+    POP2
+    ,&split/splitted JMP
+
+    &split/not-big
+    ( sn* value )
+    POP2
+    #00
+    RTN
+
+    &split/splitted
+    #01
+    RTN
+
+  ( sn* -- )
+  &shift-right4
+    ( sn* )
+
+    ( read and replace first two words with zeros )
+    LDA2k STH2 DUP2 #0000 SWP2 STA2 2++ ( sn*+2 : word1 )
+    LDA2k STH2 DUP2 #0000 SWP2 STA2 2++ ( sn*+4 : word2 word1 )
+    SWP2r ( sn*+4 : word1 word2 )
+
+    &shift-right4/loop
+
+      ( read next word, overwrite it with word1 )
+      LDA2k STH2 ( sn*+4 : word3 word1 word2 )
+      SWP2r ( sn*+4 : word1 word3 word2 )
+      STH2rk OVR2 STA2 ( sn*+4 : word1 word3 word2 )
+      ( did we just write ffff? )
+      STH2r #ffff EQU2 ,&shift-right4/done JCN
+      SWP2r ( sn*+4 : word2 word3 )
+      2++ ( sn*+6 : word2 word3 )
+
+      ,&shift-right4/loop JMP
+
+    &shift-right4/done
+    ( sn*+x : word word )
+    POP2r POP2r
+    POP2
+    RTN

@@ -12,14 +12,13 @@
   S< "[[1,2],3] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],3] )
   S< "[[1,2],[3,4]] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],[3,4]] )
 
-  T< "shift-left: >T
+  T< "shift-left4: >T
   S< aaaa bbbb cccc ffff >S
-  DUP2 ;snailcalc/shift-left JSR2
+  DUP2 ;snailcalc/shift-left4 JSR2
         LDA2k DBGSHORTn SP POP2
-  2++   LDA2k DBGSHORTn SP POP2
   2++   LDA2k DBGSHORTn LF POP2
   POP2
-  ( EXPECT 0xbbbb 0xcccc 0xffff )
+  ( EXPECT 0xcccc 0xffff )
 
   T< "explode: >T
   S< "[1,2] >S ;test-explode JSR2 ( EXPECT 0x00 [1,2] )
@@ -29,9 +28,26 @@
   S< "[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]] >S ;test-explode JSR2 ( EXPECT 0x01 [[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]] )
   S< "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]] >S ;test-explode JSR2 ( EXPECT 0x01 [[3,[2,[8,0]]],[9,[5,[7,0]]]] )
 
+  T< "shift-right4: >T
+  S< aaaa bbbb cccc dddd ffff >S
+  DUP2 ;snailcalc/shift-right4 JSR2
+        LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn LF POP2
+  POP2
+  ( EXPECT 0x0000 0x0000 0xaaaa 0xbbbb 0xcccc 0xdddd 0xffff )
+
+  T< "split: >T
+  S< "[1,2] >S ;test-split JSR2 ( EXPECT 0x00 [1,2] )
+  S< "[[[[0,7],4],[15,[0,13]]],[1,1]] >S ;test-split JSR2 ( EXPECT 0x01 [[[[0,7],4],[[7,8],[0,13]]],[1,1]] )
+  S< "[[[[0,7],4],[[7,8],[0,13]]],[1,1]] >S ;test-split JSR2 ( EXPECT 0x01 [[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]] )
+
   T< "🎄 >T
   BRK !
-
 
 ( s* -- )
 @test-parse-snailnum
@@ -45,6 +61,16 @@
 @test-explode
   ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
   ;&tmp ;snailcalc/explode JSR2
+  DBGBYTEn SP POP
+  ;&tmp ;snailcalc/print JSR2
+  LF
+  RTN
+  [ &tmp $100 ]
+
+( s* -- )
+@test-split
+  ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
+  ;&tmp ;snailcalc/split JSR2
   DBGBYTEn SP POP
   ;&tmp ;snailcalc/print JSR2
   LF
