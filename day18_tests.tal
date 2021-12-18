@@ -12,6 +12,11 @@
   S< "[[1,2],3] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],3] )
   S< "[[1,2],[3,4]] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],[3,4]] )
 
+  S< aaaa >S STH2
+  S< >S ;make-get-byte JSR2 STH2rk ;snailcalc/parse JSR2
+  STH2r LDA2 DBGSHORT POP2
+  ( EXPECT 0xffff )
+
   T< "shift-left4: >T
   S< aaaa bbbb cccc ffff >S
   DUP2 ;snailcalc/shift-left4 JSR2
@@ -49,6 +54,39 @@
   T< "reduce: >T
   S< "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]] >S ;test-reduce JSR2
   ( EXPECT [[[[0,7],4],[[7,8],[6,0]]],[8,1]] )
+
+  T< "copy: >T
+  S< aaaa aaaa aaaa >S S< bbbb cccc ffff >S
+  OVR2 SWP2 ;snailcalc/copy JSR2
+        LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn LF POP2
+  POP2
+  ( EXPECT 0xbbbb 0xcccc 0xffff )
+
+  T< "add: >T
+  S< "[[[[4,3],4],4],[7,[[8,4],9]]] >S S< "[1,1] >S ;test-add JSR2
+  ( EXPECT [[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]] )
+  ( EXPECT [[[[0,7],4],[[7,8],[6,0]]],[8,1]] )
+
+  T< "list-add: >T
+  S< "[1,1] 0a
+     "[2,2] 0a
+     "[3,3] 0a
+     "[4,4] 0a >S ;test-list-add JSR2
+  ( EXPECT [[[[1,1],[2,2]],[3,3]],[4,4]] )
+
+  S< "[[[0,[5,8]],[[1,7],[9,6]]],[[4,[1,2]],[[1,4],2]]] 0a
+     "[[[5,[2,8]],4],[5,[[9,9],0]]] 0a
+     "[6,[[[6,2],[5,6]],[[7,6],[4,7]]]] 0a
+     "[[[6,[0,7]],[0,9]],[4,[9,[9,0]]]] 0a
+     "[[[7,[6,4]],[3,[1,3]]],[[[5,5],1],9]] 0a
+     "[[6,[[7,3],[3,2]]],[[[3,8],[5,7]],4]] 0a
+     "[[[[5,4],[7,7]],8],[[8,3],8]] 0a
+     "[[9,3],[[9,9],[6,[4,9]]]] 0a
+     "[[2,[[7,7],7]],[[5,8],[[9,3],[0,2]]]] 0a
+     "[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]] 0a >S ;test-list-add JSR2
+  ( EXPECT [[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]] )
 
   T< "🎄 >T
   BRK !
@@ -89,6 +127,24 @@
   LF
   RTN
   [ &tmp $100 ]
+
+( s1* s2* -- )
+@test-add
+  ;make-get-byte JSR2 ;&sn2 ;snailcalc/parse JSR2
+  ;make-get-byte JSR2 ;&sn1 ;snailcalc/parse JSR2
+  ;&sn1 ;&sn2 ;snailcalc/add JSR2
+  ;&sn1 ;snailcalc/print JSR2 LF
+  ;&sn1 ;snailcalc/reduce JSR2
+  ;&sn1 ;snailcalc/print JSR2 LF
+  RTN
+  [ &sn1 $100 &sn2 $100 ]
+
+( s* -- )
+@test-list-add
+  ;make-get-byte JSR2 ;&result ;snailcalc/list-add JSR2
+  ;&result ;snailcalc/print JSR2 LF
+  RTN
+  [ &result $200 ]
 
 ( s* -- get-byte )
 @make-get-byte

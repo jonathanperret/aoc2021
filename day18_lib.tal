@@ -190,19 +190,8 @@
   ( sn* -- )
   &shift-left4
     ( sn* )
-    DUP2 4++ SWP2 STH2 ( sn+4* : sn* )
-
-    &shift-left4/loop
-      LDA2k ( sn+4* word[sn+4] : sn* )
-      DUP2 STH2rk STA2 ( sn+4* : sn* )
-      #ffff EQU2 ,&shift-left4/done JCN
-      2++ 2++r ( sn+6* : sn+2* )
-      ,&shift-left4/loop JMP
-
-    &shift-left4/done
-    ( sn+x+4* : sn*+x )
-    POP2 POP2r
-    RTN
+    DUP2 4++ ( sn* sn+4* )
+    ;&copy JMP2
 
   ( sn* -- )
   &propagate-right
@@ -318,3 +307,69 @@
     DUP2 ;&split JSR2 ,&reduce JCN
     POP2
     RTN
+
+  ( sndest* snsrc* -- )
+  &copy
+    SWP2 STH2 ( snsrc* : sndest* )
+
+    &copy/loop
+      LDA2k ( snsrc* word : sndest* )
+      DUP2 STH2rk STA2 ( snsrc* word : sndest* )
+      #ffff EQU2 ,&copy/done JCN
+      2++ 2++r ( snsrc+2* : sndest+2* )
+      ,&copy/loop JMP
+
+    &copy/done
+    ( snsrc+x* : sndest+x* )
+    POP2 POP2r
+    RTN
+
+  ( sn1* sn2* -- )
+  &add
+    STH2 ( sn1* : sn2* )
+
+    ( make room )
+    ( sn1* : sn2* )
+    DUP2 ;&shift-right4 JSR2
+    ( a bit less room, please )
+    ( sn1* : sn2* )
+    DUP2 DUP2 2++ ( sn1* sn1* sn1+2* : sn2* )
+    ;&copy JSR2
+
+    ( add root )
+    #8000 OVR2 STA2
+
+    ( find end )
+    &add/loop
+      ( sn1* )
+      2++ LDA2k #ffff NEQ2 ,&add/loop JCN
+
+    ( sn1end* : sn2* )
+    STH2r ;&copy JSR2
+
+    RTN
+
+  ( get-byte result* -- )
+  &list-add
+    [ ;&list-add/result STA2 ]
+    [ ;&list-add/get-byte STA2 ]
+
+    ( load first number )
+    [ ;&list-add/get-byte LDA2 ] [ ;&list-add/result LDA2 ] ;&parse JSR2
+
+    &list-add/loop
+      ( load next number )
+      [ ;&list-add/get-byte LDA2 ] ;&list-add/tmp ;&parse JSR2
+      ( is it the end? )
+      [ ;&list-add/tmp LDA2 ] #ffff EQU2 ,&list-add/done JCN
+      ( add up into result )
+      [ ;&list-add/result LDA2 ] ;&list-add/tmp ;&add JSR2
+      ( reduce result )
+      [ ;&list-add/result LDA2 ] ;&reduce JSR2
+      ,&list-add/loop JMP
+
+    &list-add/done
+
+    RTN
+
+    [ &list-add/get-byte $2 &list-add/result $2 &list-add/tmp $200 ]
