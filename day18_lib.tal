@@ -1,0 +1,96 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+@snailcalc
+  ( get-byte sn* -- )
+  &parse
+    [ ;&sn STA2 ]
+    [ ;&get-byte STA2 ]
+    #0000 [ ;&value STA2 ]
+    #00 [ ;&value-started STA ]
+
+    &parse/loop
+      LIT2 [ &get-byte $2 ] JSR2
+      DUP #0a EQU ;&parse/done JCN2
+      DUP #00 EQU ;&parse/done JCN2
+
+      DUP LIT '[ NEQ ,&parse/not-[ JCN
+        POP
+        #8000 ;&parse/append JSR2
+        ;&parse/loop JMP2
+
+      &parse/not-[
+      DUP LIT '] EQU ,&parse/value-done JCN
+      DUP LIT ', EQU ,&parse/value-done JCN
+        ( has to be a digit )
+        LIT '0 SUB #00 SWP ( digit-val )
+        [ ;&value LDA2 ] #000a MUL2 ADD2 ( value+10*digit-val )
+        [ ;&value STA2 ]
+        #01 [ ;&value-started STA ]
+        ;&parse/loop JMP2
+
+      &parse/value-done
+      ( ]-or-, )
+      POP
+      ;&parse/append-value JSR2
+
+      ;&parse/loop JMP2
+
+    &parse/done
+    ( terminator-byte )
+    POP
+    ;&parse/append-value JSR2
+    #ffff [ ;&sn LDA2 ] STA2
+    RTN
+
+    [ &sn $2 &value $2 &value-started $1 ]
+    ( word -- )
+    &parse/append
+      [ ;&sn LDA2 ] STA2
+      [ ;&sn *2++ ]
+      RTN
+
+    ( -- )
+    &parse/append-value
+      [ ;&value-started LDA ] NOT ,&parse/not-started JCN
+        [ ;&value LDA2 ] ;&parse/append JSR2
+        #0000 [ ;&value STA2 ]
+        #00 [ ;&value-started STA ]
+        &parse/not-started
+      RTN
+
+  ( sn* -- )
+  &print
+    ;&print-rec JSR2
+    POP2
+    RTN
+
+  ( sn* -- sn* )
+  &print-rec
+    ( sn* )
+    LDA2k SWP2 2++ SWP2
+    ( SP LIT '( EMIT DBGSHORTn LIT ') EMIT SP )
+    ( sn* word )
+    DUP2 #ffff EQU2 ,&print/end-of-tree JCN
+    DUP2 #8000 NEQ2 ,&print/not-[ JCN
+      POP2
+      LIT '[ EMIT
+      ( sn* )
+      ;&print-rec JSR2
+      LIT ', EMIT
+      ;&print-rec JSR2
+      ( sn* )
+      LIT '] EMIT
+      RTN
+
+      &print/not-[
+    ;print-short-decimal JSR2
+    RTN
+
+    &print/end-of-tree
+    P< "unexpected_end_of_tree >P
+    !
+    RTN
+
+

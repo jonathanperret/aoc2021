@@ -1,0 +1,256 @@
+# Part 1
+
+Binary trees. The "exploding" and "splitting" rules are probably some disguised
+version of some real algorithm, but I dont't recognize it.
+
+Thinking of storage for these trees. First off, I _think_ the numbers inside will
+never be more than… let's see, whenever a number gets to 10 it gets split, which
+replaces it with two smaller numbers; and when a pair is too deep it explodes,
+which increases up to two other numbers in the tree.
+
+Several explosions may occur before splits, so for example this number:
+
+  [[9,[9,[9, [9,9] ]]],[[[[9,9],9],9],9]]
+
+turns successively into:
+
+  [[9,[9,[18,0]]],[[[ [18,9] ,9],9],9]]
+
+  [[9,[9,[18,18]]],[[[0,18],9],9]]
+
+before it starts splitting those 18s.
+
+(thinking that a regexp may well do some of the work, not that it would be
+any use to me in UXN…)
+
+It looks like the worst case for explosion — in fact, the largest possible
+snailfish number, I think — is a full tree of height 4?
+
+  [
+    [
+      [
+        [
+          [9,9],
+          [9,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ],
+      [
+        [
+          [9,9],
+          [9,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ]
+    ],
+    [
+      [
+        [
+          [9,9],
+          [9,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ],
+      [
+        [
+          [9,9],
+          [9,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ]
+    ]
+  ]
+
+This can legally be obtained by the addition of its halves, which are already reduced.
+
+Exploding this yields:
+
+  [
+    [
+      [
+        [
+          0,
+          [18,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ],
+      [
+        [
+          [9,9],
+          [9,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ]
+    ],
+    …
+  ]
+
+then:
+
+  [
+    [
+      [
+        [
+          18,
+          0
+        ],
+        [
+          [18,9],
+          [9,9]
+        ]
+      ],
+      …
+    ],
+    …
+  ]
+
+then:
+
+  [
+    [
+      [
+        [
+          18,
+          18
+        ],
+        [
+          0,
+          [18,9]
+        ]
+      ],
+      …
+    ],
+    …
+  ]
+
+then:
+
+  [
+    [
+      [
+        [
+          18,
+          18
+        ],
+        [
+          18,
+          0
+        ]
+      ],
+      [
+        [
+          [18,9],
+          [9,9]
+        ],
+        [
+          [9,9],
+          [9,9]
+        ]
+      ]
+    ],
+    …
+  ]
+
+And so on, but it doesn't look like any number ever gets above 18.
+
+I'll go ahead and use a short to store numbers, just to be safe.
+
+"Exploding pairs will always consist of two regular numbers" guarantees that
+input numbers are already reduced?
+
+Anyway, storage. The technique of storing a complete binary tree at fixed
+positions in an array, such that children are always found at indices 2i+1 and
+2i+2, is seducive. But does it fit the operations I need to do?
+  - replacing a parent node with a leaf node: easy, this means marking the node
+    as a leaf and its children as empty;
+  - replacing a leaf node with a parent node: if the child nodes are already
+    allocated (i.e. 2i <= length of array) then just fill them, otherwise the
+    array needs to double in size to add a new level, with all nodes initialized
+    as unused.
+  - joining two trees: write a root node, then concatenate the input trees.
+  - scanning left and right for a leaf node: not simple, because as the tree is
+    stored in breadth-first order, we would have to skip nodes.
+
+If we focus on the explode operation which needs to scan left and right, a
+representation that stores the tree in preorder, i.e. what we do when
+writing it as a bracketed expression, looks ideal.
+
+With 0x00 announcing a leaf (literal) and 0x01 announcing a parent, [1,2] could
+be (with parentheses to clarify, they wouldn't be stored as anything):
+
+  0x01 ( 0x00 0x0001 ) ( 0x00 0x0002 )
+
+[[1,2],3]:
+
+  0x01 ( 0x01 ( 0x00 0x0001 ) ( 0x00 0x0001 ) ( 0x00 0x0003 ) )
+
+and so on.
+
+Scanning for values to increase is easy… or is it? We do have to distinguish
+between parent/leaf flags and values themselves, so we can't just blindly
+move a pointer and increase the value found.
+
+What if we store parent nodes as 0x8000, and leaf nodes as their value?
+
+[[1,2],3] becomes:
+
+  0x8000 ( 0x8000 0x0001 0x0002 ) 0x0003
+
+Ah, this looks better, now to explode a pair we just need to scan by
+increments of 2 until we reach a leaf node or the end of the array.
+
+
+Example:
+  [[[[[9,8],1],2],3],4]
+
+  is
+
+  0x8000 0x8000 0x8000 0x8000 0x8000 0x0009 0x0008 0x0001 0x0002 0x0003 0x0004
+                              ^^^^^^
+
+  - Scanning from the left and keeping track of the depth, we'll get to the
+    fifth 0x0000.
+  - We can immediately find its left child at the next index (remember that
+    exploding pairs are always made up of two numbers), and scan backwards into
+    the array to find a leaf to add it to.
+  - In this case we find none.
+  - At the next index we find the right child, and again, we scan right
+    skipping 0x8000 values until we find a number or the end of the array.
+  - We add 0x0008 to 0x0001.
+  - Then we need to replace that pair with a leaf zero. We can
+    replace the 0x8000 with 0x0000, then all we have to do is shift the
+    rest of the array 4 bytes to the left, so we get:
+
+  0x8000 0x8000 0x8000 0x8000 0x0000 0x0009 0x0002 0x0003 0x0004
+
+  Reading this back, it does look like [[[[0,9],2],3],4] which is the expected
+  result.
+
+What of splitting a number? This involves replacing it with 0x8000, shifting
+the rest of the array 4 bytes to the right, then filling in the leaf nodes.
+
+Shifting the array to the right may be a little more involved than shifting
+to the left, but I think I can do it without too much headache.
+
+Let's get on with it, then.
+
+OK, parsing and printing done. This ended up simpler than I expected, thanks to
+recursion.

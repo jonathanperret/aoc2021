@@ -1,0 +1,43 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "parse-snailfish-number: >T
+  S< "[1,1] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [1,1] )
+  S< "[[1,2],3] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],3] )
+  S< "[[1,2],[3,4]] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],[3,4]] )
+
+  T< "🎄 >T
+  BRK !
+
+
+( s* -- )
+@test-parse-snailnum
+  ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
+  ;&tmp ;snailcalc/print JSR2
+  LF
+  RTN
+  [ &tmp $100 ]
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2
+
+~library/test.tal
+~day18_lib.tal
