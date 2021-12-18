@@ -46,6 +46,10 @@
   S< "[[[[0,7],4],[15,[0,13]]],[1,1]] >S ;test-split JSR2 ( EXPECT 0x01 [[[[0,7],4],[[7,8],[0,13]]],[1,1]] )
   S< "[[[[0,7],4],[[7,8],[0,13]]],[1,1]] >S ;test-split JSR2 ( EXPECT 0x01 [[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]] )
 
+  T< "reduce: >T
+  S< "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]] >S ;test-reduce JSR2
+  ( EXPECT [[[[0,7],4],[[7,8],[6,0]]],[8,1]] )
+
   T< "🎄 >T
   BRK !
 
@@ -72,6 +76,15 @@
   ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
   ;&tmp ;snailcalc/split JSR2
   DBGBYTEn SP POP
+  ;&tmp ;snailcalc/print JSR2
+  LF
+  RTN
+  [ &tmp $100 ]
+
+( s* -- )
+@test-reduce
+  ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
+  ;&tmp ;snailcalc/reduce JSR2
   ;&tmp ;snailcalc/print JSR2
   LF
   RTN

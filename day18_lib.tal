@@ -311,3 +311,10 @@
     POP2r POP2r
     POP2
     RTN
+
+  ( sn* -- )
+  &reduce
+    DUP2 ;&explode JSR2 ,&reduce JCN
+    DUP2 ;&split JSR2 ,&reduce JCN
+    POP2
+    RTN
