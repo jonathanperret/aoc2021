@@ -88,6 +88,11 @@
      "[[[[5,2],5],[8,[3,7]]],[[5,[7,5]],[4,4]]] 0a >S ;test-list-add JSR2
   ( EXPECT [[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]] )
 
+  T< "magnitude: >T
+  S< "[[[[6,6],[7,6]],[[7,7],[7,0]]],[[[7,7],[7,7]],[[7,8],[9,9]]]] >S
+  ;test-magnitude JSR2
+  ( EXPECT 4140 )
+
   T< "🎄 >T
   BRK !
 
@@ -143,6 +148,14 @@
 @test-list-add
   ;make-get-byte JSR2 ;&result ;snailcalc/list-add JSR2
   ;&result ;snailcalc/print JSR2 LF
+  RTN
+  [ &result $200 ]
+
+( s* -- )
+@test-magnitude
+  ;make-get-byte JSR2 ;&result ;snailcalc/parse JSR2
+  ;&result ;snailcalc/magnitude JSR2
+  DBGSHORTDEC POP2
   RTN
   [ &result $200 ]
 

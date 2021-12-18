@@ -27,24 +27,52 @@
 
 @argv        $20
 
+%COUNT { #0064 }
 ( arg is in @argv )
 @arg-received
   LIT ': EMIT
   ;argv ;print JSR2
   LF
 
-  ;open-file JSR2
+  #0000 [ ;&best-mag STA2 ]
 
-  &loop
-    ;read-byte ;&sn1 ;snailcalc/parse JSR2
-    [ ;&sn1 LDA2 ] #ffff EQU2 ,&done JCN
-    ;&sn1 ;snailcalc/print JSR2 LF
-    ,&loop JMP
-  &done
+  #0000 COUNT DO
+    #0000 COUNT DO
+      ( i j )
+      OVR2 DBGSHORTDECn SP POP2 DBGSHORTDEC
+      OVR2 ;&sn1 ;read-nth JSR2
+      DUP2 ;&sn2 ;read-nth JSR2
+
+      ;&sn1 ;snailcalc/print JSR2 LF
+      ;&sn2 ;snailcalc/print JSR2 LF
+
+      ;&sn1 ;&sn2 ;snailcalc/add JSR2
+      ;&sn1 ;snailcalc/reduce JSR2
+      P< "mag= >P ;&sn1 ;snailcalc/magnitude JSR2 DUP2 ;print-short-decimal JSR2
+      DUP2 [ ;&best-mag LDA2 ] LTH2 ,&not-new-best JCN
+        LIT '! EMIT
+        DUP2 [ ;&best-mag STA2 ]
+      &not-new-best
+      LF
+      POP2
+    LOOP
+  LOOP
+
+  P< "best-mag= >P [ ;&best-mag LDA2 ] ;print-short-decimal JSR2 LF
 
   BRK
 
-  [ &sn1 $100 ]
+  [ &sn1 $500 &sn2 $500 &best-mag $2 ]
+
+( n sn* -- )
+@read-nth
+  [ ;&snp STA2 ]
+  ;open-file JSR2
+  #0000 SWP2 INC2 DO
+    ;read-byte [ ;&snp LDA2 ] ;snailcalc/parse JSR2
+  LOOP
+  RTN
+  [ &snp $2 ]
 
 @open-file
   ;argv .File/name DEO2

@@ -373,3 +373,29 @@
     RTN
 
     [ &list-add/get-byte $2 &list-add/result $2 &list-add/tmp $200 ]
+
+  ( sn* -- mag )
+  &magnitude
+    ( sn* )
+    ;&magnitude-rec JSR2
+    ( sn* mag )
+    NIP2
+    RTN
+
+  ( sn* -- sn* )
+  &magnitude-rec
+    ;&load-node JSR2
+    ( sn* word )
+    DUP2 #8000 NEQ2 ,&magnitude/not-[ JCN
+      POP2
+      ( sn* )
+      ;&magnitude-rec JSR2
+      #0003 MUL2 STH2 ( sn* : 3*leftmag )
+      ;&magnitude-rec JSR2
+      #0002 MUL2 ( sn* 2*rightmag : 3*leftmag )
+      STH2r ADD2 ( sn* 2*rightmag+3*leftmag )
+      RTN
+
+      &magnitude/not-[
+    ( sn* value )
+    RTN
