@@ -12,6 +12,23 @@
   S< "[[1,2],3] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],3] )
   S< "[[1,2],[3,4]] 0a >S ;test-parse-snailnum JSR2 ( EXPECT [[1,2],[3,4]] )
 
+  T< "shift-left: >T
+  S< aaaa bbbb cccc ffff >S
+  DUP2 ;snailcalc/shift-left JSR2
+        LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn SP POP2
+  2++   LDA2k DBGSHORTn LF POP2
+  POP2
+  ( EXPECT 0xbbbb 0xcccc 0xffff )
+
+  T< "explode: >T
+  S< "[1,2] >S ;test-explode JSR2 ( EXPECT 0x00 [1,2] )
+  S< "[[[[[9,8],1],2],3],4] >S ;test-explode JSR2 ( EXPECT 0x01 [[[[0,9],2],3],4] )
+  S< "[7,[6,[5,[4,[3,2]]]]] >S ;test-explode JSR2 ( EXPECT 0x01 [7,[6,[5,[7,0]]]] )
+  S< "[[6,[5,[4,[3,2]]]],1] >S ;test-explode JSR2 ( EXPECT 0x01 [[6,[5,[7,0]]],3] )
+  S< "[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]] >S ;test-explode JSR2 ( EXPECT 0x01 [[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]] )
+  S< "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]] >S ;test-explode JSR2 ( EXPECT 0x01 [[3,[2,[8,0]]],[9,[5,[7,0]]]] )
+
   T< "🎄 >T
   BRK !
 
@@ -19,6 +36,16 @@
 ( s* -- )
 @test-parse-snailnum
   ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
+  ;&tmp ;snailcalc/print JSR2
+  LF
+  RTN
+  [ &tmp $100 ]
+
+( s* -- )
+@test-explode
+  ;make-get-byte JSR2 ;&tmp ;snailcalc/parse JSR2
+  ;&tmp ;snailcalc/explode JSR2
+  DBGBYTEn SP POP
   ;&tmp ;snailcalc/print JSR2
   LF
   RTN

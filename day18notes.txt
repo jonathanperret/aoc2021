@@ -231,10 +231,10 @@ Example:
   - We can immediately find its left child at the next index (remember that
     exploding pairs are always made up of two numbers), and scan backwards into
     the array to find a leaf to add it to.
-  - In this case we find none.
+    - In this case we find none.
   - At the next index we find the right child, and again, we scan right
     skipping 0x8000 values until we find a number or the end of the array.
-  - We add 0x0008 to 0x0001.
+    - We add 0x0008 to 0x0001.
   - Then we need to replace that pair with a leaf zero. We can
     replace the 0x8000 with 0x0000, then all we have to do is shift the
     rest of the array 4 bytes to the left, so we get:

@@ -66,13 +66,20 @@
     POP2
     RTN
 
-  ( sn* -- sn* )
-  &print-rec
+  ( sn* -- sn* word )
+  &load-node
     ( sn* )
     LDA2k SWP2 2++ SWP2
-    ( SP LIT '( EMIT DBGSHORTn LIT ') EMIT SP )
+    ( sn+2* value )
+    ( SP LIT '( EMIT OVR2 DEC2 DEC2 DBGSHORTn POP2 LIT ': EMIT DBGSHORTn LIT ') EMIT SP )
     ( sn* word )
-    DUP2 #ffff EQU2 ,&print/end-of-tree JCN
+    DUP2 #ffff EQU2 ;&end-of-tree JCN2
+    RTN
+
+  ( sn* -- sn* )
+  &print-rec
+    ;&load-node JSR2
+    ( sn* word )
     DUP2 #8000 NEQ2 ,&print/not-[ JCN
       POP2
       LIT '[ EMIT
@@ -88,9 +95,141 @@
     ;print-short-decimal JSR2
     RTN
 
-    &print/end-of-tree
+  &end-of-tree
     P< "unexpected_end_of_tree >P
     !
     RTN
 
+  ( sn* -- exploded )
+  &explode
+    #0000 [ ;&explode/last-leaf-ptr STA2 ]
+    #00 ( sn* depth )
+    ;&explode-rec JSR2
+    ( sn* depth exploded )
+    NIP NIP NIP
+    ( exploded )
+    RTN
 
+  ( sn* depth -- sn* depth exploded )
+  &explode-rec
+    STH
+    ( sn* : depth )
+    ;&load-node JSR2
+    ( sn* word : depth )
+
+    DUP2 #8000 NEQ2 ;&explode/not-[ JCN2
+      POP2
+      ( sn* : depth )
+      ( sn* : depth )
+      STHr
+      ( DBGBYTEn SP )
+      ( sn* depth )
+      DUP #04 LTH ,&explode/not-deep JCN
+        ( LIT '! EMIT )
+        ( sn* depth )
+        STH ( sn* : depth )
+
+        ( found a node that needs exploding )
+
+        ( propagate left value )
+        DUP2 LDA2 ( sn* value )
+        ( patch the last leaf encountered )
+        [ ;&explode/last-leaf-ptr LDA2 ] #0000 EQU2 ,&explode/no-last-leaf JCN
+          ( sn* value )
+          [ ;&explode/last-leaf-ptr LDA2 ] LDA2 ADD2 ( sn* value+last-leaf )
+          DUP2 [ ;&explode/last-leaf-ptr LDA2 ] STA2
+        &explode/no-last-leaf
+        ( sn* value )
+        POP2
+        ( sn* )
+
+        ( propagate right value )
+        DUP2 2++ ;&propagate-right JSR2
+
+        ( replace it with a zero literal )
+        DUP2 #0000 SWP2 2-- STA2
+        ( shift remaining left )
+        ( sn* : depth )
+        DUP2 ;&shift-left4 JSR2
+
+        ( signal explosion, unwind )
+        STHr ( sn* depth )
+        #01
+        RTN
+      &explode/not-deep
+      INC ( sn* depth+1 )
+      ;&explode-rec JSR2
+      ( sn* depth+1 exploded )
+      ,&explode-exploded JCN
+      ( sn* depth+1 )
+      ;&explode-rec JSR2
+      ( sn* depth+1 exploded )
+      ,&explode-exploded JCN
+      DEC ( sn* depth )
+      #00
+      RTN
+
+      &explode/not-[
+    ( sn* word : depth )
+    POP2
+    ( sn* : depth )
+    ( remember the last leaf we saw )
+    DUP2 2-- [ ,&explode/last-leaf-ptr STR2 ]
+    ( sn* : depth )
+    STHr ( sn* depth )
+    #00
+    RTN
+    [ &explode/last-leaf-ptr $2 ]
+
+    &explode-exploded
+      ( sn* depth )
+      ( LIT '* EMIT )
+      #01
+      RTN
+
+  ( sn* -- )
+  &shift-left4
+    DUP2 ;&shift-left JSR2
+    ;&shift-left JMP2
+
+  ( sn* -- )
+  &shift-left
+    ( sn* )
+    DUP2 2++ LDA2k ( sn* sn+2* word[sn+2] )
+    DUP2 #ffff EQU2 ;&shift-left/done JCN2
+      ( sn* sn+2* word )
+      STH2 ( sn* sn+2* : word )
+      SWP2 STH2 ( sn+2* : sn* word )
+      STA2r ( sn+2* )
+      ;&shift-left JMP2
+
+    &shift-left/done
+    ( sn* sn+2* ffff )
+    NIP2 ( sn* ffff )
+    SWP2 STA2
+    RTN
+
+  ( sn* -- )
+  &propagate-right
+    LDA2k [ ;&propagate-right/value STA2 ]
+    2++ ( sn+2* )
+    &propagate-right/loop
+      ( sn* )
+      LDA2k ( sn* word )
+      DUP2 #ffff EQU2 ;&propagate-right/done JCN2
+      DUP2 #8000 LTH2 ,&propagate-right/found JCN
+      POP2
+      2++
+      ,&propagate-right/loop JMP
+    &propagate-right/done
+    ( sn* ffff )
+    POP2 POP2
+    RTN
+    [ &propagate-right/value $2 ]
+
+    &propagate-right/found
+      ( sn* word )
+      [ ,&propagate-right/value LDR2 ] ADD2
+      ( sn* word+value )
+      SWP2 STA2
+      RTN
