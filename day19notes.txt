@@ -1,0 +1,98 @@
+# Part 1
+
+Ah, 3D volumes. I'm getting bad memories of a particularly difficult problem in
+a past AoC that involved 3D octahedrons…
+
+The input has 28 scanner blocks, each with 26 beacons. The coordinates are
+all in the -1000..1000 range.
+
+The text is very long. I jumped to the question: how many beacons are there?
+
+OK, how's this for a plan to match scanners?
+
+  - for each scanner A in the input:
+    - for each possible orientation R (represented as a 3x3 rotation matrix):
+      - transform A's beacons according to R;
+      - for each other scanner B coming after A in the input:
+        - for each rotated beacon a in A's set:
+          - for each beacon b in B's set:
+            - compute a translation vector v that brings a to b (that is, v=b-a);
+            - set match counter to 0;
+            - for each beacon b2 in B's set:
+              - for each beacon a2 in A's set:
+                - if a2+v == a2, increase match counter;
+                - if match counter equals 12:
+                  - record that A matches B with orientation R and translation v;
+                  - go pick the next B.
+
+Wow that's some deep nested loops. Calling Ns the number of scanners and Nb the number
+of beacons per scanner, let's annotate this with counts:
+
+ Ns           |  - for each scanner A in the input:
+ * 24         |    - for each possible orientation R (represented as a 3x3 rotation matrix):
+              |      - transform A's beacons according to R;
+ * (Ns-1)/2   |      - for each other scanner B coming after A in the input:
+ * Nb         |        - for each rotated beacon a in A's set:
+ * Nb         |          - for each beacon b in B's set:
+              |            - compute a translation vector v that brings a to b (that is, v=b-a);
+              |            - set match counter to 0;
+ * Nb         |            - for each beacon b2 in B's set:
+ * Nb         |              - for each beacon a2 in A's set:
+              |                - if a2+v == a2, increase match counter;
+              |                - if match counter equals 12:
+              |                  - record that A matches B with orientation R and translation v;
+              |                  - go pick the next B.
+
+That's roughly Ns^2 * Nb^4 * 12 vector comparisons we'd be doing, in the worst case
+where all beacon sets are disjoint (which can't happen in the given input
+according to the problem statement).
+
+With Ns=28 and Nb=26, that comes out at 4,299,230,208 comparisons. Of course, we'll never reach
+that count, but it still feels high.
+
+Is there any way to reduce that number?
+
+We could stop trying to find the right translation to match beacons between two scanners
+as soon as it's clear that we won't find 12 common beacons, i.e. if we tried aligning
+one beacon in A with (Nb-11) of B's beacons so far and no match has been found, it's
+impossible to find a match that will work. That could bring down the count by about
+half? Likewise, when matching we can stop as soon as (Nb-11) comparisons have failed,
+that'd be about another half down.
+
+We'd be at Ns^2 * Nb^4 * 3, which is still about a billion.
+
+What if we focused on beacons instead? There are clearly less than 728 of them.
+In fact, I think the maximum count would be reached if each scanner overlapped
+a single other scanner by 12 beacons, which would make the beacon count
+(Ns-1)*(Nb-12)+Nb. That would be 624 beacons in the input.
+
+Anyway, can we take a beacon as seen by one scanner and look for matches in the other
+scanners? To be a match, it would have to see at least 11 of its friends in the same
+relative positions after any rotation. Hmm, that looks like my original loop but
+switched around, I'm not hopeful that it would improve things.
+
+Ideally, we could compute some sort of rotation- and translation-invariant
+signature for each scanner, so that we could then pair them up.
+
+But we only require 12 beacons to match between a pair of scanners… we'd have
+to compute c(n,k) signatures for each scanner and match those up, and
+c(26,12) is 9,657,700… not going to work.
+
+Taking a peek at the leaderboard, it starts at 00:15:57 for this first star,
+which almost certainly means that the problem does not have a "trivial" solution.
+
+The relevant Wikipedia page is https://en.wikipedia.org/wiki/Point_set_registration . I'm
+not hopeful, but let's keep an open mind.
+
+Thinking of beacons again, but using the constraint that each scanner sees all beacons
+within a cube… if we look at a beacon, and take its closest neighbor in each of the
+6 axis-parallel directions (+X,-X,+Y,-Y,+Z,-Z); I believe we can say that any scanner
+that sees this beacon has to also see some of these. Ah, but no, this doesn't work.
+
+Wikipedia mentions graph matching; indeed, if we see each scanner as a complete graph
+of distances between the beacons it sees (that's 26*25+2=325 edges), solving an
+inexact graph matching problem would help in finding matched scanners. Ah, but it
+appears that just the "Subgraph isomorphism problem" is NP-complete…
+
+Oh well, let's get on with parsing anyway, maybe some idea will come up.
+

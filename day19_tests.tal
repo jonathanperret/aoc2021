@@ -1,0 +1,56 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "parse-scanner: >T
+  S< "--- 20 "scanner 20 "0 20 "--- 0a
+     "-1,-1,1 0a
+     "-2,-2,2 0a
+     "-3,-3,3 0a
+     "-2,-3,1 0a
+     "5,6,-4 0a
+     "8,0,7 0a
+     0a >S ;test-scanner-parse JSR2
+  ( EXPECT 0x01 )
+  ( EXPECT -1 -1 1 )
+  ( EXPECT -2 -2 2 )
+  ( EXPECT -3 -3 3 )
+  ( EXPECT -2 -3 1 )
+  ( EXPECT 5 6 -4 )
+  ( EXPECT 8 0 7 )
+
+  T< "🎄 >T
+  BRK !
+
+( s* -- )
+@test-scanner-parse
+  ;make-get-byte JSR2 ;&sc1 ;scanner/parse JSR2
+  DBGBYTE
+  NOT ,&not-parsed JCN
+    ;&sc1 ;scanner/dump JSR2
+  &not-parsed
+  RTN
+  [ &sc1 $a0 ]
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2
+
+~library/test.tal
+~day19_lib.tal

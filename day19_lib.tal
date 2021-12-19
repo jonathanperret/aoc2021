@@ -1,0 +1,101 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+%TERMINATOR { #8000 }
+
+@scanner
+  ( get-byte sc* -- success )
+  &parse
+    [ ;&parse/sc STA2 ]
+    [ ;&parse/get-byte-addr STA2 ]
+
+    ;&parse/skip-line JSR2
+
+    #00 [ ;&parse/started STA ]
+
+    &parse/line-loop
+      ;&parse/number JSR2 NOT ;&parse/done JCN2
+      #01 [ ;&parse/started STA ]
+
+      ;&parse/append JSR2
+
+      ;&parse/number JSR2 POP
+      ;&parse/append JSR2
+
+      ;&parse/number JSR2 POP
+      ;&parse/append JSR2
+
+      ;&parse/line-loop JMP2
+
+    &parse/done
+    ( 0000 )
+    POP2
+    TERMINATOR [ ;&parse/sc LDA2 ] STA2
+
+    [ ;&parse/started LDA ]
+    RTN
+    [ &parse/sc $2 &parse/started $1 ]
+
+    ( -- b )
+    &parse/get-byte
+      LIT2 [ &parse/get-byte-addr $2 ] JMP2
+
+    ( -- )
+    &parse/skip-line
+      &parse/skip-line/loop
+        ;&parse/get-byte JSR2
+        #0a NEQ ,&parse/skip-line/loop JCN
+      RTN
+
+    ( -- n success )
+    &parse/number
+      LIT2r 0000 ( : n )
+      #00 [ ;&parse/number/started STA ]
+      #0001 [ ;&parse/number/sign STA2 ]
+      &parse/number/loop
+        ;&parse/get-byte JSR2
+        DUP LIT '- LTH ,&parse/number/done JCN
+        DUP LIT '- NEQ ,&parse/number/positive JCN
+          #ffff [ ;&parse/number/sign STA2 ]
+          POP
+          ,&parse/number/loop JMP
+          &parse/number/positive
+        LIT '0 SUB #00 SWP ( value : n )
+        STH2r #000a MUL2 ADD2 STH2 ( : n*10+value )
+        #01 [ ;&parse/number/started STA ]
+        ,&parse/number/loop JMP
+      &parse/number/done
+      ( terminator )
+      POP
+      STH2r
+      [ ;&parse/number/sign LDA2 ] MUL2
+      [ ;&parse/number/started LDA ]
+      RTN
+      [ &parse/number/sign $2 &parse/number/started $1 ]
+
+    ( n -- )
+    &parse/append
+      [ ;&parse/sc LDA2 ] STA2
+      [ ;&parse/sc *2++ ]
+      RTN
+
+  ( sc* -- )
+  &dump
+    ( sc* )
+    &dump/loop
+      LDA2k TERMINATOR EQU2 ,&dump/done JCN
+      DUP2 ;vector3/print JSR2 LF
+      #0006 ADD2
+      ,&dump/loop JMP
+    &dump/done
+    POP2
+    RTN
+
+@vector3
+  ( v* -- )
+  &print
+    LDA2k ;print-short-decimal/signed JSR2 #0002 ADD2 SP
+    LDA2k ;print-short-decimal/signed JSR2 #0002 ADD2 SP
+    LDA2  ;print-short-decimal/signed JSR2
+    RTN
