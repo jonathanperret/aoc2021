@@ -15,7 +15,11 @@
 
     [ ;&parse/sc LDA2 ] ;&init JSR2
 
-    ;&parse/skip-line JSR2
+    ;&parse/skip-line JSR2 ,&parse/header-ok JCN
+      ( eof while reading header )
+      #00
+      RTN
+    &parse/header-ok
 
     #00 [ ;&parse/count STA ]
 
@@ -43,11 +47,17 @@
     &parse/get-byte
       LIT2 [ &parse/get-byte-addr $2 ] JMP2
 
-    ( -- )
+    ( -- success )
     &parse/skip-line
       &parse/skip-line/loop
         ;&parse/get-byte JSR2
+        DUP #00 EQU ,&parse/skip-line/eof JCN
         #0a NEQ ,&parse/skip-line/loop JCN
+      #01
+      RTN
+      &parse/skip-line/eof
+      ( 00 )
+      POP #00
       RTN
 
     ( -- n success )

@@ -16,13 +16,17 @@
      "5,6,-4 0a
      "8,0,7 0a
      0a >S ;test-scanner-parse JSR2
-  ( EXPECT 6 )
+  ( EXPECT 6 beacons found )
   ( EXPECT -3 -3 3 )
   ( EXPECT -2 -3 1 )
   ( EXPECT -2 -2 2 )
   ( EXPECT -1 -1 1 )
   ( EXPECT 5 6 -4 )
   ( EXPECT 8 0 7 )
+
+  T< "parse-scanner-eof: >T
+  S< >S ;test-scanner-parse JSR2
+  ( EXPECT 0 beacons found )
 
   T< "parse-scanners: >T
   S< "--- 20 "scanner 20 "0 20 "--- 0a
@@ -33,7 +37,7 @@
      "4,5,6 0a
      "7,8,9 0a
      0a >S ;test-scanners-parse JSR2
-  ( EXPECT 2 )
+  ( EXPECT 2 scanners found )
   ( EXPECT 0: )
   ( EXPECT -2 -2 2 )
   ( EXPECT -1 -1 1 )
@@ -148,8 +152,8 @@
 ( s* -- )
 @test-scanner-parse
   ;make-get-byte JSR2 ;&sc1 ;scanner/parse JSR2
-  DBGBYTEDEC
-  NOT ,&not-parsed JCN
+  DBGBYTEDECn P< 20 "beacons 20 "found >P LF
+  #00 EQU ,&not-parsed JCN
     ;&sc1 ;scanner/dump JSR2
   &not-parsed
   RTN
@@ -158,7 +162,7 @@
 ( s* -- )
 @test-scanners-parse
   ;make-get-byte JSR2 ;scanners/parse JSR2
-  [ ;scanners/count LDA2 ] DBGSHORTDEC POP2
+  [ ;scanners/count LDA2 ] DBGSHORTDECn P< 20 "scanners 20 "found >P LF POP2
   ;scanners/dump JSR2
   RTN
 
