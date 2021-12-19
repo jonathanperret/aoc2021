@@ -96,3 +96,110 @@ appears that just the "Subgraph isomorphism problem" is NP-complete…
 
 Oh well, let's get on with parsing anyway, maybe some idea will come up.
 
+Parsing done. That was the easy part, unfortunately…
+
+Would sorting the beacons of a scanner help with the matching? Probably, but
+does it significantly reduce the complexity?
+
+Given two lists of ordered values:
+
+    -----A------A----A--A-----------A----------A------
+    ---B----B---B-B---------B----B----------B---------
+
+Once we have picked a pair of beacons to align (here, the first of each list):
+
+    ---A------A----A--A-----------A----------A------
+    ---B----B---B-B---------B----B----------B---------
+
+We can advance through both lists in parallel:
+
+  - while i<len(A) and j<len(B) and match count<12:
+    - if A[i] == B[j], increase match count, increase i, increase j;
+    - otherwise if A[i] < B[j], increase i;
+    - otherwise, increase j.
+
+If the match count did not reach the target (12), we have to try aligning the
+next pair. Is there an optimal order for testing the Nb*Nb alignment pairs?
+Not that I can think of. However, it would be better not to test the same
+alignment twice (which would happen if some beacons are aligned but less than
+12). But checking for that would not improve the worst case where no beacons
+are aligned at all.
+
+So, with sorted beacon lists, the matching step goes from Nb*Nb steps to just
+around 2*Nb (in the worst case in the loop above, i and j increase alternately,
+which gets us to the end of the list in 2*Nb steps).
+
+This brings the total cost to Ns^2 * Nb^3 * 6, I think. I'm not counting the
+cost of the sort, because even if I use a naive O(n^2) approach, sorting 26
+items 28*24 times shouldn't be significant in the grand scheme of things.
+
+              |  - for each scanner A in the input:
+              |    - insertion-sort its beacon list (can be done while parsing).
+ Ns           |  - for each scanner A in the input:
+ * 24         |    - for each possible orientation R (represented as a 3x3 rotation matrix):
+              |      - transform A's beacons according to R, insertion-sorting them into a list;
+ * (Ns-1)/2   |      - for each other scanner B coming after A in the input:
+ * (Nb-11)    |        - for each rotated beacon a in A's first (Nb-11) beacons:
+ * (Nb-11)    |          - for each beacon b in B's first (Nb-11) beacons:
+              |            - compute a translation vector v that brings a to b (that is, v=b-a);
+              |            - set match counter to 0;
+              |            - set i to 0, j to 0;
+ * Nb*2       |            - while i<len(A) and j<len(B) and match count<12:
+              |              - if A[i]+v == B[j], increase match count, increase i, increase j;
+              |              - otherwise if A[i]+v < B[j], increase i;
+              |              - otherwise, increase j.
+              |            - if match counter equals 12:
+              |              - record that A matches B with orientation R and translation v;
+              |              - go pick the next B.
+
+Tightening the counts as planned, we get Ns*24*(Ns-1)/2*(Nb-11)*(Nb-11)*Nb*2 (whee).
+This is barely 106,142,400 vector comparisons! Almost easy now.
+
+There's a small further optimization to be made to sorted list matching: once we've picked
+a beacon in A and a beacon in B to align, there's no point in testing any beacon
+to the left of the aligned ones — we must have already tested this alignment! Alternatively,
+start matching at the start of the lists but if any match is found to the left, abort
+this alignment because it must have been tested already.
+
+I believe either formulation would reduce the Nb*2 factor above, but maybe not enough
+to justify the added risk of a mistake.
+
+Well, time to implement some stuff I guess. Should I make a list, or will this give
+me suicidal thoughts? I need:
+
+  - a vector3-list type with a sorted-insert operation;
+  - a matrix3 type with a matrix*vector operation;
+  - a function that fills a new vector3-list by applying a matrix3 to each
+    element of an existing list;
+  - a list of 24 matrix3 values, one for each possible orientation;
+  - a function that fills a new vector3-list by adding a vector3 to each
+    element of an existing list;
+  - a function that counts common elements between two vector3-lists;
+  - a function that tests whether two vector3-lists have 12 alignable elements by
+    testing every possible translation and returning the right translation if found;
+
+Well that doesn't look so bad in fact. With all these basic bricks, writing the master
+algorithm shouldn't be too hard:
+
+  - for each scanner in the input, insert its beacons into a sorted vector3-list;
+  - for each scanner A:
+    - for each possible orientation R (represented as a 3x3 rotation matrix):
+      - transform A's beacons according to R, insertion-sorting them into a list;
+      - for each other scanner B coming after A:
+        - if A's rotated beacons can align with B's beacons with translation v:
+          - record that A matches B with orientation R and translation v;
+          - go pick the next B.
+
+Of course then I will have to answer the real question, which looks like filling
+a graph:
+
+  - mark scanner 0;
+  - repeat until all scanners are marked:
+    - for each scanner other than 0:
+      - if there is a record of a match (R,v) with a marked scanner:
+        - apply R then v to its beacons;
+        - insert them into scanner 0's beacon list (skipping duplicates);
+        - mark this scanner.
+  - return the length of scanner 0's beacon list.
+
+Let's get on with it.
