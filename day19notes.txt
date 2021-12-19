@@ -210,3 +210,55 @@ Well, it's been 6 hours and I have:
   - a vector3-list type with a sorted-insert operation.
 
 Yay.
+
+On to rotation matrices. Do I really need full-blown 3x3 matrices? Not really.
+Every useful rotation can be expressed as e.g. +Y+Z+X :
+
+  1 0 0   0 0 1   0 1 0
+  0 1 0   1 0 0   0 0 1
+  0 0 1   0 1 0   1 0 0
+  +X+Y+Z  +Y+Z+X  +Z+X+Y
+
+I should actually be able to encode these into functions, e.g.
+
+  ( *vout *vin -- )
+  @+y+z+x
+     STH2 ( vout* : vin* )
+     STH2rk #0002 ADD2 LDA2 OVR2 STA2 2++
+     STH2rk #0004 ADD2 LDA2 OVR2 STA2 2++
+     STH2r  #0000 ADD2 LDA2 SWP2 STA2
+     RTN
+
+Some orientations need to flip some axes though:
+
+  1  0  0 
+  0 -1  0  
+  0  0 -1  
+  +X-Y-Z 
+
+So the general form of the function would be:
+
+  ( *vout *vin -- )
+  @+x-y-z
+     STH2 ( vout* : vin* )
+     STH2rk #0000 ADD2 LDA2 #0001 MUL2 OVR2 STA2 2++
+     STH2rk #0002 ADD2 LDA2 #ffff MUL2 OVR2 STA2 2++
+     STH2r  #0004 ADD2 LDA2 #ffff MUL2 SWP2 STA2
+     RTN
+
+All that's left is to generate those. Not every permutation of XYZ combined
+with a +/- vector is valid though. For example, +X+Z+Y is not a rotation.
+
+One way of checking is to do the cross product between the first two: the
+result must be the third vector.
+
+OK, I've written an ugly bit of JavaScript to generate all the (hopefully
+correct) 24 functions, plus a selector that returns a function pointer
+given a rotation id between 0 and 23. I want to revisit this later to
+actually generate the code in memory from UXN code, but that will have
+to do for now.
+
+I can now check off those two additional items:
+  - a matrix3 type with a matrix*vector operation;
+  - a list of 24 matrix3 values, one for each possible orientation;
+

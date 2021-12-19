@@ -5,8 +5,6 @@
 
 |0000
 
-%NEG2 { #0000 SWP2 SUB2 }
-
 ( init )
 
 |0100 @program

@@ -1,0 +1,165 @@
+
+%ROTATIONCOUNT { #0018 }
+
+@rotations
+  ( i -- [ vout* vin* -- ] )
+  &get
+    ROTATIONCOUNT OVR2 GTH2 ,&ok JCN
+      P< "unknown-rotation-id 20 >P DBGSHORT
+      !
+    &ok
+    2** ;&_fns ADD2 LDA2
+    RTN
+
+  &+X+Y+Z
+    DUP2            LDA2      STH2
+    DUP2 #0002 ADD2 LDA2      STH2
+         #0004 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &+X-Y-Z
+    DUP2            LDA2      STH2
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+         #0004 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &+X+Z-Y
+    DUP2            LDA2      STH2
+    DUP2 #0004 ADD2 LDA2      STH2
+         #0002 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &+X-Z+Y
+    DUP2            LDA2      STH2
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+         #0002 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &-X+Y-Z
+    DUP2            LDA2 NEG2 STH2
+    DUP2 #0002 ADD2 LDA2      STH2
+         #0004 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &-X-Y+Z
+    DUP2            LDA2 NEG2 STH2
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+         #0004 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &-X+Z+Y
+    DUP2            LDA2 NEG2 STH2
+    DUP2 #0004 ADD2 LDA2      STH2
+         #0002 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &-X-Z-Y
+    DUP2            LDA2 NEG2 STH2
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+         #0002 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &+Y+X-Z
+    DUP2 #0002 ADD2 LDA2      STH2
+    DUP2            LDA2      STH2
+         #0004 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &+Y-X+Z
+    DUP2 #0002 ADD2 LDA2      STH2
+    DUP2            LDA2 NEG2 STH2
+         #0004 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &+Y+Z+X
+    DUP2 #0002 ADD2 LDA2      STH2
+    DUP2 #0004 ADD2 LDA2      STH2
+                    LDA2      STH2
+    ;&_store JMP2
+
+  &+Y-Z-X
+    DUP2 #0002 ADD2 LDA2      STH2
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+                    LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &-Y+X+Z
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+    DUP2            LDA2      STH2
+         #0004 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &-Y-X-Z
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+    DUP2            LDA2 NEG2 STH2
+         #0004 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &-Y+Z-X
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+    DUP2 #0004 ADD2 LDA2      STH2
+                    LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &-Y-Z+X
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+                    LDA2      STH2
+    ;&_store JMP2
+
+  &+Z+X+Y
+    DUP2 #0004 ADD2 LDA2      STH2
+    DUP2            LDA2      STH2
+         #0002 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &+Z-X-Y
+    DUP2 #0004 ADD2 LDA2      STH2
+    DUP2            LDA2 NEG2 STH2
+         #0002 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &+Z+Y-X
+    DUP2 #0004 ADD2 LDA2      STH2
+    DUP2 #0002 ADD2 LDA2      STH2
+                    LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &+Z-Y+X
+    DUP2 #0004 ADD2 LDA2      STH2
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+                    LDA2      STH2
+    ;&_store JMP2
+
+  &-Z+X-Y
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+    DUP2            LDA2      STH2
+         #0002 ADD2 LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &-Z-X+Y
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+    DUP2            LDA2 NEG2 STH2
+         #0002 ADD2 LDA2      STH2
+    ;&_store JMP2
+
+  &-Z+Y+X
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+    DUP2 #0002 ADD2 LDA2      STH2
+                    LDA2      STH2
+    ;&_store JMP2
+
+  &-Z-Y-X
+    DUP2 #0004 ADD2 LDA2 NEG2 STH2
+    DUP2 #0002 ADD2 LDA2 NEG2 STH2
+                    LDA2 NEG2 STH2
+    ;&_store JMP2
+
+  &_store
+    STH2r OVR2 #0004 ADD2 STA2
+    STH2r OVR2 #0002 ADD2 STA2
+    STH2r SWP2            STA2
+    RTN
+
+  [ &_fns :&+X+Y+Z :&+X-Y-Z :&+X+Z-Y :&+X-Z+Y :&-X+Y-Z :&-X-Y+Z :&-X+Z+Y :&-X-Z-Y :&+Y+X-Z :&+Y-X+Z :&+Y+Z+X :&+Y-Z-X :&-Y+X+Z :&-Y-X-Z :&-Y+Z-X :&-Y-Z+X :&+Z+X+Y :&+Z-X-Y :&+Z+Y-X :&+Z-Y+X :&-Z+X-Y :&-Z-X+Y :&-Z+Y+X :&-Z-Y-X ]
+

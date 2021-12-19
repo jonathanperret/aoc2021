@@ -2,12 +2,6 @@
 ~library/string.tal
 ~library/math.tal
 
-( compute a-b, check if result is > 0 )
-( OVR2 ;print-short-decimal/signed JSR2 LIT '> EMIT DUP2 ;print-short-decimal/signed JSR2 LIT '? EMIT SP )
-%SGTH2 {
-  SUB2 DEC2 #8000 LTH2
-}
-
 @probe
   [ &xmin $2 &xmax $2
     &ymin $2 &ymax $2

@@ -91,6 +91,18 @@
   S< 0101 0102 0103 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
   ( EXPECT 257 258 259 )
 
+  T< "+y+z+x >T
+  S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S ;rotations/+Y+Z+X JSR2 ;vector3/print JSR2 LF
+  ( EXPECT 258 259 257 )
+
+  T< "+x-y-z >T
+  S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S ;rotations/+X-Y-Z JSR2 ;vector3/print JSR2 LF
+  ( EXPECT 257 -258 -259 )
+
+  T< "rotation-get: >T
+  S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S #0017 ;rotations/get JSR2 JSR2 ;vector3/print JSR2 LF
+  ( EXPECT -259 -258 -257 )
+
   T< "🎄 >T
   BRK !
 

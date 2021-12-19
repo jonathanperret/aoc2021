@@ -1,20 +1,11 @@
 ~library/console.lib.tal
 ~library/string.tal
 ~library/math.tal
+~day19_rotations.tal
 
 %TERMINATOR { #8080 }
 
 %V3SIZE { #0006 } %V3PAD { $6 }
-
-( compute a-b, check if result is > 0 )
-( OVR2 ;print-short-decimal/signed JSR2 LIT '> EMIT DUP2 ;print-short-decimal/signed JSR2 LIT '? EMIT SP )
-%SGTH2 {
-  SUB2 DEC2 #8000 LTH2
-}
-
-%SGTH2k {
-  DUP4 SGTH2
-}
 
 @scanner
   ( get-byte sc* -- count )

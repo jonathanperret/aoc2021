@@ -37,6 +37,18 @@
 %2-- { #0002 SUB2 }
 %4++ { #0004 ADD2 }
 
+( Signed arithmetic )
+%NEG2 { #0000 SWP2 SUB2 }
+
+( compute a-b, check if result is > 0 )
+( OVR2 ;print-short-decimal/signed JSR2 LIT '> EMIT DUP2 ;print-short-decimal/signed JSR2 LIT '? EMIT SP )
+%SGTH2 {
+  SUB2 DEC2 #8000 LTH2
+}
+%SGTH2k {
+  DUP4 SGTH2
+}
+
 ( Multi-byte ops )
 
 %LDA4 {
