@@ -17,12 +17,12 @@
      "8,0,7 0a
      0a >S ;test-scanner-parse JSR2
   ( EXPECT 6 beacons found )
-  ( EXPECT -3 -3 3 )
-  ( EXPECT -2 -3 1 )
-  ( EXPECT -2 -2 2 )
-  ( EXPECT -1 -1 1 )
-  ( EXPECT 5 6 -4 )
-  ( EXPECT 8 0 7 )
+  ( EXPECT [-3 -3 3] )
+  ( EXPECT [-2 -3 1] )
+  ( EXPECT [-2 -2 2] )
+  ( EXPECT [-1 -1 1] )
+  ( EXPECT [5 6 -4] )
+  ( EXPECT [8 0 7] )
 
   T< "parse-scanner-eof: >T
   S< >S ;test-scanner-parse JSR2
@@ -39,11 +39,11 @@
      0a >S ;test-scanners-parse JSR2
   ( EXPECT 2 scanners found )
   ( EXPECT 0: )
-  ( EXPECT -2 -2 2 )
-  ( EXPECT -1 -1 1 )
+  ( EXPECT [-2 -2 2] )
+  ( EXPECT [-1 -1 1] )
   ( EXPECT 1: )
-  ( EXPECT 4 5 6 )
-  ( EXPECT 7 8 9 )
+  ( EXPECT [4 5 6] )
+  ( EXPECT [7 8 9] )
 
   T< "vector3-equal >T
   S< 0101 0102 0103 >S S< 0101 0102 0103 >S ;vector3/equal JSR2 DBGBYTE POP ( EXPECT 0x01 )
@@ -51,73 +51,81 @@
 
   T< "vector3-lessthan >T
   S< 0101 0102 0103 >S S< 0201 0202 0203 >S ;test-vector3-lessthan JSR2
-  ( EXPECT 257 258 259 < 513 514 515 )
-  ( EXPECT 513 514 515 ≥ 257 258 259 )
+  ( EXPECT [257 258 259] < [513 514 515] )
+  ( EXPECT [513 514 515] ≥ [257 258 259] )
+
+  T< "vector3-add >T
+  S< 8080 8080 8080 >S DUP2 S< 0101 0201 0301 >S S< fffe ffff ffff >S ;vector3/add JSR2 ;vector3/print JSR2 LF
+  ( EXPECT [255 512 768] )
+
+  T< "vector3-subtract >T
+  S< ffff ffff ffff >S DUP2 S< 0102 0103 0104 >S S< 0101 0102 0103 >S ;vector3/subtract JSR2 ;vector3/print JSR2 LF
+  ( EXPECT [1 1 1] )
 
   S< 0101 0102 0103 >S S< 0101 0202 0203 >S ;test-vector3-lessthan JSR2
-  ( EXPECT 257 258 259 < 257 514 515 )
-  ( EXPECT 257 514 515 ≥ 257 258 259 )
+  ( EXPECT [257 258 259] < [257 514 515] )
+  ( EXPECT [257 514 515] ≥ [257 258 259] )
 
   S< 0101 0102 0103 >S S< 0101 0102 0203 >S ;test-vector3-lessthan JSR2
-  ( EXPECT 257 258 259 < 257 258 515 )
-  ( EXPECT 257 258 515 ≥ 257 258 259 )
+  ( EXPECT [257 258 259] < [257 258 515] )
+  ( EXPECT [257 258 515] ≥ [257 258 259] )
 
   S< 0101 0102 0103 >S S< 0101 0102 0103 >S ;test-vector3-lessthan JSR2
-  ( EXPECT 257 258 259 ≥ 257 258 259 )
-  ( EXPECT 257 258 259 ≥ 257 258 259 )
+  ( EXPECT [257 258 259] ≥ [257 258 259] )
+  ( EXPECT [257 258 259] ≥ [257 258 259] )
 
   S< ffff ffff ffff >S S< 0101 0102 0103 >S ;test-vector3-lessthan JSR2
-  ( EXPECT -1 -1 -1 < 257 258 259 )
-  ( EXPECT 257 258 259 ≥ -1 -1 -1 )
+  ( EXPECT [-1 -1 -1] < [257 258 259] )
+  ( EXPECT [257 258 259] ≥ [-1 -1 -1] )
 
   T< "beacon-insert-empty-list: >T
   S< 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
-  ( EXPECT 257 258 259 )
+  ( EXPECT [257 258 259] )
 
   T< "beacon-insert-at-end: >T
   S< 0101 0102 0103 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0104 >S ;scanner/insert JSR2 ;scanner/dump JSR2
-  ( EXPECT 257 258 259 )
-  ( EXPECT 257 258 260 )
+  ( EXPECT [257 258 259] )
+  ( EXPECT [257 258 260] )
 
   T< "beacon-insert-at-start: >T
   S< 0101 0102 0103 0101 0102 0104 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0102 >S ;scanner/insert JSR2 ;scanner/dump JSR2
-  ( EXPECT 257 258 258 )
-  ( EXPECT 257 258 259 )
-  ( EXPECT 257 258 260 )
+  ( EXPECT [257 258 258] )
+  ( EXPECT [257 258 259] )
+  ( EXPECT [257 258 260] )
 
   T< "beacon-insert-middle: >T
   S< 0101 0102 0102 0101 0102 0104 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
-  ( EXPECT 257 258 258 )
-  ( EXPECT 257 258 259 )
-  ( EXPECT 257 258 260 )
+  ( EXPECT [257 258 258] )
+  ( EXPECT [257 258 259] )
+  ( EXPECT [257 258 260] )
 
   T< "beacon-insert-skipdups: >T
   S< 0101 0102 0103 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
-  ( EXPECT 257 258 259 )
+  ( EXPECT [257 258 259] )
 
   T< "+y+z+x >T
   S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S ;rotations/+Y+Z+X JSR2 ;vector3/print JSR2 LF
-  ( EXPECT 258 259 257 )
+  ( EXPECT [258 259 257] )
 
   T< "+x-y-z >T
   S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S ;rotations/+X-Y-Z JSR2 ;vector3/print JSR2 LF
-  ( EXPECT 257 -258 -259 )
+  ( EXPECT [257 -258 -259] )
 
   T< "rotation-get: >T
   S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S #0017 ;rotations/get JSR2 JSR2 ;vector3/print JSR2 LF
-  ( EXPECT -259 -258 -257 )
+  ( EXPECT [-259 -258 -257] )
 
   T< "scanner-rotate: >T
   ;&sctmp S< 0101 0102 0103 0101 0102 0104 8080 >S #0017 ( -Z-Y-X ) ;scanner/rotate JSR2
   ;&sctmp ;scanner/dump JSR2
-  ( EXPECT -260 -258 -257 )
-  ( EXPECT -259 -258 -257 )
+  ( EXPECT [-260 -258 -257] )
+  ( EXPECT [-259 -258 -257] )
 
   T< "scanner-translate: >T
   ;&sctmp S< 0101 0102 0103 0101 0102 0104 8080 >S S< ff01 ff01 ff01 >S ;scanner/translate JSR2
   ;&sctmp ;scanner/dump JSR2
-  ( EXPECT 2 3 4 )
-  ( EXPECT 2 3 5 )
+  ( EXPECT [2 3 4] )
+  ( EXPECT [2 3 5] )
 
   T< "scanner-count-matches: >T
   S< "-0- 0a
@@ -135,12 +143,27 @@
      "-2,-2,2 0a >S ;test-scanner-count-matches JSR2
   ( EXPECT 3 matches found )
 
+  T< "scanner-find-alignment: >T
+  S< "-0- 0a
+     "-1,-1,1 0a
+     "-1,30,2 0a
+     "-1,-1,2 0a
+     "-7,8,2 0a >S
+  S< "-1- 0a
+     "10,9,8 0a
+     "9,8,9 0a
+     "9,8,10 0a
+     "9,39,10 0a
+     "15,8,10 0a
+     "5,8,48 0a
+     "8,7,10 0a >S #0002 ;test-scanner-find-alignment JSR2
+  ( EXPECT 0x01 )
+  ( EXPECT [-10 -9 -8] )
+
   T< "🎄 >T
   BRK !
 
-|0800
   [ &sctmp $100 ]
-|1000
 
 ( v1* v2* -- )
 @test-vector3-lessthan
@@ -188,6 +211,16 @@
   ;make-get-byte JSR2 ;&sc2 ;scanner/parse JSR2 POP
   ;&sc1 ;&sc2 ;scanner/count-matches JSR2
   DBGSHORTDECn POP2 P< 20 "matches 20 "found >P LF
+  RTN
+  [ &sc1 $100 &sc2 $100 ]
+
+( s1* s2* count -- )
+@test-scanner-find-alignment
+  STH2
+  ;make-get-byte JSR2 ;&sc2 ;scanner/parse JSR2 POP
+  ;make-get-byte JSR2 ;&sc1 ;scanner/parse JSR2 POP
+  ;&sc1 ;&sc2 STH2r ;scanner/find-alignment JSR2 DBGBYTE POP
+  ;scanner/find-alignment/offset ;vector3/print JSR2 LF
   RTN
   [ &sc1 $100 &sc2 $100 ]
 

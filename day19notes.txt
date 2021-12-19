@@ -279,3 +279,32 @@ What's next on my list?
 I have planned this out, but there could be surprises.
 
 Well that went satisfyingly smoothly.
+
+Next up is the core logic:
+  - a function that tests whether two vector3-lists have 12 alignable elements by
+    testing every possible translation and returning the right translation if found;
+
+I have a non-optimized version (tests too many pairs) working, let's move on.
+
+I've thought of a way to avoid having yet another data structure to record
+matches between scanners. Here's how it could look:
+
+  - copy scanner 0 to a new "master" scanner;
+  - mark scanner 0 as source;
+  - repeat:
+    - for each scanner A marked as source:
+      - for each unmarked scanner B:
+        - for each rotation R:
+          - count matches between A and R(B);
+          - if the target match count is reached:
+            - overwrite B with R(B);
+            - merge B into the master scanner;
+            - mark B as source.
+      - mark A as done.
+    - if no scanner remains as source, we are done.
+  - count the beacons in the master scanner.
+
+This should first find all scanners that share beacons with scanner 0, then
+expand the set to scanners that share beacons with those, and so on until
+we have everything aligned.
+

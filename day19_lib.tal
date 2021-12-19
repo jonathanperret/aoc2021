@@ -231,6 +231,8 @@
     STH2
     ( sc1* : sc2* )
 
+    #0000 [ ;&count-matches/count STA2 ]
+
     &count-matches/loop
       ( break if any list has reached its end )
       LDA2k TERMINATOR EQU2 ,&count-matches/done JCN
@@ -264,12 +266,67 @@
     RTN
     [ &count-matches/count $2 ]
 
+  ( sc* -- count )
+  &count
+    LIT2r 0000 ( sc* : count )
+    &count/loop
+      LDA2k TERMINATOR EQU2 ,&count/done JCN
+      INC2r
+      V3SIZE ADD2
+      ,&count/loop JMP
+    &count/done
+    POP2 STH2r
+    RTN
+
+  ( finds a vector that moves sc2 over to sc1 )
+  ( sc1* sc2* target -- success )
+  &find-alignment
+    [ ;&fa/target STA2 ]
+    ( generate all pairs )
+    [ ;&fa/sc2 STA2 ]
+    [ ;&fa/sc1 STA2 ]
+    [ ;&fa/sc1 LDA2 ] ;&count JSR2 [ ;&fa/sc1count STA2 ]
+    [ ;&fa/sc2 LDA2 ] ;&count JSR2 [ ;&fa/sc2count STA2 ]
+    #0000 [ ;&fa/sc1count LDA2 ] DO
+      #0000 [ ;&fa/sc2count LDA2 ] DO
+        OVR2 POP2
+        ( make offset vector that potentially brings sc2 into alignment with sc1: v1-v2 )
+        OVR2 V3SIZE MUL2 [ ;&fa/sc1 LDA2 ] ADD2 [ ;&fa/v1 STA2 ]
+        DUP2 V3SIZE MUL2 [ ;&fa/sc2 LDA2 ] ADD2 [ ;&fa/v2 STA2 ]
+        ;&find-alignment/offset [ ;&fa/v1 LDA2 ] [ ;&fa/v2 LDA2 ] ;vector3/subtract JSR2
+
+        ;&fa/sc2moved [ ;&fa/sc2 LDA2 ] ;&find-alignment/offset ;&translate JSR2
+
+        [ ;&fa/sc1 LDA2 ] ;&fa/sc2moved ;&count-matches JSR2
+        ( match-count )
+        [ ;&fa/target LDA2 ] LTH2 ,&fa/not-found JCN
+          UNLOOP
+          UNLOOP
+          #01
+          RTN
+          &fa/not-found
+      LOOP
+    LOOP
+    #00
+    RTN
+    [ &find-alignment/offset V3PAD
+      &fa/target $2
+      &fa/sc1 $2
+      &fa/sc2 $2
+      &fa/v1 $2
+      &fa/v2 $2
+      &fa/sc1count $2
+      &fa/sc2count $2
+      &fa/sc2moved $100 ]
+
 @vector3
   ( v* -- )
   &print
+    LIT '[ EMIT
     LDA2k ;print-short-decimal/signed JSR2 #0002 ADD2 SP
     LDA2k ;print-short-decimal/signed JSR2 #0002 ADD2 SP
     LDA2  ;print-short-decimal/signed JSR2
+    LIT '] EMIT
     RTN
 
   ( vdest* vsrc* -- )
@@ -280,9 +337,18 @@
   &add
     STH2 ( vdest* v1* : v2* )
     OVR2 SWP2 ;&copy JSR2 ( vdest*=v1 : v2* )
-    LDA2k STH2rk LDA2 ADD2 OVR2 STA2 2++
-    LDA2k STH2rk LDA2 ADD2 OVR2 STA2 2++
+    LDA2k STH2rk LDA2 ADD2 OVR2 STA2 2++ 2++r
+    LDA2k STH2rk LDA2 ADD2 OVR2 STA2 2++ 2++r
     LDA2k STH2r  LDA2 ADD2 SWP2 STA2
+    RTN
+
+  ( vdest* v1* v2* -- )
+  &subtract
+    STH2 ( vdest* v1* : v2* )
+    OVR2 SWP2 ;&copy JSR2 ( vdest*=v1 : v2* )
+    LDA2k STH2rk LDA2 SUB2 OVR2 STA2 2++ 2++r
+    LDA2k STH2rk LDA2 SUB2 OVR2 STA2 2++ 2++r
+    LDA2k STH2r  LDA2 SUB2 SWP2 STA2
     RTN
 
   ( v1* v2* -- v1==v2 )
