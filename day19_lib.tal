@@ -221,6 +221,49 @@
     RTN
     [ &map/vout V3PAD ]
 
+  ( sc1* sc2* -- count )
+  &count-matches
+    ( Both lists are sorted, this should be easy:
+      - while i<len(A) and j<len(B):
+        - if A[i] == B[j], increase match count, increase i, increase j;
+        - otherwise if A[i] < B[j], increase i;
+        - otherwise, increase j. )
+    STH2
+    ( sc1* : sc2* )
+
+    &count-matches/loop
+      ( break if any list has reached its end )
+      LDA2k TERMINATOR EQU2 ,&count-matches/done JCN
+      STH2rk LDA2 TERMINATOR EQU2 ,&count-matches/done JCN
+      ( sc1* : sc2* )
+      DUP2 STH2rk ;vector3/equal JSR2 ,&count-matches/v1==v2 JCN
+
+      ( sc1* : sc2* )
+      DUP2 STH2rk ;vector3/less-than JSR2 ,&count-matches/v1<v2 JCN
+        ( v1>v2: advance sc2* )
+        STH2r V3SIZE ADD2 STH2 ( advance sc2* )
+        ,&count-matches/loop JMP
+
+      &count-matches/v1<v2
+        ( v1<v2: advance sc1* )
+        V3SIZE ADD2
+        ,&count-matches/loop JMP
+
+      &count-matches/v1==v2
+        ( v1 == v2: increase count, advance both )
+        [ ;&count-matches/count *INC2 ]
+        V3SIZE ADD2            ( advance sc1* )
+        STH2r V3SIZE ADD2 STH2 ( advance sc2* )
+        ,&count-matches/loop JMP
+
+    &count-matches/done
+
+    ( sc1* : sc2* )
+    POP2 POP2r
+    [ ;&count-matches/count LDA2 ]
+    RTN
+    [ &count-matches/count $2 ]
+
 @vector3
   ( v* -- )
   &print

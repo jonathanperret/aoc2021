@@ -119,6 +119,22 @@
   ( EXPECT 2 3 4 )
   ( EXPECT 2 3 5 )
 
+  T< "scanner-count-matches: >T
+  S< "-0- 0a
+     "-1,-1,1 0a
+     "-1,30,2 0a
+     "-1,-1,2 0a
+     "-7,8,2 0a >S
+  S< "-1- 0a
+     "0,0,0 0a
+     "-1,-1,1 0a
+     "-1,-1,2 0a
+     "-1,30,2 0a
+     "5,-1,2 0a
+     "-5,-1,40 0a
+     "-2,-2,2 0a >S ;test-scanner-count-matches JSR2
+  ( EXPECT 3 matches found )
+
   T< "🎄 >T
   BRK !
 
@@ -165,6 +181,15 @@
   [ ;scanners/count LDA2 ] DBGSHORTDECn P< 20 "scanners 20 "found >P LF POP2
   ;scanners/dump JSR2
   RTN
+
+( s1* s2* -- )
+@test-scanner-count-matches
+  ;make-get-byte JSR2 ;&sc1 ;scanner/parse JSR2 POP
+  ;make-get-byte JSR2 ;&sc2 ;scanner/parse JSR2 POP
+  ;&sc1 ;&sc2 ;scanner/count-matches JSR2
+  DBGSHORTDECn POP2 P< 20 "matches 20 "found >P LF
+  RTN
+  [ &sc1 $100 &sc2 $100 ]
 
 ( s* -- get-byte )
 @make-get-byte

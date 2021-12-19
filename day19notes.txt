@@ -272,3 +272,10 @@ Clearly those two call for a `map` implementation on vector lists, I mean
 scanners.
 
 OK, that was easy.
+
+What's next on my list?
+  - a function that counts common elements between two vector3-lists;
+
+I have planned this out, but there could be surprises.
+
+Well that went satisfyingly smoothly.
