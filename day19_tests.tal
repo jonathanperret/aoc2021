@@ -16,7 +16,7 @@
      "5,6,-4 0a
      "8,0,7 0a
      0a >S ;test-scanner-parse JSR2
-  ( EXPECT 0x01 )
+  ( EXPECT 6 )
   ( EXPECT -1 -1 1 )
   ( EXPECT -2 -2 2 )
   ( EXPECT -3 -3 3 )
@@ -24,18 +24,42 @@
   ( EXPECT 5 6 -4 )
   ( EXPECT 8 0 7 )
 
+  T< "parse-scanners: >T
+  S< "--- 20 "scanner 20 "0 20 "--- 0a
+     "-1,-1,1 0a
+     "-2,-2,2 0a
+     0a
+     "--- 20 "scanner 20 "1 20 "--- 0a
+     "4,5,6 0a
+     "7,8,9 0a
+     0a >S ;test-scanners-parse JSR2
+  ( EXPECT 2 )
+  ( EXPECT 0: )
+  ( EXPECT -1 -1 1 )
+  ( EXPECT -2 -2 2 )
+  ( EXPECT 1: )
+  ( EXPECT 4 5 6 )
+  ( EXPECT 7 8 9 )
+
   T< "🎄 >T
   BRK !
 
 ( s* -- )
 @test-scanner-parse
   ;make-get-byte JSR2 ;&sc1 ;scanner/parse JSR2
-  DBGBYTE
+  DBGBYTEDEC
   NOT ,&not-parsed JCN
     ;&sc1 ;scanner/dump JSR2
   &not-parsed
   RTN
   [ &sc1 $a0 ]
+
+( s* -- )
+@test-scanners-parse
+  ;make-get-byte JSR2 ;scanners/parse JSR2
+  [ ;scanners/count LDA2 ] DBGSHORTDEC POP2
+  ;scanners/dump JSR2
+  RTN
 
 ( s* -- get-byte )
 @make-get-byte

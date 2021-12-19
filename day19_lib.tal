@@ -5,18 +5,18 @@
 %TERMINATOR { #8000 }
 
 @scanner
-  ( get-byte sc* -- success )
+  ( get-byte sc* -- count )
   &parse
     [ ;&parse/sc STA2 ]
     [ ;&parse/get-byte-addr STA2 ]
 
     ;&parse/skip-line JSR2
 
-    #00 [ ;&parse/started STA ]
+    #00 [ ;&parse/count STA ]
 
     &parse/line-loop
       ;&parse/number JSR2 NOT ;&parse/done JCN2
-      #01 [ ;&parse/started STA ]
+      [ ;&parse/count *INC ]
 
       ;&parse/append JSR2
 
@@ -33,9 +33,9 @@
     POP2
     TERMINATOR [ ;&parse/sc LDA2 ] STA2
 
-    [ ;&parse/started LDA ]
+    [ ;&parse/count LDA ]
     RTN
-    [ &parse/sc $2 &parse/started $1 ]
+    [ &parse/sc $2 &parse/count $1 ]
 
     ( -- b )
     &parse/get-byte
@@ -99,3 +99,44 @@
     LDA2k ;print-short-decimal/signed JSR2 #0002 ADD2 SP
     LDA2  ;print-short-decimal/signed JSR2
     RTN
+
+@scanners
+  ( get-byte -- )
+  &parse
+    #0000 [ ;&count STA2 ]
+    LIT2r :&scannersbuf
+    ( get-byte : scannersbuf* )
+    &parse/loop
+      DUP2 STH2rk ;scanner/parse JSR2
+      ( count )
+      DUP NOT ;&parse/done JCN2
+      ( count )
+
+      ( store current pointer in scanners array )
+      STH2rk ;&scanners [ ;&count LDA2 ] 2** ADD2 STA2
+
+      ( count )
+
+      ( bump pointer by scanner size )
+      #00 SWP #0006 MUL2 2++ STH2r ADD2 STH2 ( : scannersbuf+6*count* )
+
+      [ ;&count *INC2 ]
+      ;&parse/loop JMP2
+
+    &parse/done
+    ( get-byte count : scannersbuf* )
+    POP POP2 POP2r
+    RTN
+
+  ( -- )
+  &dump
+    [ ;&count LDA2 ] #0000 NEQ2 ,&dump/not-zero JCN
+      RTN
+    &dump/not-zero
+    #0000 [ ;&count LDA2 ] DO
+      DUP2 ;print-short-decimal JSR2 LIT ': EMIT LF
+      DUP2 2** ;&scanners ADD2 LDA2 ;scanner/dump JSR2
+    LOOP
+    RTN
+
+  [ &count $2 &scannersbuf $2000 &scanners $40 ]
