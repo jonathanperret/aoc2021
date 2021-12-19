@@ -2,13 +2,27 @@
 ~library/string.tal
 ~library/math.tal
 
-%TERMINATOR { #8000 }
+%TERMINATOR { #8080 }
+
+%V3SIZE { #0006 } %V3PAD { $6 }
+
+( compute a-b, check if result is > 0 )
+( OVR2 ;print-short-decimal/signed JSR2 LIT '> EMIT DUP2 ;print-short-decimal/signed JSR2 LIT '? EMIT SP )
+%SGTH2 {
+  SUB2 DEC2 #8000 LTH2
+}
+
+%SGTH2k {
+  DUP4 SGTH2
+}
 
 @scanner
   ( get-byte sc* -- count )
   &parse
     [ ;&parse/sc STA2 ]
     [ ;&parse/get-byte-addr STA2 ]
+
+    TERMINATOR [ ;&parse/sc LDA2 ] STA2
 
     ;&parse/skip-line JSR2
 
@@ -18,12 +32,10 @@
       ;&parse/number JSR2 NOT ;&parse/done JCN2
       [ ;&parse/count *INC ]
 
-      ;&parse/append JSR2
-
       ;&parse/number JSR2 POP
-      ;&parse/append JSR2
-
       ;&parse/number JSR2 POP
+
+      ( x y z )
       ;&parse/append JSR2
 
       ;&parse/line-loop JMP2
@@ -31,7 +43,6 @@
     &parse/done
     ( 0000 )
     POP2
-    TERMINATOR [ ;&parse/sc LDA2 ] STA2
 
     [ ;&parse/count LDA ]
     RTN
@@ -74,11 +85,14 @@
       RTN
       [ &parse/number/sign $2 &parse/number/started $1 ]
 
-    ( n -- )
+    ( x y z -- )
     &parse/append
-      [ ;&parse/sc LDA2 ] STA2
-      [ ;&parse/sc *2++ ]
+      ;&parse/v #0004 ADD2 STA2
+      ;&parse/v #0002 ADD2 STA2
+      ;&parse/v            STA2
+      [ ;&parse/sc LDA2 ] ;&parse/v ;&insert JSR2
       RTN
+      [ &parse/v V3PAD ]
 
   ( sc* -- )
   &dump
@@ -86,11 +100,82 @@
     &dump/loop
       LDA2k TERMINATOR EQU2 ,&dump/done JCN
       DUP2 ;vector3/print JSR2 LF
-      #0006 ADD2
+      V3SIZE ADD2
       ,&dump/loop JMP
     &dump/done
     POP2
     RTN
+
+  ( sc* v* -- )
+  &insert
+    ( sc* v* )
+    ;&insert/v SWP2 ;vector3/copy JSR2
+
+    ( find insertion point )
+    ( sc* )
+    &insert/scan-loop
+      LDA2k TERMINATOR EQU2 ,&insert/scan-done JCN
+      ;&insert/v OVR2 ;vector3/equal JSR2
+      ( if v == *sc, abort )
+      ,&insert/done JCN
+
+      ;&insert/v OVR2 ;vector3/less-than JSR2
+      ( if v < *sc, we've found our spot )
+      ,&insert/scan-done JCN
+      ( otherwise advance )
+      V3SIZE ADD2
+      ,&insert/scan-loop JMP
+
+    &insert/scan-done
+
+    ( make some room )
+    DUP2 ;&insert/shift-right JSR2
+
+    ( insert at spot found )
+    DUP2 ;&insert/v ;vector3/copy JSR2
+
+    &insert/done
+    POP2
+    RTN
+
+    [ &insert/v V3PAD &insert/vtmp V3PAD ]
+
+    ( sc* -- )
+    &insert/shift-right
+      ( scan to end )
+      DUP2
+      ( sc* sc-end* )
+      &insert/shift-right/scan-loop
+        LDA2k ( sc* sc-end* word )
+        TERMINATOR EQU2 ,&insert/shift-right/at-end JCN
+        V3SIZE ADD2
+        ,&insert/shift-right/scan-loop JMP
+
+      &insert/shift-right/at-end
+      ( sc* sc-end* )
+      ( grow list here )
+      #0000 OVR2 STA2
+      V3SIZE ADD2
+      TERMINATOR OVR2 STA2
+
+      ( now copy backwards until sc-end = sc )
+      SWP2 STH2
+      ( sc-end* : sc* )
+      &insert/shift-right/copy-loop
+        V3SIZE SUB2
+        EQU2k ,&insert/shift-right/copy-done JCN
+        ( copy left into right )
+        DUP2 DUP2 V3SIZE SUB2
+        ( sc-end* sc-end* sc-end-V3SIZE* )
+        ;vector3/copy JSR2
+        ,&insert/shift-right/copy-loop JMP
+
+      &insert/shift-right/copy-done
+      ( sc-end* : sc* )
+      POP2r
+      POP2
+      RTN
+
 
 @vector3
   ( v* -- )
@@ -99,6 +184,71 @@
     LDA2k ;print-short-decimal/signed JSR2 #0002 ADD2 SP
     LDA2  ;print-short-decimal/signed JSR2
     RTN
+
+  ( vdest* vsrc* -- )
+  &copy
+    SWP2 V3SIZE ;memcpy JMP2
+
+  ( v1* v2* -- v1==v2 )
+  &equal
+    STH2 ( v1* : v2* )
+
+    LDA2k STH2rk LDA2
+    NEQ2 ,&equal/not-equal JCN
+    2++ 2++r
+
+    LDA2k STH2rk LDA2
+    NEQ2 ,&equal/not-equal JCN
+    2++ 2++r
+
+    LDA2k STH2rk LDA2
+    NEQ2 ,&equal/not-equal JCN
+    2++ 2++r
+
+    POP2 POP2r
+    #01 RTN
+
+    &equal/not-equal
+      POP2 POP2r
+      #00 RTN
+
+  ( v1* v2* -- v1<v2 )
+  &less-than
+    STH2 ( v1* : v2* )
+    LDA2k STH2rk LDA2
+    ( v1* v1.x v2.x : v2* )
+    SGTH2k ,&less-than/not-lesser JCN
+      ( v1* v1.x v2.x : v2* )
+      EQU2 NOT ,&less-than/lesser JCN
+      ( v1.x == v2.x )
+
+    2++ 2++r ( v1+2* : v2+2* )
+
+    LDA2k STH2rk LDA2
+    ( v1* v1.y v2.y : v2* )
+    SGTH2k ,&less-than/not-lesser JCN
+      ( v1* v1.y v2.y : v2* )
+      EQU2 NOT ,&less-than/lesser JCN
+      ( v1.y == v2.y )
+
+    2++ 2++r ( v1+4* : v2+4* )
+
+    LDA2k STH2rk LDA2
+    ( v1* v1.z v2.z : v2* )
+    SGTH2k ,&less-than/not-lesser JCN
+      ( v1* v1.z v2.z : v2* )
+      EQU2 NOT ,&less-than/lesser JCN
+      ( v1.z == v2.z )
+      POP2 POP2r #00 RTN
+
+    &less-than/not-lesser
+    ( v1* v1.? v2.? : v2* )
+    POP2 POP2 POP2 POP2r #00 RTN
+
+    &less-than/lesser
+    ( v1* : v2* )
+    POP2 POP2r #01 RTN
+
 
 @scanners
   ( get-byte -- )
@@ -118,7 +268,7 @@
       ( count )
 
       ( bump pointer by scanner size )
-      #00 SWP #0006 MUL2 2++ STH2r ADD2 STH2 ( : scannersbuf+6*count* )
+      #00 SWP V3SIZE MUL2 2++ STH2r ADD2 STH2 ( : scannersbuf+6*count* )
 
       [ ;&count *INC2 ]
       ;&parse/loop JMP2

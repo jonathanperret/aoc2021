@@ -17,10 +17,10 @@
      "8,0,7 0a
      0a >S ;test-scanner-parse JSR2
   ( EXPECT 6 )
-  ( EXPECT -1 -1 1 )
-  ( EXPECT -2 -2 2 )
   ( EXPECT -3 -3 3 )
   ( EXPECT -2 -3 1 )
+  ( EXPECT -2 -2 2 )
+  ( EXPECT -1 -1 1 )
   ( EXPECT 5 6 -4 )
   ( EXPECT 8 0 7 )
 
@@ -35,14 +35,87 @@
      0a >S ;test-scanners-parse JSR2
   ( EXPECT 2 )
   ( EXPECT 0: )
-  ( EXPECT -1 -1 1 )
   ( EXPECT -2 -2 2 )
+  ( EXPECT -1 -1 1 )
   ( EXPECT 1: )
   ( EXPECT 4 5 6 )
   ( EXPECT 7 8 9 )
 
+  T< "vector3-equal >T
+  S< 0101 0102 0103 >S S< 0101 0102 0103 >S ;vector3/equal JSR2 DBGBYTE POP ( EXPECT 0x01 )
+  S< 0101 0102 0103 >S S< 0101 0102 0104 >S ;vector3/equal JSR2 DBGBYTE POP ( EXPECT 0x00 )
+
+  T< "vector3-lessthan >T
+  S< 0101 0102 0103 >S S< 0201 0202 0203 >S ;test-vector3-lessthan JSR2
+  ( EXPECT 257 258 259 < 513 514 515 )
+  ( EXPECT 513 514 515 ≥ 257 258 259 )
+
+  S< 0101 0102 0103 >S S< 0101 0202 0203 >S ;test-vector3-lessthan JSR2
+  ( EXPECT 257 258 259 < 257 514 515 )
+  ( EXPECT 257 514 515 ≥ 257 258 259 )
+
+  S< 0101 0102 0103 >S S< 0101 0102 0203 >S ;test-vector3-lessthan JSR2
+  ( EXPECT 257 258 259 < 257 258 515 )
+  ( EXPECT 257 258 515 ≥ 257 258 259 )
+
+  S< 0101 0102 0103 >S S< 0101 0102 0103 >S ;test-vector3-lessthan JSR2
+  ( EXPECT 257 258 259 ≥ 257 258 259 )
+  ( EXPECT 257 258 259 ≥ 257 258 259 )
+
+  S< ffff ffff ffff >S S< 0101 0102 0103 >S ;test-vector3-lessthan JSR2
+  ( EXPECT -1 -1 -1 < 257 258 259 )
+  ( EXPECT 257 258 259 ≥ -1 -1 -1 )
+
+  T< "beacon-insert-empty-list: >T
+  S< 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
+  ( EXPECT 257 258 259 )
+
+  T< "beacon-insert-at-end: >T
+  S< 0101 0102 0103 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0104 >S ;scanner/insert JSR2 ;scanner/dump JSR2
+  ( EXPECT 257 258 259 )
+  ( EXPECT 257 258 260 )
+
+  T< "beacon-insert-at-start: >T
+  S< 0101 0102 0103 0101 0102 0104 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0102 >S ;scanner/insert JSR2 ;scanner/dump JSR2
+  ( EXPECT 257 258 258 )
+  ( EXPECT 257 258 259 )
+  ( EXPECT 257 258 260 )
+
+  T< "beacon-insert-middle: >T
+  S< 0101 0102 0102 0101 0102 0104 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
+  ( EXPECT 257 258 258 )
+  ( EXPECT 257 258 259 )
+  ( EXPECT 257 258 260 )
+
+  T< "beacon-insert-skipdups: >T
+  S< 0101 0102 0103 8080 ffff ffff ffff >S DUP2 S< 0101 0102 0103 >S ;scanner/insert JSR2 ;scanner/dump JSR2
+  ( EXPECT 257 258 259 )
+
   T< "🎄 >T
   BRK !
+
+( v1* v2* -- )
+@test-vector3-lessthan
+  DUP4 ,&test-compare JSR
+  SWP2 ,&test-compare JSR
+  RTN
+
+  ( v1* v2* -- )
+  &test-compare
+    DUP4 ;vector3/less-than JSR2 STH
+    SWP2 ;vector3/print JSR2 SP
+    STHr ;&print-comparison JSR2 SP
+    ;vector3/print JSR2 LF
+    RTN
+
+  ( <? )
+  &print-comparison
+    ,&is-less JCN
+    P< "≥ >P
+    RTN
+    &is-less
+    LIT '< EMIT
+    RTN
 
 ( s* -- )
 @test-scanner-parse

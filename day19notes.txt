@@ -181,7 +181,7 @@ me suicidal thoughts? I need:
 Well that doesn't look so bad in fact. With all these basic bricks, writing the master
 algorithm shouldn't be too hard:
 
-  - for each scanner in the input, insert its beacons into a sorted vector3-list;
+  - for each scanner in the input, parse its beacons into a sorted vector3-list;
   - for each scanner A:
     - for each possible orientation R (represented as a 3x3 rotation matrix):
       - transform A's beacons according to R, insertion-sorting them into a list;
@@ -203,3 +203,10 @@ a graph:
   - return the length of scanner 0's beacon list.
 
 Let's get on with it.
+
+That vector3-list type is my scanner type in fact.
+
+Well, it's been 6 hours and I have:
+  - a vector3-list type with a sorted-insert operation.
+
+Yay.
