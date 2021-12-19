@@ -103,8 +103,24 @@
   S< 8080 8080 8080 >S DUP2 S< 0101 0102 0103 >S #0017 ;rotations/get JSR2 JSR2 ;vector3/print JSR2 LF
   ( EXPECT -259 -258 -257 )
 
+  T< "scanner-rotate: >T
+  ;&sctmp S< 0101 0102 0103 0101 0102 0104 8080 >S #0017 ( -Z-Y-X ) ;scanner/rotate JSR2
+  ;&sctmp ;scanner/dump JSR2
+  ( EXPECT -260 -258 -257 )
+  ( EXPECT -259 -258 -257 )
+
+  T< "scanner-translate: >T
+  ;&sctmp S< 0101 0102 0103 0101 0102 0104 8080 >S S< ff01 ff01 ff01 >S ;scanner/translate JSR2
+  ;&sctmp ;scanner/dump JSR2
+  ( EXPECT 2 3 4 )
+  ( EXPECT 2 3 5 )
+
   T< "🎄 >T
   BRK !
+
+|0800
+  [ &sctmp $100 ]
+|1000
 
 ( v1* v2* -- )
 @test-vector3-lessthan

@@ -262,3 +262,13 @@ I can now check off those two additional items:
   - a matrix3 type with a matrix*vector operation;
   - a list of 24 matrix3 values, one for each possible orientation;
 
+Next up are:
+  - a function that fills a new vector3-list by applying a matrix3 to each
+    element of an existing list;
+  - a function that fills a new vector3-list by adding a vector3 to each
+    element of an existing list;
+
+Clearly those two call for a `map` implementation on vector lists, I mean
+scanners.
+
+OK, that was easy.

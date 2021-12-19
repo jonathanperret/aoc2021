@@ -13,7 +13,7 @@
     [ ;&parse/sc STA2 ]
     [ ;&parse/get-byte-addr STA2 ]
 
-    TERMINATOR [ ;&parse/sc LDA2 ] STA2
+    [ ;&parse/sc LDA2 ] ;&init JSR2
 
     ;&parse/skip-line JSR2
 
@@ -27,7 +27,7 @@
       ;&parse/number JSR2 POP
 
       ( x y z )
-      ;&parse/append JSR2
+      ;&parse/insert JSR2
 
       ;&parse/line-loop JMP2
 
@@ -77,7 +77,7 @@
       [ &parse/number/sign $2 &parse/number/started $1 ]
 
     ( x y z -- )
-    &parse/append
+    &parse/insert
       ;&parse/v #0004 ADD2 STA2
       ;&parse/v #0002 ADD2 STA2
       ;&parse/v            STA2
@@ -99,6 +99,7 @@
 
   ( sc* v* -- )
   &insert
+    ( P< "inserting 20 >P DUP2 ;vector3/print JSR2 LF )
     ( sc* v* )
     ;&insert/v SWP2 ;vector3/copy JSR2
 
@@ -167,6 +168,48 @@
       POP2
       RTN
 
+  ( scout* scin* rotation -- )
+  &rotate
+    ;rotations/get JSR2
+    ( scout* scin* rotate )
+    ;&map JMP2
+
+  ( scout* scin* v* -- )
+  &translate
+    [ ;&translate/v STA2 ]
+    ;&translate/addv
+    ( scout* scin* addv )
+    ;&map JMP2
+    ( vout* vin* -- )
+    &translate/addv
+      LIT2 [ &translate/v $2 ] ;vector3/add JMP2
+
+  ( sc* -- )
+  &init
+    TERMINATOR SWP2 STA2
+    RTN
+
+  ( scout* scin* [ vout* vin* -- ] -- )
+  &map
+    [ ;&map/fn STA2 ]
+
+    ( initialize output list )
+    OVR2 ;&init JSR2
+
+    SWP2 STH2
+    ( scin* : scout* )
+    &map/loop
+      LDA2k TERMINATOR EQU2 ,&map/done JCN
+      ;&map/vout OVR2 LIT2 [ &map/fn $2 ] JSR2
+      STH2rk ;&map/vout ;&insert JSR2
+      ( scin* : scout* )
+      V3SIZE ADD2
+      ,&map/loop JMP
+    &map/done
+    ( scin* : scout* )
+    POP2 POP2r
+    RTN
+    [ &map/vout V3PAD ]
 
 @vector3
   ( v* -- )
@@ -179,6 +222,15 @@
   ( vdest* vsrc* -- )
   &copy
     SWP2 V3SIZE ;memcpy JMP2
+
+  ( vdest* v1* v2* -- )
+  &add
+    STH2 ( vdest* v1* : v2* )
+    OVR2 SWP2 ;&copy JSR2 ( vdest*=v1 : v2* )
+    LDA2k STH2rk LDA2 ADD2 OVR2 STA2 2++
+    LDA2k STH2rk LDA2 ADD2 OVR2 STA2 2++
+    LDA2k STH2r  LDA2 ADD2 SWP2 STA2
+    RTN
 
   ( v1* v2* -- v1==v2 )
   &equal
