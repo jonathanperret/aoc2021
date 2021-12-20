@@ -3,7 +3,7 @@
 ~library/math.tal
 
 %BORDERSIZE { [ ;&bordersize LDA2 ] }
-%MATRIXSIZE { #4000 } %MATRIXPAD { $4000 }
+%MATRIXSIZE { #7000 } %MATRIXPAD { $7000 }
 
 @picture
   ( get-byte -- )

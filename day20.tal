@@ -8,6 +8,11 @@
 ( init )
 
 |0100 @program
+  ( theme )
+  #05af .System/r DEO2
+  #05af .System/g DEO2 
+  #05af .System/b DEO2 
+
   ;on-arg-char .Console/vector DEO2
   BRK !
 
@@ -35,17 +40,51 @@
 
   ;open-file JSR2
 
-  #0033 [ ;picture/bordersize STA2 ]
+  #0052 [ ;picture/bordersize STA2 ]
 
   ;read-byte ;picture/parse JSR2
 
-  #0000 #0032 DO
-    ;picture/dump JSR2
-    ;picture/enhance JSR2
-    ;picture/count JSR2 DBGSHORTDEC POP2
-  LOOP
+  ;on-frame .Screen/vector DEO2
 
   BRK
+
+@on-frame
+  ;picture/enhance JSR2
+  ;picture/count JSR2 DBGSHORTDEC POP2
+  #0000 #0000 ;picture/get-at JSR2 #00 SWP ;render-picture/pixels ADD2 LDA ;clrscr JSR2
+  ;render-picture JSR2
+  [ ;&framecounter *INC2 ]
+  BRK
+  [ &framecounter $2 ]
+
+( b -- )
+@clrscr
+  [ ,&pixel STR ]
+  #01 .Screen/auto DEO
+  #0000 .Screen/height DEI2 DO
+    DUP2 .Screen/y DEO2
+    #0000 .Screen/x DEO2
+    #0000 .Screen/width DEI2 DO
+    [ LIT &pixel $1 ] .Screen/pixel DEO
+    LOOP
+  LOOP
+  RTN
+
+( -- )
+@render-picture
+  .Screen/width DEI2 [ ;picture/w LDA2 ] SUB2 2// [ ,&x0 STR2 ]
+  .Screen/height DEI2 [ ;picture/h LDA2 ] SUB2 2// [ ,&y0 STR2 ]
+  #01 .Screen/auto DEO
+  #0000 [ ;picture/h LDA2 ] DO
+    DUP2 [ LIT2 &y0 $2 ] ADD2 .Screen/y DEO2
+    #0000 [ ;picture/w LDA2 ] DO
+      DUP2 [ LIT2 &x0 $2 ] ADD2 .Screen/x DEO2
+      DUP4 SWP2 ;picture/get-at JSR2
+      #00 SWP ;&pixels ADD2 LDA .Screen/pixel DEO
+    LOOP
+  LOOP
+  RTN
+  [ &pixels 00 03 ]
 
 @open-file
   ;argv .File/name DEO2
