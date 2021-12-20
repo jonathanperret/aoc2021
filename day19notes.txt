@@ -297,7 +297,7 @@ matches between scanners. Here's how it could look:
         - for each rotation R:
           - count matches between A and R(B);
           - if the target match count is reached:
-            - overwrite B with R(B);
+            - overwrite B with R(B)+v;
             - merge B into the master scanner;
             - mark B as source.
       - mark A as done.
@@ -308,3 +308,53 @@ This should first find all scanners that share beacons with scanner 0, then
 expand the set to scanners that share beacons with those, and so on until
 we have everything aligned.
 
+Let's write a function that starts with one scanner and tries
+to align it with every other one.
+
+I'm starting to have something that I can run on the large sample… but it doesn't
+find any match between scanner 0 and any other scanner, even though the text says
+scanners 0 and 1 overlap (also, it is taking around two seconds for each scanner
+pair which is more than I expected, but I'll worry about that later).
+
+Let's see, [-618,-824,-621] (from scanner 0) is supposed to be the same beacon
+as [686,422,578] (from scanner 1).  And we're told the offset of scanner 1
+relative to scanner 0 is [68,-1246,-43].
+
+There has to be a rotation that aligns those points, which is it?
+
+Ah, printing every possibility with that offset, I have found that indeed,
+with rotation number 4 (-X+Y-Z) scanner 1's beacons do look a lot like
+scanner 0's. Why doesn't my find-alignment function work?
+
+This [68,-1246,-43] offset must be the difference between a beacon in scanner
+0's list and one in scanner 1's rotated right? Let's print all the vectors
+find-alignment tries.
+
+Ah, it doesn't appear. Hmm, but the first offset we're trying is
+[11398 500 10032] which doesn't make any sense, all the coordinates
+are between -3000 and 3000 at this point.
+
+Aaand I forgot to dereference one pointer, of course.
+
+Aaaaah I got the correct result for the sample! On the first complete run,
+too. But I faked the selection of sources, one last bit to work out.
+
+The run is a bit long on the full input, but it does get to an answer of
+323 beacons… which is correct, yay!
+
+Let's hope part 2 will be quick.
+
+# Part 2
+
+OK, now we have to find the positions of the scanners. I think we've already
+done the hard work, I just need to compute the positions… relative to scanner 0,
+for example, since this is what I've been doing.
+
+I just had to save the offset vectors which were already available, and then
+find the maximum of all Manhattan distances. I didn't try to be smart, and
+just computed every pair of distances. The answer is correct for the sample
+input, will it work on the real one? The answer in a few seconds, because
+that thing does run slowly… and the answer is correct.
+
+Wow, that was a long one. And I'm not proud of my solution which is still
+basically brute force, I wonder what better alternatives existed…

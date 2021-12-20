@@ -221,6 +221,21 @@
     RTN
     [ &map/vout V3PAD ]
 
+  ( scout* scin* -- )
+  &merge
+    SWP2 STH2
+    ( scin* : scout* )
+    &merge/loop
+      LDA2k TERMINATOR EQU2 ,&merge/done JCN
+      STH2rk OVR2 ;&insert JSR2
+      ( scin* : scout* )
+      V3SIZE ADD2
+      ,&merge/loop JMP
+    &merge/done
+    ( scin* : scout* )
+    POP2 POP2r
+    RTN
+
   ( sc1* sc2* -- count )
   &count-matches
     ( Both lists are sorted, this should be easy:
@@ -285,8 +300,9 @@
     ( generate all pairs )
     [ ;&fa/sc2 STA2 ]
     [ ;&fa/sc1 STA2 ]
-    [ ;&fa/sc1 LDA2 ] ;&count JSR2 [ ;&fa/sc1count STA2 ]
-    [ ;&fa/sc2 LDA2 ] ;&count JSR2 [ ;&fa/sc2count STA2 ]
+    ( try only the first n-target+1 beacons as the first aligned )
+    [ ;&fa/sc1 LDA2 ] ;&count JSR2 [ ;&fa/target LDA2 ] DEC2 SUB2 [ ;&fa/sc1count STA2 ]
+    [ ;&fa/sc2 LDA2 ] ;&count JSR2 [ ;&fa/target LDA2 ] DEC2 SUB2 [ ;&fa/sc2count STA2 ]
     #0000 [ ;&fa/sc1count LDA2 ] DO
       #0000 [ ;&fa/sc2count LDA2 ] DO
         OVR2 POP2
@@ -295,9 +311,9 @@
         DUP2 V3SIZE MUL2 [ ;&fa/sc2 LDA2 ] ADD2 [ ;&fa/v2 STA2 ]
         ;&find-alignment/offset [ ;&fa/v1 LDA2 ] [ ;&fa/v2 LDA2 ] ;vector3/subtract JSR2
 
-        ;&fa/sc2moved [ ;&fa/sc2 LDA2 ] ;&find-alignment/offset ;&translate JSR2
+        ;&find-alignment/sc-aligned [ ;&fa/sc2 LDA2 ] ;&find-alignment/offset ;&translate JSR2
 
-        [ ;&fa/sc1 LDA2 ] ;&fa/sc2moved ;&count-matches JSR2
+        [ ;&fa/sc1 LDA2 ] ;&find-alignment/sc-aligned ;&count-matches JSR2
         ( match-count )
         [ ;&fa/target LDA2 ] LTH2 ,&fa/not-found JCN
           UNLOOP
@@ -317,7 +333,19 @@
       &fa/v2 $2
       &fa/sc1count $2
       &fa/sc2count $2
-      &fa/sc2moved $100 ]
+      &find-alignment/sc-aligned $100 ]
+
+  ( scout* scin* -- )
+  &copy
+    SWP2 STH2 ( scin* : scout* )
+    &copy/loop
+      LDA2k TERMINATOR EQU2 ,&copy/done JCN
+      LDA2k STH2rk STA2
+      2++ 2++r
+      ,&copy/loop JMP
+    &copy/done
+    POP2 POP2r
+    RTN
 
 @vector3
   ( v* -- )
@@ -350,6 +378,23 @@
     LDA2k STH2rk LDA2 SUB2 OVR2 STA2 2++ 2++r
     LDA2k STH2r  LDA2 SUB2 SWP2 STA2
     RTN
+
+  ( v1* v2* -- distance )
+  &manhattan
+    STH2 ( v1* : v2* )
+    LDA2k STH2rk LDA2 SUB2 ;&abs JSR2 SWP2 2++ 2++r ( dx v1* : v2* )
+    LDA2k STH2rk LDA2 SUB2 ;&abs JSR2 SWP2 2++ 2++r ( dx dy v1* : v2* )
+    LDA2  STH2r  LDA2 SUB2 ;&abs JSR2 ( dx dy dz )
+    ADD2 ADD2
+    RTN
+
+  ( n -- |n| )
+  &abs
+    DUP2 #8000 LTH2 ,&abs/pos JCN
+    NEG2
+    &abs/pos
+    RTN
+
 
   ( v1* v2* -- v1==v2 )
   &equal
@@ -425,7 +470,7 @@
       ( count )
 
       ( store current pointer in scanners array )
-      STH2rk ;&scanners [ ;&count LDA2 ] 2** ADD2 STA2
+      STH2rk ;&list [ ;&count LDA2 ] 2** ADD2 STA2
 
       ( count )
 
@@ -447,8 +492,147 @@
     &dump/not-zero
     #0000 [ ;&count LDA2 ] DO
       DUP2 ;print-short-decimal JSR2 LIT ': EMIT LF
-      DUP2 2** ;&scanners ADD2 LDA2 ;scanner/dump JSR2
+      DUP2 2** ;&list ADD2 LDA2 ;scanner/dump JSR2
     LOOP
     RTN
 
-  [ &count $2 &scannersbuf $2000 &scanners $40 ]
+  ( sourceindex -- )
+  &find-matches
+    P< "matches_for >P SP DBGSHORTDECn LIT ': EMIT LF
+    [ ;&fm/source STA2 ]
+    [ ;&fm/source LDA2 ] ;&mark-as-source JSR2
+    [ ;&fm/source LDA2 ] ;&get-sc JSR2 [ ;&fm/source-sc STA2 ]
+    #0000 [ ;&count LDA2 ] DO
+      DUP2 [ ;&fm/candidate STA2 ]
+      [ ;&fm/candidate LDA2 ] ;&is-marked JSR2 ;&fm/next-candidate JCN2
+      P< "against >P SP DBGSHORTDECn LIT ': EMIT SP
+
+      [ ;&fm/candidate LDA2 ] ;&get-sc JSR2 [ ;&fm/candidate-sc STA2 ]
+
+      ( try all rotations )
+      #0000 ROTATIONCOUNT DO
+        LIT 'r EMIT DBGSHORTDECn SP
+        STH2k
+        ;&fm/sctmp [ ;&fm/candidate-sc LDA2 ] STH2r ;scanner/rotate JSR2
+
+        [ ;&fm/source-sc LDA2 ] ;&fm/sctmp #000c ;scanner/find-alignment JSR2
+        NOT ,&fm/nomatch JCN
+        P< "🎉 >P LF
+        ( on success, record and move to next candidate )
+        ( overwrite candidate with aligned version )
+        [ ;&fm/candidate-sc LDA2 ] ;scanner/find-alignment/sc-aligned ;scanner/copy JSR2
+
+        ( mark candidate as source )
+        [ ;&fm/candidate LDA2 ] ;&mark-as-source JSR2
+
+        ( record position )
+        [ ;&fm/candidate LDA2 ] V3SIZE MUL2 ;&positions ADD2 ;scanner/find-alignment/offset ;vector3/copy JSR2
+
+        ( stop searching for rotations )
+        UNLOOP
+        ,&fm/next-candidate JMP
+
+        &fm/nomatch
+      LOOP
+      LF
+
+      &fm/next-candidate
+    LOOP
+    ( mark source as done )
+    [ ;&fm/source LDA2 ] ;&mark-as-done JSR2
+    RTN
+    [ &fm/source $2 &fm/source-sc $2 &fm/candidate $2 &fm/candidate-sc $2
+      &fm/sctmp $100
+      &fm/sctmp2 $100
+      &vt 0044 fb22 ffd5 ]
+
+  ( i -- sc* )
+  &get-sc
+    2** ;&list ADD2 LDA2
+    RTN
+
+  ( i -- )
+  &mark-as-source
+    2** ;&states ADD2 #01 ROT ROT STA
+    RTN
+
+  ( i -- )
+  &mark-as-done
+    2** ;&states ADD2 #02 ROT ROT STA
+    RTN
+
+  ( i -- marked )
+  &is-marked
+    2** ;&states ADD2 LDA #00 NEQ
+    RTN
+
+  ( i -- marked )
+  &is-marked-as-source
+    2** ;&states ADD2 LDA #01 EQU
+    RTN
+
+  ( -- )
+  &merge-and-count
+    ;&finalscanner ;scanner/init JSR2
+    #0000 [ ;&count LDA2 ] DO
+      P< "merge >P DBGSHORTDEC
+      DUP2 ;&get-sc JSR2 ;&finalscanner SWP2 ;scanner/merge JSR2
+    LOOP
+    ;&finalscanner ;scanner/dump JSR2
+    ;&finalscanner ;scanner/count JSR2 DBGSHORTDEC POP2
+    RTN
+
+  ( -- )
+  &expand-sources
+    #00 [ ;&es/found STA ]
+    #0000 [ ;&count LDA2 ] DO
+      DUP2 ;&is-marked-as-source JSR2 NOT ,&es/not-source JCN
+        #01 [ ;&es/found STA ]
+        DUP2 ;&find-matches JSR2
+      &es/not-source
+    LOOP
+    [ ;&es/found LDA ]
+    RTN
+    [ &es/found $1 ]
+
+  [ &count $2 &scannersbuf $2000 &list $40
+    &states $40 &finalscanner $3000 
+    &positions $100 ]
+
+  ( i -- v* )
+  &get-position
+    V3SIZE MUL2 ;&positions ADD2
+    RTN
+
+  ( -- )
+  &print-positions
+    #0000 [ ;&pp/maxdist STA2 ]
+    #0000 [ ;&count LDA2 ] DO
+      DUP2 DBGSHORTDECn LIT ': EMIT ;&get-position JSR2 ;vector3/print JSR2 LF
+      DUP2 ;&get-position JSR2
+      #0000 [ ;&count LDA2 ] DO
+        ( v1* j )
+        P< "to 20 >P DBGSHORTDECn LIT ': EMIT
+
+        DUP2 ;&get-position JSR2 STH2 ( v1* j : v2* )
+
+        STH2rk ;vector3/print JSR2
+
+        SP
+
+        OVR2 STH2r ;vector3/manhattan JSR2 DBGSHORTDECn
+
+        ( distance )
+        DUP2 [ ;&pp/maxdist LDA2 ] LTH2 ,&pp/not-better JCN
+          DUP2 [ ;&pp/maxdist STA2 ]
+        &pp/not-better
+        POP2
+
+        LF
+
+      LOOP
+      POP2
+    LOOP
+    P< "maxdist= >P [ ;&pp/maxdist LDA2 ] DBGSHORTDEC POP2
+    RTN
+    [ &pp/vtmp V3PAD &pp/maxdist $2 ]
