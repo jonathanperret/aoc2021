@@ -1,0 +1,72 @@
+# Part 1
+
+Cellular automata? The decision to take here is whether to store a dense or sparse matrix.
+
+I think I'll start with a sparse representation — this "infinite grid" business has me a
+a bit worried.
+
+Aah, but: the texxt doesn't mention it, but the real input is 100x100 pixels large! I clearly
+cannot store up to 10,000 coordinate pairs in memory… or can I? If each coordinate was a byte,
+this would only take a maximum of 20,000 bytes. Even shorts would fit at a maximum of 40,000
+bytes. And the first two steps are only going to grow the image by 4 pixels on each side, which
+adds approximately 1600 pixels.
+
+How many lit pixels in the initial state? I have 4960 '#' characters and 4940 '.' characters.
+
+This is quite dense — I'm worrying that neighbors lookups are going to be quite costly in a
+coordinate pair list. Just for the first step, I'm looking at 4960*9=39680 scans of a
+4960-element list, so already 196,812,800 comparisons. Yesterday showed that UXN isn't
+in fact infinitely fast, so let's be careful there.
+
+OK, change of plans, let's go with a dense matrix. At one byte per pixel it'd
+have to be, accounting for a 4-cell margin of each side, at least 108x108=11664 bytes.
+Note that I need another copy as well, because it all happens "simultaneously".
+
+Let's go with this for the start. I can probably reuse some matrix code from a few days ago.
+Maybe even the bitset code I wrote to store the visited status in that Dijkstra/UCS
+thing of day… 15?
+
+The sample is working, but I just found something worrying… the real input has a rule that
+toggles every empty cell without neighbors (i.e. the infinite space around the picture)!
+
+Can I cheat with a large enough border? The pixels on the outside will be garbage (since I
+assumed the outermost fringe of pixels would never change from 0) but in only two steps,
+the corruption shouldn't reach the interesting part.
+
+Ah, but I need to clear that garbage. Or well, not count it. I'll just skip the outermost
+two pixels when counting.
+
+This hack gives the right answer! That wasn't too hard, now let's see what's in
+store for part 2.
+
+# Part 2
+
+Damn. If I had enough memory, running for 50 steps would be trivial, wouldn't
+it? Or would the picture become too large even for regular machines?
+
+Each step can only grow the picture by one pixel on each side, I think. So the final
+picture would be 200x200=40,000 pixels? I can still fit one of those, but not two.
+I would need to either write the temporary matrix to disk, or use only one bit per
+pixel.
+
+I also need to get rid of my hack for this annoying first 0=>1 rule.
+
+Well I replaced that hack with another one that toggles the fringe values at every
+step if the first rule is detected to have 1 as an output. A better implementation
+maybe would have been to use a virtual border that flips at every step, but I was
+kind of attached to not having to check for bounds when looking for neighbors.
+
+Another choice would have been to invert the rules so that the image produced
+was the inverse ("negative") of the expected image (so, with the outside part
+staying at 0 everywhere). Of course, before the next step you'd have to invert
+the image… or you could use yet another modification of the rules, that would
+produce a "positive" picture given an inverted one. This could be achieved I think,
+by reordering the rules so that the output for x was now the output for ~x… which
+is equivalent to reading the rules backwards!
+
+And I reworked the code to avoid using pointers into the matrix, so that I could
+migrate its storage to 1 pixel per bit. That was a pain to debug, even though I
+implemented a bit-set a couple days ago (which was a pain to debug already!).
+
+With all that I could run the input through 50 steps (with a 51-pixel wide border),
+which gave me the correct answer.

@@ -1,0 +1,267 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+%BORDERSIZE { [ ;&bordersize LDA2 ] }
+%MATRIXSIZE { #4000 } %MATRIXPAD { $4000 }
+
+@picture
+  ( get-byte -- )
+  &parse
+    [ ;&parse/get-byte-addr STA2 ]
+
+    #00 MATRIXSIZE ;&matrix ;memset JSR2
+
+    ;&rules ( rule* )
+    &parse/rules-loop
+      ;&parse/get-byte JSR2
+      DUP #0a EQU ,&parse/rules-done JCN
+      LIT '# NEQ ,&parse/rule-not-set JCN
+        DUP2 #01 ROT ROT STA
+        &parse/rule-not-set
+      INC2
+      ,&parse/rules-loop JMP
+    &parse/rules-done
+    ( rule* 0a )
+    POP POP2
+
+    ( skip empty line )
+    ;&parse/get-byte JSR2 POP
+
+    ( scan first row to get width )
+    ;&parse/parse-row JSR2 POP
+    [ ;&parse/row-w LDA2 ] BORDERSIZE 2** ADD2 [ ;&w STA2 ]
+
+    BORDERSIZE [ ;&h STA2 ]
+
+    ( copy first row into matrix )
+    ;&parse/append-row JSR2
+
+    ( parse other rows )
+    &parse/next-row
+      ;&parse/parse-row JSR2 NOT ,&parse/done JCN
+      ;&parse/append-row JSR2
+      ,&parse/next-row JMP
+
+    &parse/done
+    [ ;&h LDA2 ] BORDERSIZE ADD2 [ ;&h STA2 ]
+
+    RTN
+
+    [ &parse/w $2 &parse/row-w $2 &parse/row $100 ]
+
+    ( -- b )
+    &parse/get-byte
+      LIT2 [ &parse/get-byte-addr $2 ] JMP2
+
+    &parse/parse-row
+      ;&parse/row STH2 ( : row* )
+      &parse/next-char
+        ;&parse/get-byte JSR2
+        DUP #00 EQU ,&parse/row-done JCN
+        DUP #0a EQU ,&parse/row-done JCN
+        LIT '# EQU
+        STH2rk STA INC2r
+        ,&parse/next-char JMP
+      &parse/row-done
+      ( 00-or-0a )
+      POP
+      STH2r ;&parse/row SUB2 [ ;&parse/row-w STA2 ]
+      [ ;&parse/row-w LDA2 ] #0000 GTH2
+      RTN
+
+    &parse/append-row
+      [ ;&h *INC2 ]
+
+      #0000 [ ;&parse/row-w LDA2 ] DO
+        ( x )
+        DUP2 ;&parse/row ADD2 LDA STH ( x : val )
+        DUP2 BORDERSIZE ADD2 [ ;&h LDA2 ] DEC2 ( x x+border y )
+        STHr ;&set-at JSR2
+      LOOP
+
+      RTN
+
+  ( -- )
+  &dump
+    [ ;&w LDA2 ] DBGSHORTDECn SP POP2
+    [ ;&h LDA2 ] DBGSHORTDECn LF POP2
+    #0000 [ ;&h LDA2 ] DO
+      #0000 [ ;&w LDA2 ] DO
+        DUP4 SWP2 ;&get-at JSR2
+        #00 SWP ;&dump/chars ADD2 LDA EMIT
+      LOOP
+      LF
+    LOOP
+    RTN
+    [ &dump/chars ".# ]
+
+  ( matrix x y -- ptr bitpos )
+  &mget-ptr-at
+    [ ;&w LDA2 ] MUL2 ADD2
+    ( matrix index )
+    DUP #07 AND STH
+    ( matrix index : bitpos )
+    8// ADD2
+    ( offset : bitpos )
+    STHr
+    RTN
+
+  ( matrix x y -- val )
+  &mget-at
+    ;&mget-ptr-at JSR2 STH
+    ( ptr : bitpos )
+    LDA ( ptr val : bitpos )
+    ( use bitpos as right shift )
+    STHr SFT
+    #01 AND
+    #00 NEQ
+    RTN
+
+  ( matrix x y val -- )
+  &mset-at
+    STH
+    ;&mget-ptr-at JSR2
+    ( ptr bitpos : val )
+    STH LDAk STHr
+    ( ptr currentval bitpos : val )
+    ( turn bitpos into left shift )
+    #40 SFT
+    STHr ( ptr currentval lshift val ) SWP SFT
+    ( ptr currentval shiftedval )
+    DUP ,&set-at/one JCN
+      ( ptr currentval shiftedval )
+      ( clear bit )
+      #ff EOR AND
+      ,&set-at/store JMP
+    &set-at/one
+      ( ptr currentval shiftedval )
+      ( set bit )
+      ORA
+      ,&set-at/store JMP
+    &set-at/store
+    ( ptr newval )
+    ROT ROT STA
+    RTN
+
+  ( x y -- val )
+  &get-at
+    ;&matrix ROT2 ROT2 ;&mget-at JMP2
+
+  ( x y val -- )
+  &set-at
+    STH ;&matrix ROT2 ROT2 STHr ;&mset-at JMP2
+
+  ( x y -- val )
+  &get-tmp-at
+    ;&matrixtmp ROT2 ROT2 ;&mget-at JMP2
+
+  ( x y val -- )
+  &set-tmp-at
+    STH ;&matrixtmp ROT2 ROT2 STHr ;&mset-at JMP2
+
+  ( -- )
+  &enhance
+    #00 MATRIXSIZE ;&matrixtmp ;memset JSR2
+    #0001 [ ;&h LDA2 ] DEC2 DO
+      #0001 [ ;&w LDA2 ] DEC2 DO
+        ( y x )
+
+        LIT2r 0000 ( y x : count )
+
+        DUP4 SWP2 DEC2 SWP2 DEC2 ( y-1 x-1 : count )
+
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          INC2 ( y-1 x : count )
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          INC2 ( y-1 x+1 : count )
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          POP2 POP2 ( : count )
+
+        DUP4 DEC2 ( y x-1 : count )
+
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          INC2 ( y x : count )
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          INC2 ( y x+1 : count )
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          POP2 POP2 ( : count )
+
+        DUP4 SWP2 INC2 SWP2 DEC2 ( y+1 x-1 : count )
+
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          INC2 ( y+1 x : count )
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          INC2 ( y+1 x+1 : count )
+          DUP4 SWP2 ;&get-at JSR2 2**r LITr 00 STH ADD2r
+
+          POP2 POP2 ( : count )
+
+        STH2r ;&lookup JSR2
+        STH
+        ( y x : out )
+        DUP4 SWP2 STHr ;&set-tmp-at JSR2
+      LOOP
+    LOOP
+    ( if rule 0 is #, toggle borders )
+    ;&rules LDA #00 EQU ;&no-border-toggle JCN2
+      ( toggle first and last column )
+      #0000 [ ;&h LDA2 ] DO
+        ( y )
+        #0000 OVR2 ( y 0 y )
+        DUP4 ;&get-at JSR2 NOT STH
+        ( 0 y : val )
+        STHr ;&set-tmp-at JSR2
+
+        ( y )
+        [ ;&w LDA2 ] DEC2 OVR2 ( y w-1 y )
+        DUP4 ;&get-at JSR2 NOT STH
+        STHr ;&set-tmp-at JSR2
+      LOOP
+      ( toggle first and last row, except corners )
+      #0001 [ ;&w LDA2 ] DEC2 DO
+        ( x )
+        DUP2 #0000 ( x x 0 )
+        DUP4 ;&get-at JSR2 NOT STH
+        STHr ;&set-tmp-at JSR2
+
+        ( x )
+        DUP2 [ ;&h LDA2 ] DEC2 ( x x h-1 )
+        DUP4 ;&get-at JSR2 NOT STH
+        STHr ;&set-tmp-at JSR2
+      LOOP
+    &no-border-toggle
+
+    ;&matrixtmp ;&matrix MATRIXSIZE ;memcpy JSR2
+    RTN
+
+  ( count -- output )
+  &lookup
+    ;&rules ADD2 LDA
+    RTN
+
+  ( -- count )
+  &count
+    #0000 [ ;&count/sum STA2 ]
+    #0000 [ ;&h LDA2 ] DO
+      #0000 [ ;&w LDA2 ] DO
+        DUP4 SWP2 ;&get-at JSR2
+        #00 SWP [ ;&count/sum LDA2 ] ADD2 [ ;&count/sum STA2 ]
+      LOOP
+    LOOP
+    [ ;&count/sum LDA2 ]
+    RTN
+    [ &count/sum $2 ]
+
+  [ &rules $200 &w $2 &h $2
+    &matrix MATRIXPAD
+    &matrixtmp MATRIXPAD
+    &bordersize 0005 ]
