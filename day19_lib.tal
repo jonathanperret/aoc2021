@@ -189,7 +189,7 @@
     [ ;&translate/v STA2 ]
     ;&translate/addv
     ( scout* scin* addv )
-    ;&map JMP2
+    ;&stablemap JMP2
     ( vout* vin* -- )
     &translate/addv
       LIT2 [ &translate/v $2 ] ;vector3/add JMP2
@@ -345,6 +345,21 @@
       ,&copy/loop JMP
     &copy/done
     POP2 POP2r
+    RTN
+
+  ( scout* scin* [ vout* vin* -- ] -- )
+  &stablemap
+    [ ;&stablemap/fn STA2 ]
+    SWP2 STH2 ( scin* : scout* )
+    &stablemap/loop
+      LDA2k TERMINATOR EQU2 ,&stablemap/done JCN
+      STH2rk OVR2 ( vout* vin* ) LIT2 [ &stablemap/fn $2 ] JSR2
+      V3SIZE ADD2       ( advance scin* )
+      V3SIZE STH2 ADD2r ( advance scout* )
+      ,&stablemap/loop JMP
+    &stablemap/done
+    ( terminate scout* )
+    LDA2 STH2r STA2
     RTN
 
 @vector3
@@ -595,8 +610,8 @@
     RTN
     [ &es/found $1 ]
 
-  [ &count $2 &scannersbuf $2000 &list $40
-    &states $40 &finalscanner $3000 
+  [ &count $2 &scannersbuf $4000 &list $100
+    &states $100 &finalscanner $4000 
     &positions $100 ]
 
   ( i -- v* )
