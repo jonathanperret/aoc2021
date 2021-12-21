@@ -234,3 +234,31 @@ Assuming we can compute all the edges of that DAG, the count of player 1 wins
 would be found starting from the "player 1 wins" node and summing all the
 edges for every distinct path that goes back to the initial state.
 
+OK, here's the plan I've been trying to execute:
+  - initialize a dictionary of state counts containing only {(8,6,0,0,0):1}
+    that is, there is 1 way to get at (player 1 at 8, player 2 at 6, both
+    scores at 0, player 1 to play).
+  - repeat:
+    - initialize an empty output dictionary with a 0 default value;
+    - for each (state, count) in the dictionary:
+      - for each possible dice sum:
+        - compute the new state obtained with that throw;
+        - if the playing player wins, add the current state's count to that
+          player's win count;
+        - otherwise, in the output dictionary, increment the count for that new
+          state by the count for the current state multiplied by the number of
+          ways to get that dice sum (i.e. 1 way for 3, 3 ways for 4, etc.).
+    - if the output dictionary is still empty, break;
+    - otherwise, replace the dictionary with the output dictionary.
+
+It's been going slowly but OK. I have the dictionaries working.
+
+The problem is, the dictionary quickly grows beyond the memory capacity of
+UXN. The minimum size I can do for a key is three bytes: one byte for the
+two positions, two bytes for the scores, and I don't really need to store
+which player is up to play since it simply switches at every iteration.
+For the counts, I definitely need a 64-bit integer: the sample counts
+are large enough to require 7 bytes.
+
+So in about 64000 bytes, I could fit a maximum of 6400 dictionary entries.
+But I need two dictionaries!

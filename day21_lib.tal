@@ -2,74 +2,408 @@
 ~library/string.tal
 ~library/math.tal
 
-@diracdice
-  [ &nextup $2 &playerpos $4 &playerscore $4 &die $2 &diecount $2 ]
-  ( player1 player2 -- )
+%STATEPAD { $5 } %STATESIZE { #0005 }
+%STATE.pos1   {            }
+%STATE.pos2   { #0001 ADD2 }
+%STATE.score1 { #0002 ADD2 }
+%STATE.score2 { #0003 ADD2 }
+%STATE.nextup { #0004 ADD2 }
+
+%STATELISTPAD { $1000 } %STATELISTSIZE { #1000 }
+
+%SLENTRYPAD { $d } %SLENTRYSIZE { #000d }
+
+%STATEBUFPAD { $4000 } %STATEBUFSIZE { #4000 }
+
+%POSCOUNT { #04 }
+%WINSCORE { #0005 }
+
+%COUNTSIZE { #0008 } %COUNTPAD { $8 }
+
+%TERMINATOR { #ffff }
+
+@state
+  ( st* player1pos player2pos player1score player2score nextup -- )
   &init
-    [ ;&playerpos #0002 ADD2 STA2 ]
-    [ ;&playerpos            STA2 ]
-    #0000 [ ;&die STA2 ]
-    #0000 [ ;&diecount STA2 ]
-    #0000 [ ;&nextup STA2 ]
+    STH STH STH STH STH
+         STH2k STAr
+    INC2 STH2k STAr
+    INC2 STH2k STAr
+    INC2 STH2k STAr
+    INC2 STH2  STAr
     RTN
 
-  ( -- val )
-  &roll
-    [ ;&die LDA2 ] #0064 MOD2 INC2
-    DUP2 [ ;&die STA2 ]
+  ( st* -- )
+  &print
+  &dump
+    LIT '[ EMIT
+         LDAk DBGBYTEDECn SP POP
+    INC2 LDAk DBGBYTEDECn SP POP
+    INC2 LDAk DBGBYTEDECn SP POP
+    INC2 LDAk DBGBYTEDECn SP POP
+    INC2 LDA  DBGBYTEDECn    POP
+    LIT '] EMIT
     RTN
 
-  ( -- continue )
-  &turn
-    P< "Player 20 >P
-    [ ;&nextup LDA2 ] INC2 DBGSHORTDECn POP2
-    P< 20 "rolls 20 >P
-    ;&roll JSR2 DBGSHORTDECn LIT '+ EMIT
-    ;&roll JSR2 DBGSHORTDECn LIT '+ EMIT ADD2
-    ;&roll JSR2 DBGSHORTDECn             ADD2
-    [ ;&diecount LDA2 ] #0003 ADD2 [ ;&diecount STA2 ]
-    P< 20 "and 20 "moves 20 "to 20 "space 20 >P
-    #000a MOD2
-    [ ;&playerpos [ ;&nextup LDA2 ] 2** ADD2 LDA2 ]
-    ADD2 DEC2 #000a MOD2 INC2
-    DBGSHORTDECn
-    DUP2 [ ;&playerpos [ ;&nextup LDA2 ] 2** ADD2 STA2 ]
-    P< 20 "for 20 "a 20 >P
-    [ ;&playerscore [ ;&nextup LDA2 ] 2** ADD2 LDA2 ]
-    ADD2
-    ( score )
-    DUP2 [ ;&playerscore [ ;&nextup LDA2 ] 2** ADD2 STA2 ]
-    ( score )
-    [ ;&nextup LDA2 ] INC2 2MOD2 [ ;&nextup STA2 ]
-    ( score )
-    DUP2 #03e8 LTH2 ,&not-win JCN
-      P< "final 20 "score, 20 >P
-      DBGSHORTDECn POP2
-      P< ". 0a >P
-      #00 RTN
-    &not-win
-    P< "total 20 "score 20 "of 20 >P
-    DBGSHORTDECn POP2
-    P< ". 0a >P
+  ( stout* stin* -- )
+  &copy
+    SWP2
+    STATESIZE ;memcpy JSR2 ( stout* : dicesum )
+    RTN
+
+  ( st1* st2* -- equal )
+  &equal
+    STH2 ( st1* : st2* )
+    LDAk LDArk STHr NEQ ,&equal/not JCN
+    INC2 INC2r
+    LDAk LDArk STHr NEQ ,&equal/not JCN
+    INC2 INC2r
+    LDAk LDArk STHr NEQ ,&equal/not JCN
+    INC2 INC2r
+    LDAk LDArk STHr NEQ ,&equal/not JCN
+    INC2 INC2r
+    LDA  LDAr  STHr NEQ ,&equal/not JCN
     #01 RTN
+    &equal/not
+    POP2 POP2r
+    #00 RTN
+
+  ( stout* stin* dicesum -- )
+  &advance
+    STH
+    ( stout* stin* : dicesum )
+    OVR2 SWP2 ( stout* stout* stin* : dicesum )
+    ;&copy JSR2 ( stout* : dicesum )
+
+    [ DUP2 STATE.nextup LDA ] [ #00 SWP ;&advance/offset STA2 ]
+    ( stout* : dicesum )
+    DUP2 STATE.pos1 [ ;&advance/offset LDA2 ] ADD2 ( stout* pos* : dicesum )
+    LDAk STHr ADD ( stout* pos* pos+dicesum )
+    DEC #0a MOD INC ( stout* pos* (pos+dicesum)-1)%10+1 )
+    STHk ROT ROT STA ( stout* : newpos )
+
+    DUP2 STATE.score1 [ ;&advance/offset LDA2 ] ADD2 ( stout* score* : newpos )
+    LDAk STHr ADD ( stout* score* newscore )
+    DUP #14 GTH ,&advance/win JCN
+    ( stout* score* newscore )
+    ROT ROT STA ( stout* )
+    ( toggle nextup )
+    STATE.nextup ( nextup* )
+    LDAk #01 EOR ROT ROT STA
     RTN
 
-  ( -- )
-  &game
-    ;&turn JSR2 ,&game JCN
+    &advance/win
+    ( stout* score* newscore )
+    POP
+    ( store 21 as score )
+    #15 ROT ROT STA
+    ( stout * )
+    ( store 0 as other score )
+    DUP2 [ DUP2 STATE.nextup LDA ] #01 EOR #00 SWP ADD2 STATE.score1 #00 ROT ROT STA
+    ( store 0 as positions )
+    STATE.pos1 #0000 SWP2 STA2
+
+    RTN
+    [ &advance/offset $2 ]
+
+@statelist
+  ( sl* -- )
+  &init
+    TERMINATOR SWP2 STA2
+    ;statebuf/init JSR2
     RTN
 
-  ( -- )
-  &result
-    ;&score64 [ ;&playerscore [ ;&nextup LDA2 ] 2** ADD2 LDA2 ] ;short-to-64 JSR2
-    ;&score64 ;print64/no-pad JSR2
-    P< 20 "* 20 >P
-    ;&diecount64 [ ;&diecount LDA2 ] ;short-to-64 JSR2
-    ;&diecount64 ;print64/no-pad JSR2
-    P< 20 "= 20 >P
-    ;&score64 ;&diecount64 ;mul64 JSR2
-    ;&result64 ;mul64/get-lo JSR2
-    ;&result64 ;print64/no-pad JSR2
+  ( sl* -- )
+  &dump
+    POP2
+    ;statebuf/dump JSR2
+    RTN
+
+    #0000 [ ;&dump/count STA2 ]
+    ;&dump/one ;statelist/foreach JSR2
+    [ ;&dump/count LDA2 ] DBGSHORTDECn POP2
     LF
+
+    [ &dump/count $2 ]
+    ( sl* -- )
+    &dump/one
+      [ ;&dump/count *INC2 ]
+      DUP2 ;state/dump JSR2
+      LIT ': EMIT
+
+      STATESIZE ADD2 ;print64/no-pad JSR2
+
+      SP
+      RTN
+
+  ( sl* -- count )
+  &count
+    #0000 [ ;&count/count STA2 ]
+    ;&count/one ;statelist/foreach JSR2
+    [ ;&count/count LDA2 ]
     RTN
-    [ &score64 $8 &diecount64 $8 &result64 $8 ]
+
+    [ &count/count $2 ]
+
+    ( sl* -- )
+    &count/one
+      [ ;&count/count *INC2 ]
+      POP2
+      RTN
+
+  ( sl* [ sl* -- ] -- )
+  &foreach
+    [ ;&foreach/fn STA2 ]
+    &foreach/loop
+      LDA2k TERMINATOR EQU2 ,&foreach/done JCN
+
+      DUP2 LIT2 [ &foreach/fn $2 ] JSR2
+
+      SLENTRYSIZE ADD2
+      ,&foreach/loop JMP
+
+    &foreach/done
+    POP2
+    RTN
+
+  ( sl* st* count* -- )
+  &add
+    STH2 DUP2 STH2rk ;statebuf/add JSR2
+
+    STH2r
+
+    STH2 ( sl* st* : count* )
+    STH2 ( sl* : st* count* )
+
+    DUP2 STATELISTSIZE ADD2 [ ;&add/scan/bufend STA2 ]
+
+    &add/scan/loop
+      LDA2k TERMINATOR EQU2 ,&add/scan/at-end JCN
+
+      DUP2 STH2rk ;state/equal JSR2 ,&add/scan/found JCN
+
+      SLENTRYSIZE ADD2
+      ,&add/scan/loop JMP
+
+    &add/scan/at-end
+    ( sl* : st* count* )
+
+    DUP2 [ ;&add/scan/bufend LDA2 ] LTH2 ,&add/buf-ok JCN
+      P< "buffer_overflow >P LF
+      !
+      &add/buf-ok
+
+    STH2r
+    ( sl* st* : count* )
+
+    OVR2 SWP2 ;state/copy JSR2
+    DUP2 SLENTRYSIZE ADD2 TERMINATOR SWP2 STA2
+    ( sl* )
+    STATESIZE ADD2 ( entry.count* : count* )
+    STH2r
+    ;copy64 JSR2
+    RTN
+
+    &add/scan/found
+    ( sl* : st* count* )
+    POP2r
+    STATESIZE ADD2 ( sl.count* : count* )
+    STH2r ( sl.count* count* )
+    ( count* )
+    POP2 POP2 ( ;add64 JSR2 )
+    RTN
+    [ &add/scan/bufend $2 ]
+
+@universes
+  ( pos1 pos2 -- )
+  &init
+    ;end-of-all-things DBGSHORT POP2
+    STH STH
+    ;&st STHr STHr #00 #00 #00 ;state/init JSR2
+    ;&slist1 ;statelist/init JSR2
+    ;&stcount #0001 ;short-to-64 JSR2
+    ;&slist1 ;&st ;&stcount ;statelist/add JSR2
+    RTN
+
+  ( -- )
+  &dump
+    ;&slist1 ;statelist/dump JMP2
+
+  ( -- count )
+  &count
+    ;&slist1 ;statelist/count JMP2
+
+  ( -- )
+  &advance
+    ;&slist2 ;statelist/init JSR2
+    ;&slist1 ;&advance/from ;statelist/foreach JSR2
+    ;&slist2 ;&slist1 STATELISTSIZE ;memcpy JSR2
+    RTN
+
+    ( slentry* -- )
+    &advance/from
+      [ ;&advance/entry STA2 ]
+      #0003 #000a DO
+        STHk ;&st [ ;&advance/entry LDA2 ] STHr ;state/advance JSR2
+
+        ;&stcount [ [ ;&advance/entry LDA2 ] STATESIZE ADD2 ] ;copy64 JSR2
+
+        ;&slist2 ;&st ;&stcount ;statelist/add JSR2
+      LOOP
+
+      RTN
+      [ &advance/entry $2 ]
+
+  [ &st STATEPAD &stcount COUNTPAD
+    &slist1 STATELISTPAD &slist1-end
+    &slist2 STATELISTPAD
+    ]
+
+@statebuf
+  &init
+    #00 STATEBUFSIZE ;&buf ;memset JSR2
+    RTN
+
+  ( st* count* -- )
+  &add
+    STH2
+    ( st* : count* )
+
+    DUP2 ;&addr JSR2
+
+    ( st* pagenum offset : count* )
+
+    DUP4 ;&add/count ROT2 ROT2 ;&load JSR2
+
+    ( st* pagenum offset : count* )
+    ;&add/count STH2r ;add64 JSR2
+
+    ( st* pagenum offset )
+    ;&add/count ROT2 ROT2 ;&store JSR2
+
+    ( st* )
+    POP2
+    RTN
+    [ &add/count COUNTPAD ]
+
+  %PAGESIZE { WINSCORE WINSCORE COUNTSIZE MUL2 MUL2 }
+
+  ( pagenum offset -- ptr )
+  &ptr
+    STH2 PAGESIZE MUL2 STH2r ADD2
+    ( DBGSHORTn SP P< "bytes 20 "into 20 "buffer >P LF )
+    DUP2 STATEBUFSIZE LTH2 ,&ptr/ptr-ok JCN
+      P< "buffer_overflow >P SP DBGSHORT LF
+      !
+      &ptr/ptr-ok
+    ;&buf ADD2 ( count* ptr* )
+    RTN
+
+  ( count* pagenum offset )
+  &store
+    ( P< "store >P SP OVR2 DBGSHORTn SP POP2 DBGSHORT )
+    ;&ptr JSR2
+    ( count* ptr* )
+    ( OVR2 ;print64/no-pad JSR2 LF )
+    SWP2 ;copy64 JSR2
+    RTN
+
+   [ &buf STATEBUFPAD &buf-end ]
+
+  ( count* pagenum offset )
+  &load
+    ( P< "load >P SP OVR2 DBGSHORTn SP POP2 DBGSHORT )
+    ;&ptr JSR2
+    ( count* ptr* )
+    ;copy64 JSR2
+    RTN
+
+  ( -- )
+  &dump
+    #0000 [ ;&dump/entrycount STA2 ]
+    ;&dump/one ;&foreach JSR2
+    [ ;&dump/entrycount LDA2 ] DBGSHORTDECn POP2
+    RTN
+
+    [ &dump/entrycount $2 ]
+
+    ( st* count* -- )
+    &dump/one
+      SWP2 ;state/print JSR2
+      LIT ': EMIT
+      ;print64/no-pad JSR2
+      [ ;&dump/entrycount *INC2 ]
+      SP
+      RTN
+
+  ( st* -- pagenum offset )
+  &addr
+    DUP2 [ STATE.score1 LDA ] #00 SWP WINSCORE MUL2 STH2
+    DUP2 [ STATE.score2 LDA ] #00 SWP STH2 ADD2r
+    COUNTSIZE STH2 MUL2r
+    ( st* : offset )
+
+    LITr 00
+    DUP2 [ STATE.nextup LDA ] [ POSCOUNT POSCOUNT MUL ] MUL STH
+    DUP2 [ STATE.pos1 LDA ] DEC POSCOUNT MUL STH ADDr
+    DUP2 [ STATE.pos2 LDA ] DEC STH ADDr
+    ( st* : pagenum offset )
+
+    POP2 STH2r STH2r
+    ( pagenum offset )
+    RTN
+
+  ( [ st* count* -- ] -- )
+  &foreach
+    [ ;&foreach/fn STA2 ]
+    #0000 #0002 DO
+      ( nextup )
+      DUP [ ;&foreach/st STATE.nextup STA ]
+      #0000 #00 POSCOUNT DO
+        ( pos1-1 )
+        DUP INC [ ;&foreach/st STATE.pos1 STA ]
+        #0000 #00 POSCOUNT DO
+          ( pos1-1 pos2-1 )
+          DUP INC [ ;&foreach/st STATE.pos2 STA ]
+
+          OVR2 #00 POSCOUNT MUL2 OVR2 ADD2
+          [ ;&foreach/st STATE.nextup LDA ] [ POSCOUNT POSCOUNT MUL ] MUL #00 SWP ADD2
+
+          ( pos1-1 pos2-1 pagenum )
+
+          #0000 WINSCORE DO
+            ( pos1-1 pos2-1 pagenum score1 )
+            DUP [ ;&foreach/st STATE.score1 STA ]
+            #0000 WINSCORE DO
+              ( pos1-1 pos2-1 pagenum score1 score2 )
+              DUP [ ;&foreach/st STATE.score2 STA ]
+
+              ( pos1-1 pos2-1 pagenum score1 score2 )
+
+              ;&foreach/st ;&addr JSR2
+
+              ( pos1-1 pos2-1 pagenum score1 score2 pagenum offset )
+
+              ;&foreach/count ROT2 ROT2 ;&load JSR2
+
+              ( pos1-1 pos2-1 pagenum score1 score2 )
+
+              ;&foreach/count ;is-non-zero64 JSR2 NOT ,&foreach/zero JCN
+                ;&foreach/st ;&foreach/count LIT2 [ &foreach/fn $2 ] JSR2
+              &foreach/zero
+
+              ( pos1-1 pos2-1 pagenum score1 score2 )
+            LOOP
+          LOOP
+
+          POP2
+
+        LOOP
+      LOOP
+    LOOP
+
+    RTN
+    [ &foreach/count COUNTPAD &foreach/st STATEPAD ]
+
+@end-of-all-things 00
+

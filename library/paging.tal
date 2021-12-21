@@ -12,16 +12,35 @@
 
 ( pagenum offset -- b )
 @paged-get
-  SWP2 ;paging-load-page JSR2
-  ;paging-page ADD2 LDA
+  STH2 STH2
+  ;&byte #0001 STH2r STH2r ;paged-copy-from JSR2
+  LIT [ &byte $1 ]
   RTN
 
 ( b pagenum offset -- )
 @paged-set
-  SWP2 ;paging-load-page JSR2
-  ;paging-page LDA2 POP2
-  ;paging-page ADD2 STA
+  STH2 STH2 [ ;&byte STA ]
+  ;&byte #0001 STH2r STH2r ;paged-copy-to JSR2
   RTN
+  [ &byte $1 ]
+
+( dst* cnt pagenum offset -- )
+@paged-copy-from
+  SWP2 ;paging-load-page JSR2
+  ;paging-page ADD2
+  ( dst* cnt src* )
+  ROT2 ROT2
+  ( src* dst* cnt )
+  ;memcpy JMP2
+
+( src* cnt pagenum offset -- )
+@paged-copy-to
+  SWP2 ;paging-load-page JSR2
+  ;paging-page ADD2
+  ( src* cnt dst* )
+  SWP2
+  ( src* dst* cnt )
+  ;memcpy JMP2
 
 ( pagenum -- )
 @paging-load-page

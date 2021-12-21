@@ -9,11 +9,14 @@
 
 |0100 @program
 
-  #0008 #0006 ;diracdice/init JSR2
+  #0004 #0008 ;universes/init JSR2
 
-  ;diracdice/game JSR2
-
-  ;diracdice/result JSR2
+  ;universes/dump JSR2 LF
+  #0000 #0020 DO
+    ;universes/advance JSR2
+    ;universes/count JSR2 DBGSHORTDEC POP
+    ;universes/dump JSR2 LF
+  LOOP
 
   BRK
 
