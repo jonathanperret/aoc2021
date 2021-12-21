@@ -175,6 +175,8 @@
 @statebuf
   &init
     #00 STATEBUFSIZE ;&buf ;memset JSR2
+    #00 POSCOUNT POSCOUNT MUL 2*
+    ;paging-init JSR2
     RTN
 
   ( st* count* -- )
@@ -199,36 +201,20 @@
     RTN
     [ &add/count COUNTPAD ]
 
-  %fPAGESIZE { WINSCORE WINSCORE COUNTSIZE MUL2 MUL2 }
-
-  ( pagenum offset -- ptr )
-  &ptr
-    STH2 fPAGESIZE MUL2 STH2r ADD2
-    ( DBGSHORTn SP P< "bytes 20 "into 20 "buffer >P LF )
-    DUP2 STATEBUFSIZE LTH2 ,&ptr/ptr-ok JCN
-      P< "buffer_overflow >P SP DBGSHORT LF
-      !
-      &ptr/ptr-ok
-    ;&buf ADD2 ( count* ptr* )
-    RTN
-
   ( count* pagenum offset )
   &store
-    ( P< "store >P SP OVR2 DBGSHORTn SP POP2 DBGSHORT )
-    ;&ptr JSR2
-    ( count* ptr* )
-    ( OVR2 ;print64/no-pad JSR2 LF )
-    SWP2 ;copy64 JSR2
+    COUNTSIZE ROT2 ROT2
+    ( count* 0008 pagenum offset )
+    ;paged-copy-to JSR2
     RTN
 
    [ &buf STATEBUFPAD &buf-end ]
 
   ( count* pagenum offset )
   &load
-    ( P< "load >P SP OVR2 DBGSHORTn SP POP2 DBGSHORT )
-    ;&ptr JSR2
-    ( count* ptr* )
-    ;copy64 JSR2
+    COUNTSIZE ROT2 ROT2
+    ( count* 0008 pagenum offset )
+    ;paged-copy-from JSR2
     RTN
 
   ( -- )

@@ -2,6 +2,7 @@
 
 ( page-count -- )
 @paging-init
+  DUP2 [ ;paging/page-count STA2 ]
   ( pagenum )
   &loop
     DEC2 ( pagenum-1 )
@@ -9,7 +10,8 @@
     #01 .File/delete DEO
     DUP2 #0000 NEQ2 ,&loop JCN
   POP2
-  #ffff [ ;paging-loaded-page STA2 ]
+  #00 PAGESIZE ;paging-page ;memset JSR2
+  #0000 [ ;paging/loaded-page STA2 ]
   RTN
 
 ( pagenum offset -- b )
@@ -37,6 +39,7 @@
 
 ( src* cnt pagenum offset -- )
 @paged-copy-to
+  ( OVR2 DBGSHORTn POP2 LIT ': EMIT DBGSHORT )
   SWP2 ;paging-load-page JSR2
   ;paging-page ADD2
   ( src* cnt dst* )
@@ -46,11 +49,16 @@
 
 ( pagenum -- )
 @paging-load-page
-  DUP2 [ ;paging-loaded-page LDA2 ] EQU2 ,&skip JCN
+  DUP2 [ ;paging/loaded-page LDA2 ] EQU2 ,&skip JCN
   ( LIT 'F EMIT )
   ( pagenum )
-  [ ;paging-loaded-page LDA2 ] ;paging-save-page JSR2 ( pagenum )
-  DUP2 [ ;paging-loaded-page STA2 ] ( pagenum )
+  DUP2 [ ;paging/page-count LDA2 ] LTH2 ,&page-ok JCN
+    P< "page_out_of_bounds 20 >P DBGSHORT
+    !
+  &page-ok
+
+  [ ;paging/loaded-page LDA2 ] ;paging-save-page JSR2 ( pagenum )
+  DUP2 [ ;paging/loaded-page STA2 ] ( pagenum )
 
   ;paging-open-page-file JSR2
   ;paging-page .File/read DEO2
@@ -80,5 +88,6 @@
   RTN
   [ &filename "0000.swp 00 ]
 
-@paging-loaded-page $2
+@paging
+  [ &loaded-page $2 &page-count $2 ]
 @paging-page PAGEPAD
