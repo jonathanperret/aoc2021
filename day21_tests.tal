@@ -66,6 +66,10 @@
   ;testvar/slist1 ;statelist/dump JSR2 LF
   ( EXPECT [2 1 1 3 0]:1024 [1 2 0 4 1]:256 2 )
 
+  T< "statebuf/count: >T
+  ;statebuf/count JSR2 DBGSHORTDEC POP2
+  ( EXPECT 2 )
+
   ( nT< "universes: >T
   #04 #08 ;universes/init JSR2
   ;universes/dump JSR2 LF

@@ -109,110 +109,23 @@
 @statelist
   ( sl* -- )
   &init
-    TERMINATOR SWP2 STA2
-    ;statebuf/init JSR2
-    RTN
+    POP2 ;statebuf/init JMP2
 
   ( sl* -- )
   &dump
-    POP2
-    ;statebuf/dump JSR2
-    RTN
-
-    #0000 [ ;&dump/count STA2 ]
-    ;&dump/one ;statelist/foreach JSR2
-    [ ;&dump/count LDA2 ] DBGSHORTDECn POP2
-    LF
-
-    [ &dump/count $2 ]
-    ( sl* -- )
-    &dump/one
-      [ ;&dump/count *INC2 ]
-      DUP2 ;state/dump JSR2
-      LIT ': EMIT
-
-      STATESIZE ADD2 ;print64/no-pad JSR2
-
-      SP
-      RTN
+    POP2 ;statebuf/dump JMP2
 
   ( sl* -- count )
   &count
-    #0000 [ ;&count/count STA2 ]
-    ;&count/one ;statelist/foreach JSR2
-    [ ;&count/count LDA2 ]
-    RTN
-
-    [ &count/count $2 ]
-
-    ( sl* -- )
-    &count/one
-      [ ;&count/count *INC2 ]
-      POP2
-      RTN
+    POP2 ;statebuf/count JMP2
 
   ( sl* [ sl* -- ] -- )
   &foreach
-    [ ;&foreach/fn STA2 ]
-    &foreach/loop
-      LDA2k TERMINATOR EQU2 ,&foreach/done JCN
-
-      DUP2 LIT2 [ &foreach/fn $2 ] JSR2
-
-      SLENTRYSIZE ADD2
-      ,&foreach/loop JMP
-
-    &foreach/done
-    POP2
-    RTN
+    NIP2 ;statebuf/foreach JMP2
 
   ( sl* st* count* -- )
   &add
-    STH2 DUP2 STH2rk ;statebuf/add JSR2
-
-    STH2r
-
-    STH2 ( sl* st* : count* )
-    STH2 ( sl* : st* count* )
-
-    DUP2 STATELISTSIZE ADD2 [ ;&add/scan/bufend STA2 ]
-
-    &add/scan/loop
-      LDA2k TERMINATOR EQU2 ,&add/scan/at-end JCN
-
-      DUP2 STH2rk ;state/equal JSR2 ,&add/scan/found JCN
-
-      SLENTRYSIZE ADD2
-      ,&add/scan/loop JMP
-
-    &add/scan/at-end
-    ( sl* : st* count* )
-
-    DUP2 [ ;&add/scan/bufend LDA2 ] LTH2 ,&add/buf-ok JCN
-      P< "buffer_overflow >P LF
-      !
-      &add/buf-ok
-
-    STH2r
-    ( sl* st* : count* )
-
-    OVR2 SWP2 ;state/copy JSR2
-    DUP2 SLENTRYSIZE ADD2 TERMINATOR SWP2 STA2
-    ( sl* )
-    STATESIZE ADD2 ( entry.count* : count* )
-    STH2r
-    ;copy64 JSR2
-    RTN
-
-    &add/scan/found
-    ( sl* : st* count* )
-    POP2r
-    STATESIZE ADD2 ( sl.count* : count* )
-    STH2r ( sl.count* count* )
-    ( count* )
-    POP2 POP2 ( ;add64 JSR2 )
-    RTN
-    [ &add/scan/bufend $2 ]
+    ROT2 POP2 ;statebuf/add JMP2
 
 @universes
   ( pos1 pos2 -- )
@@ -404,6 +317,21 @@
 
     RTN
     [ &foreach/count COUNTPAD &foreach/st STATEPAD ]
+
+  ( -- count )
+  &count
+    #0000 [ ;&count/count STA2 ]
+    ;&count/one ;&foreach JSR2
+    [ ;&count/count LDA2 ]
+    RTN
+
+    [ &count/count $2 ]
+
+    ( st* count* -- )
+    &count/one
+      POP2 POP2
+      [ ;&count/count *INC2 ]
+      RTN
 
 @end-of-all-things 00
 
