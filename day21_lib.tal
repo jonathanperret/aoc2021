@@ -1,0 +1,75 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+@diracdice
+  [ &nextup $2 &playerpos $4 &playerscore $4 &die $2 &diecount $2 ]
+  ( player1 player2 -- )
+  &init
+    [ ;&playerpos #0002 ADD2 STA2 ]
+    [ ;&playerpos            STA2 ]
+    #0000 [ ;&die STA2 ]
+    #0000 [ ;&diecount STA2 ]
+    #0000 [ ;&nextup STA2 ]
+    RTN
+
+  ( -- val )
+  &roll
+    [ ;&die LDA2 ] #0064 MOD2 INC2
+    DUP2 [ ;&die STA2 ]
+    RTN
+
+  ( -- continue )
+  &turn
+    P< "Player 20 >P
+    [ ;&nextup LDA2 ] INC2 DBGSHORTDECn POP2
+    P< 20 "rolls 20 >P
+    ;&roll JSR2 DBGSHORTDECn LIT '+ EMIT
+    ;&roll JSR2 DBGSHORTDECn LIT '+ EMIT ADD2
+    ;&roll JSR2 DBGSHORTDECn             ADD2
+    [ ;&diecount LDA2 ] #0003 ADD2 [ ;&diecount STA2 ]
+    P< 20 "and 20 "moves 20 "to 20 "space 20 >P
+    #000a MOD2
+    [ ;&playerpos [ ;&nextup LDA2 ] 2** ADD2 LDA2 ]
+    ADD2 DEC2 #000a MOD2 INC2
+    DBGSHORTDECn
+    DUP2 [ ;&playerpos [ ;&nextup LDA2 ] 2** ADD2 STA2 ]
+    P< 20 "for 20 "a 20 >P
+    [ ;&playerscore [ ;&nextup LDA2 ] 2** ADD2 LDA2 ]
+    ADD2
+    ( score )
+    DUP2 [ ;&playerscore [ ;&nextup LDA2 ] 2** ADD2 STA2 ]
+    ( score )
+    [ ;&nextup LDA2 ] INC2 2MOD2 [ ;&nextup STA2 ]
+    ( score )
+    DUP2 #03e8 LTH2 ,&not-win JCN
+      P< "final 20 "score, 20 >P
+      DBGSHORTDECn POP2
+      P< ". 0a >P
+      #00 RTN
+    &not-win
+    P< "total 20 "score 20 "of 20 >P
+    DBGSHORTDECn POP2
+    P< ". 0a >P
+    #01 RTN
+    RTN
+
+  ( -- )
+  &game
+    ;&turn JSR2 ,&game JCN
+    RTN
+
+  ( -- )
+  &result
+    ;&score64 [ ;&playerscore [ ;&nextup LDA2 ] 2** ADD2 LDA2 ] ;short-to-64 JSR2
+    ;&score64 ;print64/no-pad JSR2
+    P< 20 "* 20 >P
+    ;&diecount64 [ ;&diecount LDA2 ] ;short-to-64 JSR2
+    ;&diecount64 ;print64/no-pad JSR2
+    P< 20 "= 20 >P
+    ;&score64 ;&diecount64 ;mul64 JSR2
+    ;&result64 ;mul64/get-lo JSR2
+    ;&result64 ;print64/no-pad JSR2
+    LF
+    RTN
+    [ &score64 $8 &diecount64 $8 &result64 $8 ]

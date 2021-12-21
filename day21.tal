@@ -1,0 +1,20 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+( init )
+
+|0100 @program
+
+  #0008 #0006 ;diracdice/init JSR2
+
+  ;diracdice/game JSR2
+
+  ;diracdice/result JSR2
+
+  BRK
+
+~day21_lib.tal

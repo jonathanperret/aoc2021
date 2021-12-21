@@ -1,0 +1,236 @@
+# Part 1
+
+No parsing today, yeah!
+
+Straightforward implementation but… "That's not the right answer. Curiously,
+it's the right answer for someone else; …"
+
+I check that I go the right input: yes.
+
+On a whim, I just swap player starting positions, for the same message. Of course,
+there are only 90 possible inputs so collisions are bound to occur a lot.
+
+It does mean I have found the right result for at least two of these inputs.
+
+Time for a Sheets implementation.
+
+Which shows me that I made a dumb mistake while moving pawns: I applied an
+extra "modulo 10" operation to the current position before adding the die sum.
+Surprising that it still worked on the sample!
+
+# Part 2
+
+Wow, scary big numbers and parallel universes. This might
+require a bit more thinking than part 1.
+
+The leaderboard was filled in 20 minutes though, so that can't be impossible.
+
+What's the longest game possible?
+
+The die would have to always roll to a 1, of course. After one turn, a player's
+score would be its starting position plus — wait, those 1-based positions are
+annoying.
+
+Noodling around in Sheets, I determine that if I move to 0-based positions
+(i.e. 0..9 instead of 1..10), the score of a player after N turns is N less
+than the score obtained with 1-based positions. In other words, a players's
+score now increases by their position + 1 each turn.
+
+Now, if the die always rolls 1 and a player starts at 0, their positions will go
+1,2,3,4,5,6 and their score will go 2,5,9,14,20,27.
+
+      pos  score
+      0    0
+      1    0+1+1 = 2
+      2    2+2+1 = 5
+      3    5+3+1 = 9
+      4    14
+      5    20
+      6    27
+
+That single-player game would end after the 6th turn.
+
+In the same "1-only" universe, a player starting at 1 would go:
+
+      pos  score
+      1    0
+      2    0+2+1 = 3
+      3    3+3+1 = 7
+      4    7+4+1 = 12
+      5    12+5+1 = 18
+      6    18+6+1 = 25
+
+In fact, the score at turn N increases by:
+
+  1 + (Sum of die rolls up to turn N + initial position) % 10
+
+This isn't very helpful as it is. But the spreadsheet makes it very clear that
+no game can last more than 6 turns. In fact, one "worst" game has the player
+starting at 0-based position 9 and rolling only ones, so that they go:
+
+      turn   pos  score
+      0      9    0
+      1      0    1
+      2      1    3
+      3      2    6
+      4      3    10
+      5      4    15
+      6      5    21
+
+More observations playing around with my spreadsheet that runs games for each
+starting position given a series of die rolls:
+
+  - the best score reachable after 1 turn is 10:
+    - either start with 6 and roll 3,
+    - or     start with 7 and roll 2,
+    - or     start with 8 and roll 1.
+  - the best score reachable after 2 turns is 19:
+    - start with 7, roll 1, 1
+    - start with 6, roll 2, 1
+    - start with 5, roll 3, 1
+
+Notice how the best score after one turn does not lead to the best score after
+two turns.
+
+So how many universes should be considered? If a player always reaches 21 after
+at most 6 turns, there will be at most 11 rolls, I think. For example, if both
+players play a "worst" game:
+
+      turn  roll pos1 score1 pos2 score2
+      0     1    9    0      7    0
+      1     1    0    1
+      2     2                9    10
+      3     1    1    3
+      4     1                0    11
+      5     1    2    6
+      6     1                1    13
+      7     1    3    10
+      8     1                2    16
+      9     1    4    15
+      10    1                3    20
+      11    1    5    21
+
+Here's a worrying thought: this doesn't add up to enough universes to reach the
+large counts shown in the sample. 3 to the 11th power is only 177,147 !
+
+"player 1 wins in 444356092776315 universes, while player 2 merely wins in
+341960390180808 universes." : this adds up to a total of 786316482957123
+universes. Which power of 3 is that?
+
+3^31 is 617673396283947, which is below, and 3^32 is above that number.
+
+It's not really suprising that the result is not exactly a power of three:
+not all games will have the same length.
+
+Still, I must have computed something wrong…
+
+Ah yes, I forgot to roll the die three times! 🤦
+
+Does that make for longer games? Trying various scenarios in the spreadsheet,
+it looks like there are still games than last 11 turns, for example:
+
+
+      turn  rolls pos1 score1 pos2 score2
+      0     3     8    0      8    0
+      1     3     1    2
+      2     3                 1    2
+      3     3     4    7
+      4     3                 4    7
+      5     3     7    15
+      6     3                 7    15
+      7     3     0    16
+      8     3                 0    16
+      9     3     3    20
+      10    3                 3    20
+      11    3     6    27
+
+But this game does 33 rolls, so it only one of 3^33 11-turn games.
+Now we're in the expected ballpark.
+
+We're not really closer to computing the count of universes where
+each player wins, though.
+
+The solution probably uses some kind of induction. For example, if
+we knew the counts for a target score of 20, would it help finding
+the counts for a score of 21? Doesn't look like it.
+
+Here's an interesting observation though: when rolling the die
+three times, it doesn't matter whether we roll 1,2,3 or 3,2,1 or
+1,3,2. In fact, only the sum matters, and it ranges between 3 and 9
+with varying counts of ways of reaching these sums:
+
+      roll1   roll2   roll3   sum
+      1       1       1       3
+      1       1       2       4
+      1       2       1       4
+      2       1       1       4
+      1       1       3       5
+      1       2       2       5
+      1       3       1       5
+      2       1       2       5
+      2       2       1       5
+      3       1       1       5
+      1       2       3       6
+      1       3       2       6
+      2       1       3       6
+      2       2       2       6
+      2       3       1       6
+      3       1       2       6
+      3       2       1       6
+      1       3       3       7
+      2       2       3       7
+      2       3       2       7
+      3       1       3       7
+      3       2       2       7
+      3       3       1       7
+      2       3       3       8
+      3       2       3       8
+      3       3       2       8
+      3       3       3       9
+
+Here are the counts:
+
+      sum     count
+      3       1
+      4       3
+      5       6
+      6       7
+      7       6
+      8       3
+      9       1
+
+So, there are 7 possible die sums. If we were to roll a 3-9 die
+instead of three 1-3 dice, how long could a game get?
+
+I have one where the player starts at 3 (0-based), the roll sums are
+7,4,3,3,3,7,7 and the scores go 1,6,14,15,19,20,28. Adding a second
+player doing the same thing, we end up with 13 turns before the
+game is resolved.
+
+At each turn, we pick one sum among 7. There are therefore 7^13=96,889,010,407
+13-turn games played with a 3-9 die. Still a bit too large to simulate all
+of those games.
+
+How many possible states are there for a game though? Since both scores
+start at 0 and must be below 21, there are only 21*21=441 possible states
+any game can go through!
+
+Hmm wait, the player positions are part of the game state too. If we include
+them, we have 21*21*10*10 = 44100 possible game states, which looks still quite
+reasonable.
+
+I think the game states form a directed acyclic graph, where you can only go
+from state (p1,p2,s1,s2) to (p1',p2',s1',s2') if:
+  - p1 == p1' or p2 == p2';
+  - and ((s1 == s1' and s2' > s2) or (s1' > s1 and s2' == s2)).
+
+There are two extra nodes in the graph for the "player1 wins"/"player2 wins"
+states, which nodes can reach instead of a node with a score >= 21.
+
+So, starting from (5,7,0,0) (sample start positions), how many ways are there
+to get to e.g. (8,7,3,0) ? Exactly one, because this requires three "1" rolls.
+
+Assuming we can compute all the edges of that DAG, the count of player 1 wins
+would be found starting from the "player 1 wins" node and summing all the
+edges for every distinct path that goes back to the initial state.
+
