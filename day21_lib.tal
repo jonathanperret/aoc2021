@@ -199,11 +199,11 @@
     RTN
     [ &add/count COUNTPAD ]
 
-  %PAGESIZE { WINSCORE WINSCORE COUNTSIZE MUL2 MUL2 }
+  %fPAGESIZE { WINSCORE WINSCORE COUNTSIZE MUL2 MUL2 }
 
   ( pagenum offset -- ptr )
   &ptr
-    STH2 PAGESIZE MUL2 STH2r ADD2
+    STH2 fPAGESIZE MUL2 STH2r ADD2
     ( DBGSHORTn SP P< "bytes 20 "into 20 "buffer >P LF )
     DUP2 STATEBUFSIZE LTH2 ,&ptr/ptr-ok JCN
       P< "buffer_overflow >P SP DBGSHORT LF
@@ -320,18 +320,19 @@
 
   ( -- count )
   &count
-    #0000 [ ;&count/count STA2 ]
+    #0000 [ ;&count/entrycount STA2 ]
     ;&count/one ;&foreach JSR2
-    [ ;&count/count LDA2 ]
+    [ ;&count/entrycount LDA2 ]
     RTN
 
-    [ &count/count $2 ]
+    [ &count/entrycount $2 ]
 
     ( st* count* -- )
     &count/one
       POP2 POP2
-      [ ;&count/count *INC2 ]
+      [ ;&count/entrycount *INC2 ]
       RTN
 
-@end-of-all-things 00
+~library/paging.tal
 
+@end-of-all-things 00

@@ -1,3 +1,5 @@
+%PAGESIZE { #4000 } %PAGEPAD { $4000 }
+
 ( page-count -- )
 @paging-init
   ( pagenum )
@@ -74,9 +76,9 @@
 @paging-open-page-file
   ;&filename ;string-short JSR2
   ;&filename .File/name DEO2
-  #4000 .File/length DEO2
+  PAGESIZE .File/length DEO2
   RTN
   [ &filename "0000.swp 00 ]
 
 @paging-loaded-page $2
-@paging-page $4000
+@paging-page PAGEPAD
