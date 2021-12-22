@@ -1,0 +1,16 @@
+# Part 1
+
+I'm not even done reading the text but I notice already the coordinates in the input
+are not 16-bit safe… *groan*.
+
+Ah, but we're told to ignore cubes outside -50..50 — "for now"!
+
+So we have 20 cubes in a 101x101 volume that we need to add or subtract.
+
+After an excursion in JSCAD to visualize the result (a pretty dense blob, in fact)…
+
+How many voxels are we talking about? More than a million, clearly I'm not fitting
+that in memory, even at one bit per voxel I would need 128KB.
+
+I can do like for day 5, process the input repeatedly over a single slice of the
+volume, and add up the results.

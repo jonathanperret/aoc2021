@@ -1,0 +1,178 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+%STEP.xmin { #0001 ADD2 }
+%STEP.xmax { #0009 ADD2 }
+%STEP.ymin { #0011 ADD2 }
+%STEP.ymax { #0019 ADD2 }
+%STEP.zmin { #0021 ADD2 }
+%STEP.zmax { #0029 ADD2 }
+
+%STEPSIZE { #0031 } %STEPPAD { $31 }
+
+%TERMINATOR { #ff }
+
+@step
+  ( get-byte step* -- )
+  &parse
+    SWP2
+    [ ;&get-byte-addr STA2 ]
+    ( step* )
+
+    ;&parse/get-byte JSR2 ,&not-eof JCN
+      POP2
+      #00
+      RTN
+      &not-eof
+
+    DUP2 #01 ROT ROT STA
+    ;&parse/get-byte JSR2 LIT 'n EQU ,&parse/on JCN
+      DUP2 #00 ROT ROT STA
+      ( eat second 'f' )
+      ;&parse/get-byte JSR2 POP
+    &parse/on
+
+    ( step* )
+    INC2
+
+    ( eat space x = )
+    ;&parse/get-byte JSR2 POP
+    ;&parse/get-byte JSR2 POP
+    ;&parse/get-byte JSR2 POP
+
+    ( parse xmin )
+    DUP2 ;&parse/number JSR2
+    #0008 ADD2
+
+    ( eat dot )
+    ;&parse/get-byte JSR2 POP
+
+    ( parse xmax )
+    DUP2 ;&parse/number JSR2
+    #0008 ADD2
+
+    ( eat y = )
+    ;&parse/get-byte JSR2 POP
+    ;&parse/get-byte JSR2 POP
+
+    ( parse ymin )
+    DUP2 ;&parse/number JSR2
+    #0008 ADD2
+
+    ( eat dot )
+    ;&parse/get-byte JSR2 POP
+
+    ( parse ymax )
+    DUP2 ;&parse/number JSR2
+    #0008 ADD2
+
+    ( eat z = )
+    ;&parse/get-byte JSR2 POP
+    ;&parse/get-byte JSR2 POP
+
+    ( parse zmin )
+    DUP2 ;&parse/number JSR2
+    #0008 ADD2
+
+    ( eat dot )
+    ;&parse/get-byte JSR2 POP
+
+    ( parse zmax )
+    DUP2 ;&parse/number JSR2
+    #0008 ADD2
+
+    ( step* )
+    POP2
+    #01
+    RTN
+
+    ( -- b )
+    &parse/get-byte
+      LIT2 [ &get-byte-addr $2 ] JMP2
+
+    ( step* -- )
+    &parse/number
+      #01 [ ;&parse/positive STA ]
+      [ ;&parse/str ] ( step* s* )
+      ;&parse/get-byte JSR2 STH ( step* s* : b )
+      STH2k STArk POP2r INC2 ( step* s* : b )
+      STHr LIT '- NEQ ,&parse/no-sign JCN
+        #00 [ ;&parse/positive STA ]
+        DEC2
+      &parse/no-sign
+
+      ( step* s* )
+      &parse/next-digit
+        ;&parse/get-byte JSR2 STH ( step* s* : b )
+        STH2k STArk POP2r INC2 ( step* s* : b )
+        STHr LIT '0 GEQ ,&parse/next-digit JCN
+
+      ( step* s* )
+      DEC2 #00 ROT ROT STA
+
+      ( step* )
+      DUP2 ;&parse/str ;parse64 JSR2
+
+      [ ;&parse/positive LDA ] ,&parse/no-negate JCN
+        DUP2 ;negate64 JSR2
+      &parse/no-negate
+      POP2
+
+      RTN
+      [ &parse/str $10 &parse/positive $1 ]
+
+
+  ( step* -- )
+  &dump
+    DUP2 LDA DBGBYTEn SP POP
+    DUP2 STEP.xmin ;print64/no-pad JSR2 SP
+    DUP2 STEP.xmax ;print64/no-pad JSR2 SP
+    DUP2 STEP.ymin ;print64/no-pad JSR2 SP
+    DUP2 STEP.ymax ;print64/no-pad JSR2 SP
+    DUP2 STEP.zmin ;print64/no-pad JSR2 SP
+    DUP2 STEP.zmax ;print64/no-pad JSR2
+    POP2
+    LF
+    RTN
+
+@steps
+  ( get-byte -- )
+  &parse
+    [ ;&parse/get-byte STA2 ]
+
+    ;&steps ( steps* )
+    &parse/more
+      LIT2 [ &parse/get-byte $2 ] OVR2 ;step/parse JSR2 STH
+      STEPSIZE ADD2
+      STHr ,&parse/more JCN
+
+    ( terminate list )
+    STEPSIZE SUB2
+    TERMINATOR ROT ROT STA
+    RTN
+
+  ( -- )
+  &dump
+    ;&dump/one ;&foreach JMP2
+
+    ( step* -- )
+    &dump/one
+      ;step/dump JMP2
+
+  ( [ step* -- ] -- )
+  &foreach
+    [ ;&foreach/fn STA2 ]
+    ;&steps ( steps* )
+    &foreach/loop
+      LDAk TERMINATOR EQU ,&foreach/done JCN
+      ( steps* )
+      DUP2 LIT2 [ &foreach/fn $2 ] JSR2
+      STEPSIZE ADD2
+      ,&foreach/loop JMP
+    &foreach/done
+    ( steps* )
+    POP2
+    RTN
+
+  [ &steps $6000 ]

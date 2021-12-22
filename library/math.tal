@@ -484,4 +484,8 @@ RTN
   RTN
   [ &a-b $8 ]
 
+( n* -- )
+@negate64
+  DUP2 ;invert64 JSR2
+  #01 ;add64-byte JMP2
 

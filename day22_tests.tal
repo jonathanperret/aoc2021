@@ -1,0 +1,63 @@
+~library/macros.tal
+~library/devices.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "step-parse: >T
+  S< >S ;test-step-parse JSR2
+  ( EXPECT eof )
+  S< "on 20 "x=-20..26,y=-36..17,z=-47..7 0a >S ;test-step-parse JSR2
+  ( EXPECT 0x01 -20 26 -36 17 -47 7 )
+
+  T< "steps-parse: >T
+  S<
+    "on 20 "x=-20..26,y=-36..17,z=-47..7 0a
+    "off 20 "x=-44..5,y=-19..31,z=-15..33 0a >S ;test-steps-parse JSR2
+  ( EXPECT 0x01 -20 26 -36 17 -47 7 )
+  ( EXPECT 0x00 -44 5 -19 31 -15 33 )
+
+  T< "👍 >T
+  BRK !
+
+( s* -- )
+@test-step-parse
+  ;make-get-byte JSR2 ;testvar/step ;step/parse JSR2
+  ,&not-eof JCN
+    P< "eof >P LF
+    RTN
+  &not-eof
+
+  ;testvar/step ;step/dump JSR2
+  RTN
+
+( s* -- )
+@test-steps-parse
+  ;make-get-byte JSR2 ;steps/parse JSR2
+
+  ;steps/dump JSR2
+  RTN
+
+( s* -- get-byte )
+@make-get-byte
+  ;input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;input LDA2 ] LDA STH
+  [ ;input LDA2 ] INC2 [ ;input STA2 ]
+  STHr
+  RTN
+
+@input $2
+
+@testvar
+  [ &step $40 ]
+
+~library/test.tal
+~day22_lib.tal
