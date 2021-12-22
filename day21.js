@@ -2,16 +2,10 @@ function turn({ p1pos, p2pos, p1score, p2score, nextup }, dicesum) {
   if(nextup == 0) {
     p1pos = (p1pos + dicesum -1 ) % 10 + 1;
     p1score += p1pos;
-    if (p1score >= 21 ) {
-      return { p1pos:0, p2pos:0, p1score:21, p2score:0, nextup: 0 };
-    }
     return { p1pos, p2pos, p1score, p2score, nextup:1 };
   } else {
     p2pos = (p2pos + dicesum -1 ) % 10 + 1;
     p2score += p2pos;
-    if (p2score >= 21 ) {
-      return { p1pos:0, p2pos:0, p1score:0, p2score:21, nextup: 1 };
-    }
     return { p1pos, p2pos, p1score, p2score, nextup:0 };
   }
 }
@@ -50,36 +44,28 @@ function advance(states) {
   const newstates = {};
   Object.entries(states).forEach(([key, count]) => {
     const state = fromkey(key);
-    if(state.p1score == 21 || state.p2score == 21) {
-      newstates[key] = count;
-    } else {
-      Object.entries(dicesums).forEach(([dsum, repeats]) => {
-        const newstate = turn(state, parseInt(dsum));
-        if(newstate.p1score == 21) {
-          p1wincount += repeats * count;
-        } else if(newstate.p2score == 21) {
-          p2wincount += repeats * count;
-        } else {
-          const newkey = tokey(newstate);
-          newstates[newkey] = (newstates[newkey] || 0) + repeats * count;
-        }
-      })
-    }
+    Object.entries(dicesums).forEach(([dsum, repeats]) => {
+      const newstate = turn(state, parseInt(dsum));
+      if(newstate.p1score >= 21) {
+        p1wincount += repeats * count;
+      } else if(newstate.p2score >= 21) {
+        p2wincount += repeats * count;
+      } else {
+        const newkey = tokey(newstate);
+        newstates[newkey] = (newstates[newkey] || 0) + repeats * count;
+      }
+    });
   });
   return newstates;
 }
 
 let states = advance(initStates);
-// states = {'4:8:0:0:0':1};
-// states ={'1:1:8:3:0':1};
-// states={'7:1:7:1:0':1};
-// states={'4:1:5:3:0':1};
-states={'4:1:5:3:0':1};
 console.log(states);
 for(let i=0; i<20; i++) {
   states = advance(states);
   const len = Object.keys(states).length
   console.log(i, len);
+  console.log(p1wincount, p2wincount);
   if(len == 0) break;
   const minscore = Math.min.apply(null, Object.keys(states).map(fromkey).flatMap(k => [k.p1score, k.p2score]));
   console.log("minscore=", minscore);

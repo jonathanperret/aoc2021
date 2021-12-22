@@ -262,3 +262,9 @@ are large enough to require 7 bytes.
 
 So in about 64000 bytes, I could fit a maximum of 6400 dictionary entries.
 But I need two dictionaries!
+
+…
+
+Ended up converting everything to use virtual memory — it's slow but
+it works. I have one 4k page per value of (nextup, pos1, pos2), which just
+contains the counts for each score combination.

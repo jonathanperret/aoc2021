@@ -9,14 +9,19 @@
 
 |0100 @program
 
-  #0004 #0008 ;universes/init JSR2
+  #08 #06 ;universes/init JSR2
 
   ;universes/dump JSR2 LF
-  #0000 #0020 DO
-    ;universes/advance JSR2
+  &loop
+    ;universes/advance JSR2 STH ( : again )
     ;universes/count JSR2 DBGSHORTDEC POP
-    ;universes/dump JSR2 LF
-  LOOP
+    ( ;universes/dump JSR2 LF )
+    STHr ( again ) ,&loop JCN
+
+  ;universes/p1wins ;print64 JSR2 LF
+  ;universes/p2wins ;print64 JSR2 LF
+
+  P< "page_faults= >P ;paging/fault-count ;print64/no-pad JSR2 LF
 
   BRK
 

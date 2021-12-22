@@ -11,16 +11,10 @@
 
 %STATELISTPAD { $1000 } %STATELISTSIZE { #1000 }
 
-%SLENTRYPAD { $d } %SLENTRYSIZE { #000d }
-
-%STATEBUFPAD { $4000 } %STATEBUFSIZE { #4000 }
-
-%POSCOUNT { #04 }
-%WINSCORE { #0005 }
+%POSCOUNT { #0a }
+%WINSCORE { #0015 }
 
 %COUNTSIZE { #0008 } %COUNTPAD { $8 }
-
-%TERMINATOR { #ffff }
 
 @state
   ( st* player1pos player2pos player1score player2score nextup -- )
@@ -84,7 +78,6 @@
 
     DUP2 STATE.score1 [ ;&advance/offset LDA2 ] ADD2 ( stout* score* : newpos )
     LDAk STHr ADD ( stout* score* newscore )
-    DUP #14 GTH ,&advance/win JCN
     ( stout* score* newscore )
     ROT ROT STA ( stout* )
     ( toggle nextup )
@@ -92,92 +85,93 @@
     LDAk #01 EOR ROT ROT STA
     RTN
 
-    &advance/win
-    ( stout* score* newscore )
-    POP
-    ( store 21 as score )
-    #15 ROT ROT STA
-    ( stout * )
-    ( store 0 as other score )
-    DUP2 [ DUP2 STATE.nextup LDA ] #01 EOR #00 SWP ADD2 STATE.score1 #00 ROT ROT STA
-    ( store 0 as positions )
-    STATE.pos1 #0000 SWP2 STA2
-
-    RTN
     [ &advance/offset $2 ]
-
-@statelist
-  ( sl* -- )
-  &init
-    POP2 ;statebuf/init JMP2
-
-  ( sl* -- )
-  &dump
-    POP2 ;statebuf/dump JMP2
-
-  ( sl* -- count )
-  &count
-    POP2 ;statebuf/count JMP2
-
-  ( sl* [ sl* -- ] -- )
-  &foreach
-    NIP2 ;statebuf/foreach JMP2
-
-  ( sl* st* count* -- )
-  &add
-    ROT2 POP2 ;statebuf/add JMP2
 
 @universes
   ( pos1 pos2 -- )
   &init
-    ;end-of-all-things DBGSHORT POP2
     STH STH
-    ;&st STHr STHr #00 #00 #00 ;state/init JSR2
-    ;&slist1 ;statelist/init JSR2
-    ;&stcount #0001 ;short-to-64 JSR2
-    ;&slist1 ;&st ;&stcount ;statelist/add JSR2
+    ;&init/st STHr STHr #00 #00 #00 ;state/init JSR2
+    ;statebuf/init JSR2
+    ;&init/count #0001 ;short-to-64 JSR2
+    ;&init/st ;&init/count ;statebuf/add JSR2
+    #00 [ ;&nextup STA ]
+    ( byte cnt dest* -- )
+    ( #00 COUNTSIZE 2** ;&wins ;memset JSR2 )
     RTN
+    [ &init/count COUNTPAD &init/st STATEPAD ]
 
   ( -- )
   &dump
-    ;&slist1 ;statelist/dump JMP2
+    ;statebuf/dump JMP2
 
   ( -- count )
   &count
-    ;&slist1 ;statelist/count JMP2
+    ;statebuf/count JMP2
 
   ( -- )
   &advance
-    ;&slist2 ;statelist/init JSR2
-    ;&slist1 ;&advance/from ;statelist/foreach JSR2
-    ;&slist2 ;&slist1 STATELISTSIZE ;memcpy JSR2
+    #00 [ ;&advance/advanced STA ]
+    [ ;&nextup LDA ] ;&advance/from ;statebuf/nextup-foreach JSR2
+    [ ;&nextup LDA ] #01 EOR [ ;&nextup STA ]
+
+    [ ;&advance/advanced LDA ]
     RTN
 
-    ( slentry* -- )
+    ( st* count* -- again )
     &advance/from
-      [ ;&advance/entry STA2 ]
+      #01 [ ;&advance/advanced STA ]
+      ;&advance/count SWP2 ;copy64 JSR2
+      DUP2 ;&advance/stfrom SWP2 ;state/copy JSR2
+      ;statebuf/clear JSR2
+
       #0003 #000a DO
-        STHk ;&st [ ;&advance/entry LDA2 ] STHr ;state/advance JSR2
+        STHk ;&advance/st2 ;&advance/stfrom STHr ;state/advance JSR2
 
-        ;&stcount [ [ ;&advance/entry LDA2 ] STATESIZE ADD2 ] ;copy64 JSR2
+        ( todo multiply count by dice sum repeats )
+        ;&advance/count-multiplied ;&advance/count ;copy64 JSR2
+        DUP2 #0003 SUB2 ;&dice-repeats ADD2 LDA STH ( : repeats )
+        ;&advance/count-multiplied STHr ;mul64-byte JSR2
 
-        ;&slist2 ;&st ;&stcount ;statelist/add JSR2
+        ;&advance/st2 STATE.score1 [ ;&nextup LDA ] #00 SWP ADD2 LDA #00 SWP
+        ( score )
+        WINSCORE LTH2 ,&advance/no-win JCN
+          [ ;&nextup LDA ] #00 SWP 8** ( 8*nextup )
+          ;&wins ADD2 ( wins* )
+          ;&advance/count-multiplied ;add64 JSR2
+
+          ,&advance/next-roll JMP
+        &advance/no-win
+
+        ;&advance/st2 ;&advance/count-multiplied ;statebuf/add JSR2
+
+        &advance/next-roll
       LOOP
 
       RTN
-      [ &advance/entry $2 ]
+      [ &advance/stfrom STATEPAD &advance/st2 STATEPAD &advance/count COUNTPAD &advance/count-multiplied COUNTPAD 
+        &advance/advanced $2 ]
 
-  [ &st STATEPAD &stcount COUNTPAD
-    &slist1 STATELISTPAD &slist1-end
-    &slist2 STATELISTPAD
-    ]
+  [ &nextup $1 &wins &p1wins COUNTPAD &p2wins COUNTPAD
+    &dice-repeats 01 03 06 07 06 03 01 ]
 
 @statebuf
   &init
-    #00 STATEBUFSIZE ;&buf ;memset JSR2
-    #00 POSCOUNT POSCOUNT MUL 2*
-    ;paging-init JSR2
+    #00 POSCOUNT POSCOUNT MUL 2* ;paging-init JSR2
     RTN
+
+  ( st* -- )
+  &clear
+    ( st* )
+
+    ;&addr JSR2
+
+    ( pagenum offset )
+
+    ;&clear/zero ROT2 ROT2 ;&store JSR2
+
+    RTN
+    [ &clear/zero 00 00 00 00 00 00 00 00 ]
 
   ( st* count* -- )
   &add
@@ -207,8 +201,6 @@
     ( count* 0008 pagenum offset )
     ;paged-copy-to JSR2
     RTN
-
-   [ &buf STATEBUFPAD &buf-end ]
 
   ( count* pagenum offset )
   &load
@@ -256,53 +248,59 @@
   &foreach
     [ ;&foreach/fn STA2 ]
     #0000 #0002 DO
-      ( nextup )
-      DUP [ ;&foreach/st STATE.nextup STA ]
+      DUP LIT2 [ &foreach/fn $2 ] ;&nextup-foreach JSR2
+    LOOP
+    RTN
+
+  ( nextup [ st* count* -- ] -- )
+  &nextup-foreach
+    [ ;&nextup-foreach/fn STA2 ]
+    ( nextup )
+    [ ;&nextup-foreach/st STATE.nextup STA ]
+    #0000 #00 POSCOUNT DO
+      ( pos1-1 )
+      DUP INC [ ;&nextup-foreach/st STATE.pos1 STA ]
       #0000 #00 POSCOUNT DO
-        ( pos1-1 )
-        DUP INC [ ;&foreach/st STATE.pos1 STA ]
-        #0000 #00 POSCOUNT DO
-          ( pos1-1 pos2-1 )
-          DUP INC [ ;&foreach/st STATE.pos2 STA ]
+        ( pos1-1 pos2-1 )
+        DUP INC [ ;&nextup-foreach/st STATE.pos2 STA ]
 
-          OVR2 #00 POSCOUNT MUL2 OVR2 ADD2
-          [ ;&foreach/st STATE.nextup LDA ] [ POSCOUNT POSCOUNT MUL ] MUL #00 SWP ADD2
+        OVR2 #00 POSCOUNT MUL2 OVR2 ADD2
+        [ ;&nextup-foreach/st STATE.nextup LDA ] [ POSCOUNT POSCOUNT MUL ] MUL #00 SWP ADD2
 
-          ( pos1-1 pos2-1 pagenum )
+        ( pos1-1 pos2-1 pagenum )
 
+        #0000 WINSCORE DO
+          ( pos1-1 pos2-1 pagenum score1 )
+          DUP [ ;&nextup-foreach/st STATE.score1 STA ]
           #0000 WINSCORE DO
-            ( pos1-1 pos2-1 pagenum score1 )
-            DUP [ ;&foreach/st STATE.score1 STA ]
-            #0000 WINSCORE DO
-              ( pos1-1 pos2-1 pagenum score1 score2 )
-              DUP [ ;&foreach/st STATE.score2 STA ]
+            ( pos1-1 pos2-1 pagenum score1 score2 )
+            DUP [ ;&nextup-foreach/st STATE.score2 STA ]
 
-              ( pos1-1 pos2-1 pagenum score1 score2 )
+            ( pos1-1 pos2-1 pagenum score1 score2 )
 
-              ;&foreach/st ;&addr JSR2
+            ;&nextup-foreach/st ;&addr JSR2
 
-              ( pos1-1 pos2-1 pagenum score1 score2 pagenum offset )
+            ( pos1-1 pos2-1 pagenum score1 score2 pagenum offset )
 
-              ;&foreach/count ROT2 ROT2 ;&load JSR2
+            ;&nextup-foreach/count ROT2 ROT2 ;&load JSR2
 
-              ( pos1-1 pos2-1 pagenum score1 score2 )
+            ( pos1-1 pos2-1 pagenum score1 score2 )
 
-              ;&foreach/count ;is-non-zero64 JSR2 NOT ,&foreach/zero JCN
-                ;&foreach/st ;&foreach/count LIT2 [ &foreach/fn $2 ] JSR2
-              &foreach/zero
+            ;&nextup-foreach/count ;is-non-zero64 JSR2 NOT ,&nextup-foreach/zero JCN
+              ;&nextup-foreach/st ;&nextup-foreach/count LIT2 [ &nextup-foreach/fn $2 ] JSR2
+            &nextup-foreach/zero
 
-              ( pos1-1 pos2-1 pagenum score1 score2 )
-            LOOP
+            ( pos1-1 pos2-1 pagenum score1 score2 )
           LOOP
-
-          POP2
-
         LOOP
+
+        POP2
+
       LOOP
     LOOP
 
     RTN
-    [ &foreach/count COUNTPAD &foreach/st STATEPAD ]
+    [ &nextup-foreach/count COUNTPAD &nextup-foreach/st STATEPAD ]
 
   ( -- count )
   &count
@@ -318,6 +316,8 @@
       POP2 POP2
       [ ;&count/entrycount *INC2 ]
       RTN
+
+%PAGESIZE { #1000 } %PAGEPAD { $1000 }
 
 ~library/paging.tal
 

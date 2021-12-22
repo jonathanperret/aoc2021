@@ -23,67 +23,74 @@
   ;testvar/state1 ;state/dump JSR2 LF
   ( EXPECT [7 2 8 5 0] )
 
-  T< "state/advance-p1win: >T
-  ;testvar/state1 #04 #08 #14 #03 #00 ;state/init JSR2
-  ;testvar/state2 ;testvar/state1 #04 ;state/advance JSR2
-  ;testvar/state2 ;state/dump JSR2 LF
-  ( EXPECT [0 0 21 0 0] )
-
-  T< "state/advance-p2win: >T
-  ;testvar/state1 #04 #08 #00 #13 #01 ;state/init JSR2
-  ;testvar/state2 ;testvar/state1 #04 ;state/advance JSR2
-  ;testvar/state2 ;state/dump JSR2 LF
-  ( EXPECT [0 0 0 21 1] )
-
-  T< "state/advance-staywon: >T
-  ;testvar/state1 ;testvar/state2 #04 ;state/advance JSR2
-  ;testvar/state1 ;state/dump JSR2 LF
-  ( EXPECT [0 0 0 21 1] )
-
-  T< "statelist/init: >T
-  ;testvar/slist1 ;statelist/init JSR2
-  ;testvar/slist1 ;statelist/dump JSR2 LF
+  T< "statebuf/init: >T
+  ;statebuf/init JSR2
+  ;statebuf/dump JSR2 LF
   ( EXPECT 0 )
 
-  T< "statelist/add: >T
+  T< "statebuf/add: >T
   ;testvar/state1 #01 #02 #00 #04 #01 ;state/init JSR2
   ;testvar/count1 #0100 ;short-to-64 JSR2
-  ;testvar/slist1 ;testvar/state1 ;testvar/count1 ;statelist/add JSR2
-  ;testvar/slist1 ;statelist/dump JSR2 LF
+  ;testvar/state1 ;testvar/count1 ;statebuf/add JSR2
+  ;statebuf/dump JSR2 LF
   ( EXPECT [1 2 0 4 1]:256 1 )
 
-  T< "statelist/add2: >T
+  T< "statebuf/add2: >T
   ;testvar/state1 #02 #01 #01 #03 #00 ;state/init JSR2
   ;testvar/count1 #0200 ;short-to-64 JSR2
-  ;testvar/slist1 ;testvar/state1 ;testvar/count1 ;statelist/add JSR2
-  ;testvar/slist1 ;statelist/dump JSR2 LF
+  ;testvar/state1 ;testvar/count1 ;statebuf/add JSR2
+  ;statebuf/dump JSR2 LF
   ( EXPECT [2 1 1 3 0]:512 [1 2 0 4 1]:256 2 )
 
-  T< "statelist/add3: >T
+  T< "statebuf/add3: >T
   ;testvar/state1 #02 #01 #01 #03 #00 ;state/init JSR2
   ;testvar/count1 #0200 ;short-to-64 JSR2
-  ;testvar/slist1 ;testvar/state1 ;testvar/count1 ;statelist/add JSR2
-  ;testvar/slist1 ;statelist/dump JSR2 LF
+  ;testvar/state1 ;testvar/count1 ;statebuf/add JSR2
+  ;statebuf/dump JSR2 LF
   ( EXPECT [2 1 1 3 0]:1024 [1 2 0 4 1]:256 2 )
 
   T< "statebuf/count: >T
   ;statebuf/count JSR2 DBGSHORTDEC POP2
   ( EXPECT 2 )
 
-  ( nT< "universes: >T
+  T< "universes: >T
   #04 #08 ;universes/init JSR2
   ;universes/dump JSR2 LF
-  ( nEXPECT [4 8 0 0 0]:1 1 )
+  ( EXPECT [4 8 0 0 0]:1 1 )
 
-  ( nT< "universes/advance: >T
-  ;universes/advance JSR2
+  T< "universes/advance: >T
+  ;universes/advance JSR2 DBGBYTEn SP POP
   ;universes/dump JSR2 LF
-  ( nEXPECT [7 8 7 0 1]:1 [8 8 8 0 1]:1 [9 8 9 0 1]:1 [10 8 10 0 1]:1 [1 8 1 0 1]:1 [2 8 2 0 1]:1 [3 8 3 0 1]:1 7 )
+  ( EXPECT 0x01 [1 8 1 0 1]:6 [2 8 2 0 1]:3 [3 8 3 0 1]:1 [7 8 7 0 1]:1 [8 8 8 0 1]:3 [9 8 9 0 1]:6 [10 8 10 0 1]:7 7 )
 
-  ( nT< "universes/advance2: >T
-  ;universes/advance JSR2
-  ;universes/dump JSR2 LF
-  ( nEXPECT [7 1 7 1 0]:1 [7 2 7 2 0]:1 [7 3 7 3 0]:1 [7 4 7 4 0]:1 [7 5 7 5 0]:1 [7 6 7 6 0]:1 [7 7 7 7 0]:1 [8 1 8 1 0]:1 [8 2 8 2 0]:1 [8 3 8 3 0]:1 [8 4 8 4 0]:1 [8 5 8 5 0]:1 [8 6 8 6 0]:1 [8 7 8 7 0]:1 [9 1 9 1 0]:1 [9 2 9 2 0]:1 [9 3 9 3 0]:1 [9 4 9 4 0]:1 [9 5 9 5 0]:1 [9 6 9 6 0]:1 [9 7 9 7 0]:1 [10 1 10 1 0]:1 [10 2 10 2 0]:1 [10 3 10 3 0]:1 [10 4 10 4 0]:1 [10 5 10 5 0]:1 [10 6 10 6 0]:1 [10 7 10 7 0]:1 [1 1 1 1 0]:1 [1 2 1 2 0]:1 [1 3 1 3 0]:1 [1 4 1 4 0]:1 [1 5 1 5 0]:1 [1 6 1 6 0]:1 [1 7 1 7 0]:1 [2 1 2 1 0]:1 [2 2 2 2 0]:1 [2 3 2 3 0]:1 [2 4 2 4 0]:1 [2 5 2 5 0]:1 [2 6 2 6 0]:1 [2 7 2 7 0]:1 [3 1 3 1 0]:1 [3 2 3 2 0]:1 [3 3 3 3 0]:1 [3 4 3 4 0]:1 [3 5 3 5 0]:1 [3 6 3 6 0]:1 [3 7 3 7 0]:1 49 )
+  T< "universes/advance2: >T
+  ;universes/advance JSR2 DBGBYTEn SP POP
+  ;universes/count JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x01 49 )
+
+  T< "universes/advance3: >T
+  ;universes/advance JSR2 DBGBYTEn SP POP
+  ;universes/count JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x01 343 )
+
+  T< "universes/advance4: >T
+  ;universes/advance JSR2 DBGBYTEn SP POP
+  ;universes/count JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x01 2401 )
+
+  T< "universes/advance5: >T
+  ;universes/advance JSR2 DBGBYTEn SP POP
+  ;universes/count JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x01 5439 )
+  ;universes/p1wins ;print64/no-pad JSR2 LF
+  ( EXPECT 3359232 )
+
+  T< "universes/advance6: >T
+  ;universes/advance JSR2 DBGBYTEn SP POP
+  ;universes/count JSR2 DBGSHORTDEC POP2
+  ( EXPECT 0x01 12210 )
+  ;universes/p2wins ;print64/no-pad JSR2 LF
+  ( EXPECT 26079750 )
 
   T< "👍 >T
   BRK !
@@ -104,7 +111,7 @@
 @input $2
 
 @testvar
-  [ &state1 $10 &state2 $10 &slist1 $40 &slist2 $40
+  [ &state1 $10 &state2 $10
     &count1 $8 &count2 $8 ]
 
 ~library/test.tal

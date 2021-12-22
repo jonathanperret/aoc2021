@@ -1,5 +1,3 @@
-%PAGESIZE { #4000 } %PAGEPAD { $4000 }
-
 ( page-count -- )
 @paging-init
   DUP2 [ ;paging/page-count STA2 ]
@@ -12,6 +10,7 @@
   POP2
   #00 PAGESIZE ;paging-page ;memset JSR2
   #0000 [ ;paging/loaded-page STA2 ]
+  ;paging/fault-count #0000 ;short-to-64 JSR2
   RTN
 
 ( pagenum offset -- b )
@@ -51,6 +50,7 @@
 @paging-load-page
   DUP2 [ ;paging/loaded-page LDA2 ] EQU2 ,&skip JCN
   ( LIT 'F EMIT )
+  ;paging/fault-count #01 ;add64-byte JSR2
   ( pagenum )
   DUP2 [ ;paging/page-count LDA2 ] LTH2 ,&page-ok JCN
     P< "page_out_of_bounds 20 >P DBGSHORT
@@ -89,5 +89,5 @@
   [ &filename "0000.swp 00 ]
 
 @paging
-  [ &loaded-page $2 &page-count $2 ]
+  [ &loaded-page $2 &page-count $2 &fault-count $8 ]
 @paging-page PAGEPAD
