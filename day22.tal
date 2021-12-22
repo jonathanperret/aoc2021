@@ -34,40 +34,10 @@
 
   ;read-byte ;steps/parse JSR2
 
-  ;&total #0000 ;short-to-64 JSR2
+  #01 [ ;sweeper/silent STA ]
+  ;sweeper/compute-total-volume JSR2
 
-  ;&xmin #ffce ;short-to-64/signed JSR2
-  ;&ymin #ffce ;short-to-64/signed JSR2
-  ;&xmax #0032 ;short-to-64/signed JSR2
-  ;&ymax #0032 ;short-to-64/signed JSR2
-  #ffce #0033 DO
-  (
-  ;&xmin #fff0 ;short-to-64/signed JSR2
-  ;&ymin #fff0 ;short-to-64/signed JSR2
-  ;&xmax #0010 ;short-to-64/signed JSR2
-  ;&ymax #0010 ;short-to-64/signed JSR2
-  #fff0 #0011 DO
-  )
-    ;&z    OVR2 ;short-to-64/signed JSR2
-    P< "z= >P ;&z ;print64/no-pad JSR2 LF
-
-    #0065 #0065 ;matrix/init JSR2
-    ( #0021 #0021 ;matrix/init JSR2 )
-    ;&xmin ;&xmax ;&ymin ;&ymax ;&z ;steps/draw JSR2
-
-    ;matrix/dump JSR2
-    ;matrix/count JSR2
-
-    ;&count SWP2 ;short-to-64 JSR2
-
-    ;&count ;print64/no-pad JSR2 LF
-
-    ;&total ;&count ;add64 JSR2
-  LOOP
-
-  ;&total ;print64/no-pad JSR2 LF
   BRK
-  [ &z $8 &xmin $8 &xmax $8 &ymin $8 &ymax $8 &count $8 &total $8 ]
 
 @open-file
   ;argv .File/name DEO2

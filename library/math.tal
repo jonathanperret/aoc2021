@@ -492,8 +492,8 @@ RTN
     POP POP2 POP2 POP2r
   RTN
 
-( a* b* -- a>b )
-@greaterthan64
+( a* b* -- a≥b )
+@geq64
   ( OVR2 ;print64/no-pad JSR2 LIT '> EMIT DUP2 ;print64/no-pad JSR2 LIT '? EMIT LF )
   STH2 STH2 ;&a-b STH2r STH2r ;sub64 JSR2
   ;&a-b ;is-positive64 JSR2

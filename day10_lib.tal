@@ -117,7 +117,7 @@
     ( : list* )
     [ ,&max-ptr LDR2 ] STH2rk
     ( max* val* : list* )
-    DUP4 ;greaterthan64 JSR2 ,&not-better JCN
+    DUP4 ;geq64 JSR2 ,&not-better JCN
       ( max* val* : list* )
       STH2rk [ ,&max-ptr STR2 ]
       &not-better
@@ -154,7 +154,7 @@
 
     [ ,&min-ptr LDR2 ] STH2rk
     ( min* val* : list* )
-    DUP4 ;greaterthan64 JSR2 NOT ,&not-better JCN
+    DUP4 ;geq64 JSR2 NOT ,&not-better JCN
       ( min* val* : list* )
       STH2rk [ ,&min-ptr STR2 ]
       &not-better

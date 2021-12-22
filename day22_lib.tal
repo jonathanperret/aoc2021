@@ -107,18 +107,34 @@
 
   ( step* -- )
   &dump
-    LIT '[ EMIT SP
+    LIT '{ EMIT SP
     DUP2 LDA #01 EOR #0b MUL LIT '# ADD EMIT SP
+
+    LIT '[ EMIT
     DUP2 STEP.xmin ;print64/no-pad JSR2
     LIT '. EMIT LIT '. EMIT
-    DUP2 STEP.xmax ;print64/no-pad JSR2 SP
+    DUP2 STEP.xmax ;print64/no-pad JSR2
+    LIT '[ EMIT SP
+
+    LIT '[ EMIT
     DUP2 STEP.ymin ;print64/no-pad JSR2
     LIT '. EMIT LIT '. EMIT
-    DUP2 STEP.ymax ;print64/no-pad JSR2 SP
+    DUP2 STEP.ymax ;print64/no-pad JSR2
+    LIT '[ EMIT SP
+
+    LIT '[ EMIT
     DUP2 STEP.zmin ;print64/no-pad JSR2
     LIT '. EMIT LIT '. EMIT
-         STEP.zmax ;print64/no-pad JSR2 SP
-    LIT '] EMIT
+    DUP2 STEP.zmax ;print64/no-pad JSR2
+    LIT '[ EMIT SP
+
+    DUP2 STEP.active LDA DUP #00 EQU ,&dump/not-active JCN
+      DUP LIT '0 ADD EMIT SP
+    &dump/not-active
+    POP
+
+    LIT '} EMIT
+    POP2
     RTN
 
 @steps
@@ -132,27 +148,34 @@
 
     ;&steps ( steps* )
     &parse/more
-      LIT2 [ &parse/get-byte $2 ] OVR2 ;step/parse JSR2 NOT ,&parse/done JCN
+      LIT2 [ &parse/get-byte $2 ] OVR2 ;step/parse JSR2 NOT ;&parse/done JCN2
 
       ( steps* )
+
+      ( bump maxes, to have open intervals on the right )
+      DUP2 STEP.xmax #01 ;add64-byte JSR2
+      DUP2 STEP.ymax #01 ;add64-byte JSR2
+      DUP2 STEP.zmax #01 ;add64-byte JSR2
 
       STH2k ( steps* : steps* )
       ( el* active x* step* -- )
       ;&xevents #01 [ STH2rk STEP.xmin ] STH2rk ;eventlist/insert JSR2
-      ;&xevents #00 [ STH2rk STEP.xmax ] STH2rk ;eventlist/insert JSR2
+      ;&xevents #ff [ STH2rk STEP.xmax ] STH2rk ;eventlist/insert JSR2
       ;&yevents #01 [ STH2rk STEP.ymin ] STH2rk ;eventlist/insert JSR2
-      ;&yevents #00 [ STH2rk STEP.ymax ] STH2rk ;eventlist/insert JSR2
+      ;&yevents #ff [ STH2rk STEP.ymax ] STH2rk ;eventlist/insert JSR2
       ;&zevents #01 [ STH2rk STEP.zmin ] STH2rk ;eventlist/insert JSR2
-      ;&zevents #00 [ STH2rk STEP.zmax ] STH2rk ;eventlist/insert JSR2
+      ;&zevents #ff [ STH2rk STEP.zmax ] STH2rk ;eventlist/insert JSR2
       POP2r
 
       STEPSIZE ADD2
-      ,&parse/more JMP
+      ;&parse/more JMP2
 
     &parse/done
 
     ( terminate list )
-    TERMINATOR ROT ROT STA
+    DUP2 TERMINATOR ROT ROT STA
+    [ ;&steps-end STA2 ]
+
     RTN
 
   ( -- )
@@ -186,7 +209,21 @@
     POP2
     RTN
 
-  [ &steps $6000 &xevents $1200 &yevents $1200 &zevents $1200 ]
+  ( [ step* -- continue ] -- )
+  &rfind
+    [ ;&rfind/fn STA2 ]
+    [ ;&steps-end LDA2 ] ( steps* )
+    &rfind/loop
+      STEPSIZE SUB2
+      DUP2 ;&steps LTH2 ,&rfind/done JCN
+      ( steps* )
+      DUP2 LIT2 [ &rfind/fn $2 ] JSR2 ,&rfind/loop JCN
+    &rfind/done
+    ( steps* )
+    POP2
+    RTN
+
+  [ &steps $6000 &steps-end $2 &xevents $1200 &yevents $1200 &zevents $1200 ]
 
   ( xmin* xmax* ymin* ymax* z* -- )
   &draw
@@ -203,8 +240,8 @@
     &draw/one
       [ ;&draw/step* STA2 ]
 
-      [ ;&draw/z* LDA2 ] [ [ ;&draw/step* LDA2 ] STEP.zmin ] ;greaterthan64 JSR2 NOT ;&draw/z-out JCN2
-      [ [ ;&draw/step* LDA2 ] STEP.zmax ] [ ;&draw/z* LDA2 ] ;greaterthan64 JSR2 NOT ;&draw/z-out JCN2
+      [ ;&draw/z* LDA2 ] [ [ ;&draw/step* LDA2 ] STEP.zmin ] ;geq64 JSR2 NOT ;&draw/z-out JCN2
+      [ [ ;&draw/step* LDA2 ] STEP.zmax ] [ ;&draw/z* LDA2 ] ;geq64 JSR2 NOT ;&draw/z-out JCN2
 
       ;&draw/ystart [ ;&draw/step* LDA2 ] STEP.ymin ] [ ;&draw/ymin* LDA2 ] ;sub64 JSR2
       ;&draw/yend [ ;&draw/step* LDA2 ] STEP.ymax ] [ ;&draw/ymin* LDA2 ] ;sub64 JSR2
@@ -215,10 +252,10 @@
       [ [ ;&draw/step* LDA2 ] STEP.on LDA ] [ ;&draw/byte STA ]
 
       [ ;&draw/ystart LDA2 SWP ] ( ystart )
-      [ ;&draw/yend LDA2 SWP ] INC2 ( yend )
+      [ ;&draw/yend LDA2 SWP ] ( yend )
       DO
         [ ;&draw/xstart LDA2 SWP ] ( xstart )
-        [ ;&draw/xend LDA2 SWP ] INC2 ( xend )
+        [ ;&draw/xend LDA2 SWP ] ( xend )
         DO
           ( y x )
           OVR2 STH2 STH2k ( y x : x y )
@@ -296,6 +333,15 @@
 
   [ &mat MATPAD &w $2 &h $2 ]
 
+@event
+  ( active x* step* -- )
+  &dump
+    STH2 STH2 ( active : x* step* )
+    LIT '= SWP SUB EMIT SP
+    STH2r ;print64/no-pad JSR2 SP
+    STH2r ;step/dump JSR2 LF
+    RTN
+
 @eventlist
   ( el* -- )
   &init
@@ -304,16 +350,8 @@
 
   ( el* -- )
   &dump
-    ;&dump/one ;&foreach JSR2
+    ;event/dump ;&foreach JSR2
     RTN
-
-    ( active x* step* -- )
-    &dump/one
-      STH2 STH2 ( active : x* step* )
-      2* LIT '> SWP SUB EMIT SP
-      STH2r ;print64/no-pad JSR2 SP
-      STH2r ;step/dump JSR2 LF
-      RTN
 
   ( el* [ active x* step* -- ] -- )
   &foreach
@@ -345,7 +383,7 @@
       LDA2k TERMINATOR2 EQU2 ,&insert/at-end JCN
       LDA2k ( event-x* )
       LIT2 [ &insert/x* $2 ] ( event-x* x* )
-      ;greaterthan64 JSR2 ( event-x>x? ) ,&insert/found JCN
+      ;geq64 JSR2 ( event-x>x? ) ,&insert/found JCN
 
       EVENTSIZE ADD2
       ,&insert/loop JMP
@@ -407,5 +445,239 @@
     DUP2 EVENT.x* STH2r SWP2 STA2
     DUP2 EVENT.step* STH2r SWP2 STA2
     RTN
+
+@sweeper
+  &compute-total-volume
+  &zsweep
+    [ ;&startZ ;&int-min ;copy64 JSR2 ]
+    [ ;&total-volume #0000 ;short-to-64 JSR2 ]
+    ;steps/zevents ;&zsweep-on-event ;eventlist/foreach JSR2
+    P< "total= >P ;&total-volume PRINT64 LF
+    RTN
+
+    ( active x* step* )
+    &zsweep-on-event
+      STH2 ( active z* : step* )
+      ( P< "startZ= >P ;&startZ PRINT64 LF P< "eventZ= >P DUP2 EVENT.z* PRINT64 LF )
+      ;&startZ OVR2 EVENT.z* ;geq64 JSR2 NOT
+      ( eventZ>startZ? if so, process slab so far )
+      ;&zsweep/process-slab JCN2
+
+      &zsweep/next-event
+
+      ( update step activity level )
+
+      ( active z* : step* )
+      POP2 STH2r
+      ( active step* )
+      ROT STH ( step* : active )
+      STEP.active LDAk STHr ADD ( step.active* step.active+active )
+      ROT ROT STA
+      RTN
+
+    ( event-z* -- event-z* )
+    &zsweep/process-slab
+      ( event-z* )
+      DUP2 [ ;&endZ SWP2 ;copy64 JSR2 ]
+      ;&endZ #01 ;sub64-byte JSR2
+
+      ;&sizeZ ;&endZ ;&startZ ;sub64 JSR2
+      ;&sizeZ #01 ;add64-byte JSR2
+
+      ;&zsweep/trace JSR2
+
+      ( do the y-sweep )
+      ;&ysweep JSR2
+
+      ( start new slab )
+      DUP2 [ ;&startZ SWP2 ;copy64 JSR2 ]
+      ;&zsweep/next-event JMP2
+
+  &zsweep/trace
+    [ ;&silent LDA ] ,&zsweep/trace/not JCN
+    P< "z=[ >P
+    ;&startZ PRINT64
+    LIT '. EMIT LIT '. EMIT
+    ;&endZ PRINT64
+    LIT '] EMIT LIT '= EMIT
+    ;&sizeZ PRINT64
+    LF
+    &zsweep/trace/not
+    RTN
+
+  ( -- )
+  &ysweep
+    [ ;&startY ;&int-min ;copy64 JSR2 ]
+    ;steps/yevents ;&ysweep-on-event ;eventlist/foreach JSR2
+    RTN
+
+    ( active y* step* )
+    &ysweep-on-event
+      ( ignore events inactive for this slab )
+
+      DUP2 STEP.active LDA ( step.active )
+      #00 GTH ,&y-event-active JCN
+        ( this event is inactive, move on )
+        POP2 POP2 POP RTN
+      &y-event-active
+
+      STH2 ( active z* : step* )
+      ( P< 20 "startY= >P ;&startY PRINT64 LF P< 20 "eventY= >P DUP2 EVENT.z* PRINT64 LF )
+
+      ;&startY OVR2 EVENT.y* ;geq64 JSR2 NOT
+      ( eventY>startY? if so, process slab so far )
+      ;&ysweep/process-row JCN2
+
+      &ysweep/next-event
+
+      ( update step activity level )
+
+      ( active y* : step* )
+      POP2 STH2r
+      ( active step* )
+      ROT STH ( step* : active )
+      STEP.active LDAk STHr ADD ( step.active* step.active+active )
+      ROT ROT STA
+      RTN
+
+    &ysweep/process-row
+      ( event-y* )
+      DUP2 [ ;&endY SWP2 ;copy64 JSR2 ]
+      ;&endY #01 ;sub64-byte JSR2
+
+      ;&sizeY ;&endY ;&startY ;sub64 JSR2
+      ;&sizeY #01 ;add64-byte JSR2
+
+      ;&ysweep/trace JSR2
+
+      ( do the x-sweep )
+      ;&xsweep JSR2
+
+      ( start new row )
+      DUP2 [ ;&startY SWP2 ;copy64 JSR2 ]
+      ;&ysweep/next-event JMP2
+
+  &ysweep/trace
+    [ ;&silent LDA ] ,&ysweep/trace/not JCN
+    P< 20 "y=[ >P
+    ;&startY PRINT64
+    LIT '. EMIT LIT '. EMIT
+    ;&endY PRINT64
+    LIT '] EMIT LIT '= EMIT
+    ;&sizeY PRINT64
+    LF
+    &ysweep/trace/not
+    RTN
+
+  &xsweep
+    [ ;&startX ;&int-min ;copy64 JSR2 ]
+    ;steps/xevents ;&xsweep-on-event ;eventlist/foreach JSR2
+    RTN
+
+    ( active x* step* )
+    &xsweep-on-event
+      ( ignore events inactive for this slab )
+
+      DUP2 STEP.active LDA ( step.active )
+      #01 GTH ,&x-event-active JCN
+        ( this event is inactive, move on )
+        ( active x* step* )
+        ( P< 20 20 "skip 20 >P DUP2 ;step/dump JSR2 LF )
+        POP2 POP2 POP RTN
+      &x-event-active
+
+      STH2 ( active x* : step* )
+      ( P< 20 20 "startX= >P ;&startX PRINT64 LF P< 20 "eventX= >P DUP2 EVENT.z* PRINT64 LF )
+
+      ;&startX OVR2 EVENT.x* ;geq64 JSR2 NOT
+      ( eventX>startX? if so, process slab so far )
+      ;&xsweep/process-segment JCN2
+
+      &xsweep/next-event
+
+      ( update step activity level )
+
+      ( active x* : step* )
+      POP2 STH2r
+      ( active step* )
+      ROT STH ( step* : active )
+      STEP.active LDAk STHr ADD ( step.active* step.active+active )
+      ROT ROT STA
+      RTN
+
+    &xsweep/process-segment
+      ( event-x* )
+      DUP2 [ ;&endX SWP2 ;copy64 JSR2 ]
+      ;&endX #01 ;sub64-byte JSR2
+
+      ;&sizeX ;&endX ;&startX ;sub64 JSR2
+      ;&sizeX #01 ;add64-byte JSR2
+
+      ;&xsweep/trace JSR2
+
+      ( compute and add the volume )
+      ;&add-volume JSR2
+
+      ( start new segment )
+      DUP2 [ ;&startX SWP2 ;copy64 JSR2 ]
+      ;&xsweep/next-event JMP2
+
+  &xsweep/trace
+    [ ;&silent LDA ] ,&xsweep/trace/not JCN
+    P< 20 20 "x=[ >P
+    ;&startX PRINT64
+    LIT '. EMIT LIT '. EMIT
+    ;&endX PRINT64
+    LIT '] EMIT LIT '= EMIT
+    ;&sizeX PRINT64
+    LF
+    &xsweep/trace/not
+    RTN
+
+  ( -- )
+  &add-volume
+    ( find latest active step )
+    #00 [ ;&add-volume/found STA ]
+    ;&add-volume/on-step ;steps/rfind JSR2
+    [ ;&add-volume/found LDA ] NOT ,&add-volume/not-found JCN
+      ;&sizeY ;&sizeZ ;mul64 JSR2
+      ;&sizeYZ ;mul64/get-lo JSR2
+
+      ;&sizeYZ ;&sizeX ;mul64 JSR2
+      ;&segment-volume ;mul64/get-lo JSR2
+
+      ;&add-volume/trace JSR2
+
+      ;&total-volume ;&segment-volume ;add64 JSR2
+      &add-volume/not-found
+    RTN
+
+    [ &add-volume/found $1 ]
+
+    ( step* -- continue )
+    &add-volume/on-step
+      DUP2 STEP.active LDA #03 LTH ,&add-volume/not-active JCN
+        DUP2 STEP.on LDA [ ;&add-volume/found STA ]
+        POP2 #00 RTN
+      &add-volume/not-active
+      POP2
+      #01 RTN
+
+    &add-volume/trace
+      [ ;&silent LDA ] ,&add-volume/trace/not JCN
+      P< 20 20 20 "+ >P
+      ;&segment-volume PRINT64 LF
+      &add-volume/trace/not
+      RTN
+
+  [ &int-min 00 00 00 ff ff ff ff ff
+    &int-max ff ff ff 00 00 00 00 00
+    &startZ $8 &endZ $8 &sizeZ $8
+    &startY $8 &endY $8 &sizeY $8
+    &sizeYZ $8
+    &startX $8 &endX $8 &sizeX $8
+    &segment-volume $8
+    &total-volume $8
+    &silent 00 ]
 
 @axes "xyz

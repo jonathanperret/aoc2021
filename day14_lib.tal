@@ -192,11 +192,11 @@
 
       DUP2 ;is-non-zero64 JSR2 NOT ,&minmax-skip JCN
         ( count* )
-        ;&_max OVR2 ;greaterthan64 JSR2 ,&not-newmax JCN
+        ;&_max OVR2 ;geq64 JSR2 ,&not-newmax JCN
           ;&_max OVR2 ;copy64 JSR2
         &not-newmax
 
-        DUP2 ;&_min ;greaterthan64 JSR2 ,&not-newmin JCN
+        DUP2 ;&_min ;geq64 JSR2 ,&not-newmin JCN
           ;&_min OVR2 ;copy64 JSR2
         &not-newmin
 

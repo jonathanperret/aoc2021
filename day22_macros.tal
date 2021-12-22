@@ -12,8 +12,12 @@
 %EVENTSIZE { #0005 } %EVENTPAD { $5 }
 
 %EVENT.x*     {            }
+%EVENT.y*     {            }
+%EVENT.z*     {            }
 %EVENT.step*  { #0002 ADD2 }
 %EVENT.active { #0004 ADD2 }
 
 %TERMINATOR { #ff }
 %TERMINATOR2 { #ffff }
+
+%PRINT64 { ;print64/no-pad JSR2 }

@@ -2,6 +2,8 @@ const fs = require('fs');
 const _ = require('./lodash');
 const input = fs.readFileSync(process.argv[2], 'ascii');
 
+const trace = ()=>{};
+
 const orders = input.split('\n').flatMap((line, i) => {
   const m = line.match(/(on|off) x=(-?\d+)\.\.(-?\d+),y=(-?\d+)\.\.(-?\d+),z=(-?\d+)\.\.(-?\d+)/);
   if(!m) { return [] };
@@ -18,10 +20,6 @@ const orders = input.split('\n').flatMap((line, i) => {
     activity: 0,
   }];
 });
-
-const zOrders = _.sortBy(orders, 'zmin');
-const yOrders = _.sortBy(orders, 'ymin');
-const xOrders = _.sortBy(orders, 'xmin');
 
 const zEvents = _.sortBy(orders.flatMap(order => {
   return [
@@ -47,37 +45,37 @@ const xEvents = _.sortBy(orders.flatMap(order => {
 let totalCount = 0;
 
 // z-sweep
-let startZ = -100000;
+let startZ = -16777216;
 zEvents.forEach(zEvent => {
-  if(zEvent.z != startZ ) {
+  if(zEvent.z > startZ ) {
     const endZ = zEvent.z - 1;
 
     // process slab
-    console.log('*', '*', `${startZ}..${endZ}`);
+    trace(`  ( EXPECT z=[${startZ}..${endZ}]=${endZ-startZ+1} )`);
 
     // y-sweep
-    let startY = -100000;
+    let startY = -16777216;
     yEvents.forEach(yEvent => {
-      if(!(yEvent.order.activity)) return;
-      if(yEvent.y !== startY) {
+      if(yEvent.order.activity<1) return;
+      if(yEvent.y > startY) {
         const endY = yEvent.y - 1;
 
         // process band
-        console.log('*', `${startY}..${endY}`, `${startZ}..${endZ}`);
+        trace(`  ( EXPECT  y=[${startY}..${endY}]=${endY-startY+1} )`);
 
         // x-sweep
-        let startX = -100000;
+        let startX = -16777216;
         xEvents.forEach(xEvent => {
-          if(!(xEvent.order.activity >= 2)) return;
-          if(xEvent.x !== startX) {
+          if(xEvent.order.activity < 2) return;
+          if(xEvent.x > startX) {
             const endX = xEvent.x - 1;
 
             // process segment
-            console.log(`${startX}..${endX}`, `${startY}..${endY}`, `${startZ}..${endZ}`);
+            trace(`  ( EXPECT   x=[${startX}..${endX}]=${endX-startX+1} )`);
             const segmentActiveOrder = _.findLast(orders, o => o.activity >= 3);
             if(segmentActiveOrder?.onoff) {
               const area = (endZ - startZ + 1) * (endY - startY + 1) * (endX - startX + 1);
-              console.log('+', area);
+              trace(`  ( EXPECT    +${area} )`);
               totalCount += area;
             };
 
@@ -101,4 +99,4 @@ zEvents.forEach(zEvent => {
   zEvent.order.activity += zEvent.active?1:-1;
 });
 
-console.log('total', totalCount);
+console.log(`  ( EXPECT total=${totalCount} )`);

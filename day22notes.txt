@@ -152,5 +152,22 @@ It is not even enough to count how many rectangles operate on a particular
 interval! This reminds me a bit of the order-independent transparency problem
 in rendering…
 
+I ended up doing three nested sweeps, according to pre-computed list of events
+ordered on each axis; each event switches the corresponding step to active on
+its respective axis. On the deepest (X) sweep, I look for a step which is
+active on all three axes and which appears last in the original step list. If
+it is a positive cuboid, I simply add the size of the current volume (product
+of the sizes of the X, Y and Z ranges) to the final volume.
 
+I had to prototype this idea in JavaScript before trying to implement it
+for UXN.
 
+This algorithm could in theory do 840*840*840*420 (close to 250 billions)
+iterations… but in JavaScript it ran in less than one second on my input
+(and gave the correct answer on the samples).
+
+So all that remained was to convert it to UXNTAL, which took a long time
+but I didn't hit any particular problem.
+
+Unfortunately, even though the iteration counts should be exactly the same,
+when running on UXN the answer is only found in more than 50 seconds. Oh well.
