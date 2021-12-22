@@ -14,3 +14,8 @@ that in memory, even at one bit per voxel I would need 128KB.
 
 I can do like for day 5, process the input repeatedly over a single slice of the
 volume, and add up the results.
+
+Took me longer than expected, but I got the expected answer. On to part 2…
+
+# Part 2
+

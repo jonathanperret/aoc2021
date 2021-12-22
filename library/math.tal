@@ -456,6 +456,23 @@ RTN
   STA2
   JMP2r
 
+  ( r* sh sl -- )
+  &signed
+  DUP4
+  ;short-to-64 JSR2
+  ( r* sh sl )
+  POP #80 AND ,&sext JCN
+  ( r* )
+  POP2
+  RTN
+
+  &sext
+  ( r* )
+  #0002 ADD2 DUP2 #ffff SWP2 STA2
+  #0002 ADD2 DUP2 #ffff SWP2 STA2
+  #0002 ADD2      #ffff SWP2 STA2
+  RTN
+
 ( r* s* -> )
 @parse64
   STH2
@@ -475,9 +492,9 @@ RTN
     POP POP2 POP2 POP2r
   RTN
 
-( a* b* -- f )
+( a* b* -- a>b )
 @greaterthan64
-  ( OVR2 ;print64 JSR2 LIT '> EMIT DUP2 ;print64 JSR2 LIT '? EMIT SP )
+  ( OVR2 ;print64/no-pad JSR2 LIT '> EMIT DUP2 ;print64/no-pad JSR2 LIT '? EMIT LF )
   STH2 STH2 ;&a-b STH2r STH2r ;sub64 JSR2
   ;&a-b ;is-positive64 JSR2
   ( DBGBYTE )

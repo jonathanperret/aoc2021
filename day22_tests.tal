@@ -20,6 +20,24 @@
   ( EXPECT 0x01 -20 26 -36 17 -47 7 )
   ( EXPECT 0x00 -44 5 -19 31 -15 33 )
 
+  T< "draw-slice: >T
+  S<
+    "on 20 "x=-2..3,y=2..3,z=-47..7 0a
+    "on 20 "x=-20..20,y=-20..20,z=-40..-40 0a
+    "off 20 "x=-3..0,y=-1..2,z=-15..33 0a
+  >S #0001 ;test-draw-slice JSR2
+  ( EXPECT .......... )
+  ( EXPECT .......... )
+  ( EXPECT ..######.. )
+  ( EXPECT .....###.. )
+  ( EXPECT .......... )
+  ( EXPECT .......... )
+  ( EXPECT .......... )
+  ( EXPECT .......... )
+  ( EXPECT .......... )
+  ( EXPECT .......... )
+  ( EXPECT 9 )
+
   T< "👍 >T
   BRK !
 
@@ -40,6 +58,28 @@
 
   ;steps/dump JSR2
   RTN
+
+( s* z -- )
+@test-draw-slice
+  ;&z* ;short-to-64/signed JSR2
+  ;make-get-byte JSR2 ;steps/parse JSR2
+
+  #000a #000a ;matrix/init JSR2
+
+  ;&xmin* #fffc ;short-to-64/signed JSR2
+  ;&ymin* #fffc ;short-to-64/signed JSR2
+  ;&xmax* #0005 ;short-to-64/signed JSR2
+  ;&ymax* #0005 ;short-to-64/signed JSR2
+  ;&z*    #0000 ;short-to-64/signed JSR2
+
+  ;&xmin* ;&xmax* ;&ymin* ;&ymax* ;&z* ;steps/draw JSR2
+
+  ;matrix/dump JSR2
+
+  ;matrix/count JSR2 DBGSHORTDEC POP2
+
+  RTN
+  [ &z* $8 &xmin* $8 &xmax* $8 &ymin* $8 &ymax* $8 ]
 
 ( s* -- get-byte )
 @make-get-byte

@@ -2,6 +2,7 @@
 ~library/string.tal
 ~library/math.tal
 
+%STEP.on   {            }
 %STEP.xmin { #0001 ADD2 }
 %STEP.xmax { #0009 ADD2 }
 %STEP.ymin { #0011 ADD2 }
@@ -10,6 +11,7 @@
 %STEP.zmax { #0029 ADD2 }
 
 %STEPSIZE { #0031 } %STEPPAD { $31 }
+%MATSIZE { #3000 } %MATPAD { $3000 }
 
 %TERMINATOR { #ff }
 
@@ -176,3 +178,110 @@
     RTN
 
   [ &steps $6000 ]
+
+  ( xmin* xmax* ymin* ymax* z* -- )
+  &draw
+    [ ;&draw/z* STA2 ]
+    [ ;&draw/ymax* STA2 ]
+    [ ;&draw/ymin* STA2 ]
+    [ ;&draw/xmax* STA2 ]
+    [ ;&draw/xmin* STA2 ]
+    ;&draw/one ;&foreach JSR2
+    RTN
+    [ &draw/z* $8 &draw/xmin* $8 &draw/xmax* $8 &draw/ymin* $8 &draw/ymax* $8 ]
+
+    ( step* -- )
+    &draw/one
+      [ ;&draw/step* STA2 ]
+
+      [ ;&draw/z* LDA2 ] [ [ ;&draw/step* LDA2 ] STEP.zmin ] ;greaterthan64 JSR2 NOT ;&draw/z-out JCN2
+      [ [ ;&draw/step* LDA2 ] STEP.zmax ] [ ;&draw/z* LDA2 ] ;greaterthan64 JSR2 NOT ;&draw/z-out JCN2
+
+      ;&draw/ystart [ ;&draw/step* LDA2 ] STEP.ymin ] [ ;&draw/ymin* LDA2 ] ;sub64 JSR2
+      ;&draw/yend [ ;&draw/step* LDA2 ] STEP.ymax ] [ ;&draw/ymin* LDA2 ] ;sub64 JSR2
+
+      ;&draw/xstart [ ;&draw/step* LDA2 ] STEP.xmin ] [ ;&draw/xmin* LDA2 ] ;sub64 JSR2
+      ;&draw/xend [ ;&draw/step* LDA2 ] STEP.xmax ] [ ;&draw/xmin* LDA2 ] ;sub64 JSR2
+
+      [ [ ;&draw/step* LDA2 ] STEP.on LDA ] [ ;&draw/byte STA ]
+
+      [ ;&draw/ystart LDA2 SWP ] ( ystart )
+      [ ;&draw/yend LDA2 SWP ] INC2 ( yend )
+      DO
+        [ ;&draw/xstart LDA2 SWP ] ( xstart )
+        [ ;&draw/xend LDA2 SWP ] INC2 ( xend )
+        DO
+          ( y x )
+          OVR2 STH2 STH2k ( y x : x y )
+          LIT [ &draw/byte $1 ] STH2r STH2r ;matrix/set-at JSR2
+        LOOP
+      LOOP
+      RTN
+
+      &draw/z-out
+        ( step* )
+        RTN
+
+      [ &draw/step* $2
+        &draw/xstart $8 &draw/xend $8
+        &draw/ystart $8 &draw/yend $8
+      ]
+
+@matrix
+  ( w h -- )
+  &init
+    [ ;&h STA2 ]
+    [ ;&w STA2 ]
+    #00 MATSIZE ;&mat ;memset JSR2
+    RTN
+
+  ( x y -- )
+  &get-at
+    [ ;&w LDA2 ] MUL2 ADD2
+    ;&mat ADD2 LDA
+    RTN
+
+  ( b x y -- )
+  &set-at
+    DUP2 [ ;&h LDA2 ] GEQ2 ,&set-at/outside JCN
+    OVR2 [ ;&w LDA2 ] GEQ2 ,&set-at/outside JCN
+
+    [ ;&w LDA2 ] MUL2 ADD2
+    ;&mat ADD2 STA
+    RTN
+
+    &set-at/outside
+    POP2 POP2 POP RTN
+
+  ( -- )
+  &dump
+    #0000 [ ;&h LDA2 ] DO
+      ( draw flipped on y )
+      [ ;&h LDA2 ] DEC2 OVR2 SUB2
+      #0000 [ ;&w LDA2 ] DO
+        DUP4 SWP2 ;&get-at JSR2 STH
+        LIT '#
+        STHr ,&dump/set JCN
+          POP LIT '.
+          &dump/set
+        EMIT
+      LOOP
+      LF
+      POP2
+    LOOP
+    RTN
+
+  ( -- cnt )
+  &count
+    #0000 [ ;&total STA2 ]
+    #0000 [ ;&h LDA2 ] DO
+      #0000 [ ;&w LDA2 ] DO
+        DUP4 SWP2 ;&get-at JSR2
+        #00 SWP [ ;&total LDA2 ] ADD2 [ ;&total STA2 ]
+      LOOP
+    LOOP
+    [ ;&total LDA2 ]
+    RTN
+    [ &total $2 ]
+
+  [ &mat MATPAD &w $2 &h $2 ]
