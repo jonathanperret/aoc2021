@@ -1,444 +1,104 @@
-const jscad = require('@jscad/modeling')
-const { cuboid } = jscad.primitives
-const { subtract, union, intersect } = require('@jscad/modeling').booleans
-const { translateX } = require('@jscad/modeling').transforms
+const fs = require('fs');
+const _ = require('./lodash');
+const input = fs.readFileSync(process.argv[2], 'ascii');
 
+const orders = input.split('\n').flatMap((line, i) => {
+  const m = line.match(/(on|off) x=(-?\d+)\.\.(-?\d+),y=(-?\d+)\.\.(-?\d+),z=(-?\d+)\.\.(-?\d+)/);
+  if(!m) { return [] };
+  const [ _, onoff, xmin, xmax, ymin, ymax, zmin, zmax ] = m;
+  return [{
+    onoff: onoff=='on',
+    xmin: parseInt(xmin),
+    xmax: parseInt(xmax),
+    ymin: parseInt(ymin),
+    ymax: parseInt(ymax),
+    zmin: parseInt(zmin),
+    zmax: parseInt(zmax),
+    priority: i,
+    activity: 0,
+  }];
+});
 
-const getParameterDefinitions = () => {
+const zOrders = _.sortBy(orders, 'zmin');
+const yOrders = _.sortBy(orders, 'ymin');
+const xOrders = _.sortBy(orders, 'xmin');
+
+const zEvents = _.sortBy(orders.flatMap(order => {
   return [
-    { name: 'x', type: 'slider', initial: 0, min: -100, max: 100, step: 1, caption: 'x:' },
-    { name: 'w', type: 'slider', initial: 1, min: 1, max: 100, step: 1, caption: 'w:' },
+    { active: true, order, z: order.zmin },
+    { active: false, order, z: order.zmax+1 },
+  ];
+}), 'z');
 
-  ]
-}
+const yEvents = _.sortBy(orders.flatMap(order => {
+  return [
+    { active: true, order, y: order.ymin },
+    { active: false, order, y: order.ymax+1 },
+  ];
+}), 'y');
 
-const main = ({x,w}) => {
-    let shape = cuboid({center:[(-44+5)/2,(-19+31)/2,(-15+33)/2], size:[Math.abs(5 - -44),Math.abs(31 - -19),Math.abs(33 - -15)]});
-    shape = union(shape,cuboid({center:[(-39+11)/2,(-17+30)/2,(-15+30)/2], size:[Math.abs(11 - -39),Math.abs(30 - -17),Math.abs(30 - -15)]}));
-    shape = union(shape,cuboid({center:[(-42+10)/2,(-43+7)/2,(-4+40)/2], size:[Math.abs(10 - -42),Math.abs(7 - -43),Math.abs(40 - -4)]}));
-    shape = union(shape,cuboid({center:[(-4+47)/2,(-8+45)/2,(-8+43)/2], size:[Math.abs(47 - -4),Math.abs(45 - -8),Math.abs(43 - -8)]}));
-    shape = union(shape,cuboid({center:[(-18+28)/2,(-15+30)/2,(-36+12)/2], size:[Math.abs(28 - -18),Math.abs(30 - -15),Math.abs(12 - -36)]}));
-    shape = union(shape,cuboid({center:[(-24+24)/2,(-33+14)/2,(-49+1)/2], size:[Math.abs(24 - -24),Math.abs(14 - -33),Math.abs(1 - -49)]}));
-    shape = union(shape,cuboid({center:[(-14+30)/2,(-34+14)/2,(-27+24)/2], size:[Math.abs(30 - -14),Math.abs(14 - -34),Math.abs(24 - -27)]}));
-    shape = union(shape,cuboid({center:[(-45+7)/2,(-6+43)/2,(-9+41)/2], size:[Math.abs(7 - -45),Math.abs(43 - -6),Math.abs(41 - -9)]}));
-    shape = union(shape,cuboid({center:[(-16+37)/2,(-49+-5)/2,(-30+21)/2], size:[Math.abs(37 - -16),Math.abs(-5 - -49),Math.abs(21 - -30)]}));
-    shape = union(shape,cuboid({center:[(-10+42)/2,(-35+10)/2,(-43+11)/2], size:[Math.abs(42 - -10),Math.abs(10 - -35),Math.abs(11 - -43)]}));
-    shape = subtract(shape,cuboid({center:[(7+17)/2,(-8+5)/2,(-30+-18)/2], size:[Math.abs(17 - 7),Math.abs(5 - -8),Math.abs(-18 - -30)]}));
-    shape = union(shape,cuboid({center:[(-49+3)/2,(-27+23)/2,(-44+1)/2], size:[Math.abs(3 - -49),Math.abs(23 - -27),Math.abs(1 - -44)]}));
-    shape = subtract(shape,cuboid({center:[(10+23)/2,(-21+-10)/2,(-37+-19)/2], size:[Math.abs(23 - 10),Math.abs(-10 - -21),Math.abs(-19 - -37)]}));
-    shape = union(shape,cuboid({center:[(-41+4)/2,(-11+41)/2,(-36+16)/2], size:[Math.abs(4 - -41),Math.abs(41 - -11),Math.abs(16 - -36)]}));
-    shape = subtract(shape,cuboid({center:[(-6+4)/2,(40+49)/2,(12+30)/2], size:[Math.abs(4 - -6),Math.abs(49 - 40),Math.abs(30 - 12)]}));
-    shape = union(shape,cuboid({center:[(-2+49)/2,(-43+3)/2,(-32+13)/2], size:[Math.abs(49 - -2),Math.abs(3 - -43),Math.abs(13 - -32)]}));
-    shape = subtract(shape,cuboid({center:[(-44+-29)/2,(-8+6)/2,(1+17)/2], size:[Math.abs(-29 - -44),Math.abs(6 - -8),Math.abs(17 - 1)]}));
-    shape = union(shape,cuboid({center:[(-9+36)/2,(-7+43)/2,(-37+14)/2], size:[Math.abs(36 - -9),Math.abs(43 - -7),Math.abs(14 - -37)]}));
-    shape = subtract(shape,cuboid({center:[(-1+12)/2,(-36+-23)/2,(28+47)/2], size:[Math.abs(12 - -1),Math.abs(-23 - -36),Math.abs(47 - 28)]}));
-    shape = union(shape,cuboid({center:[(-26+27)/2,(-45+3)/2,(-20+24)/2], size:[Math.abs(27 - -26),Math.abs(3 - -45),Math.abs(24 - -20)]}));
-    /*
-    shape = union(shape,cuboid({center:[(-87853+-63955)/2,(-14079+10797)/2,(16618+34667)/2], size:[Math.abs(-63955 - -87853),Math.abs(10797 - -14079),Math.abs(34667 - 16618)]}));
-    shape = union(shape,cuboid({center:[(-22600+-10441)/2,(-47268+-24491)/2,(-72641+-62383)/2], size:[Math.abs(-10441 - -22600),Math.abs(-24491 - -47268),Math.abs(-62383 - -72641)]}));
-    shape = union(shape,cuboid({center:[(-7793+18488)/2,(71672+78114)/2,(-44666+-18458)/2], size:[Math.abs(18488 - -7793),Math.abs(78114 - 71672),Math.abs(-18458 - -44666)]}));
-    shape = union(shape,cuboid({center:[(73+5701)/2,(-2494+28421)/2,(-89152+-65315)/2], size:[Math.abs(5701 - 73),Math.abs(28421 - -2494),Math.abs(-65315 - -89152)]}));
-    shape = union(shape,cuboid({center:[(-37051+-30202)/2,(15342+24015)/2,(-77231+-62996)/2], size:[Math.abs(-30202 - -37051),Math.abs(24015 - 15342),Math.abs(-62996 - -77231)]}));
-    shape = union(shape,cuboid({center:[(53246+70778)/2,(-62293+-47740)/2,(20277+41217)/2], size:[Math.abs(70778 - 53246),Math.abs(-47740 - -62293),Math.abs(41217 - 20277)]}));
-    shape = union(shape,cuboid({center:[(-14142+12389)/2,(62146+65958)/2,(-55683+-41913)/2], size:[Math.abs(12389 - -14142),Math.abs(65958 - 62146),Math.abs(-41913 - -55683)]}));
-    shape = union(shape,cuboid({center:[(-48728+-18398)/2,(8282+34289)/2,(-81114+-48336)/2], size:[Math.abs(-18398 - -48728),Math.abs(34289 - 8282),Math.abs(-48336 - -81114)]}));
-    shape = union(shape,cuboid({center:[(-59177+-22673)/2,(-49858+-29386)/2,(-59127+-47368)/2], size:[Math.abs(-22673 - -59177),Math.abs(-29386 - -49858),Math.abs(-47368 - -59127)]}));
-    shape = union(shape,cuboid({center:[(-85434+-72245)/2,(13867+31427)/2,(-21594+-2631)/2], size:[Math.abs(-72245 - -85434),Math.abs(31427 - 13867),Math.abs(-2631 - -21594)]}));
-    shape = union(shape,cuboid({center:[(-35402+-12325)/2,(-37452+-19185)/2,(-81697+-63051)/2], size:[Math.abs(-12325 - -35402),Math.abs(-19185 - -37452),Math.abs(-63051 - -81697)]}));
-    shape = union(shape,cuboid({center:[(61174+80227)/2,(-866+32461)/2,(-20053+-10077)/2], size:[Math.abs(80227 - 61174),Math.abs(32461 - -866),Math.abs(-10077 - -20053)]}));
-    shape = union(shape,cuboid({center:[(-32647+-1711)/2,(-35706+-20854)/2,(-72604+-60376)/2], size:[Math.abs(-1711 - -32647),Math.abs(-20854 - -35706),Math.abs(-60376 - -72604)]}));
-    shape = union(shape,cuboid({center:[(59957+82200)/2,(-30164+2313)/2,(-30464+-19345)/2], size:[Math.abs(82200 - 59957),Math.abs(2313 - -30164),Math.abs(-19345 - -30464)]}));
-    shape = union(shape,cuboid({center:[(6801+22281)/2,(24570+51370)/2,(-81154+-67264)/2], size:[Math.abs(22281 - 6801),Math.abs(51370 - 24570),Math.abs(-67264 - -81154)]}));
-    shape = union(shape,cuboid({center:[(20369+39838)/2,(73729+88454)/2,(577+19763)/2], size:[Math.abs(39838 - 20369),Math.abs(88454 - 73729),Math.abs(19763 - 577)]}));
-    shape = union(shape,cuboid({center:[(29800+52019)/2,(29499+61971)/2,(48435+55070)/2], size:[Math.abs(52019 - 29800),Math.abs(61971 - 29499),Math.abs(55070 - 48435)]}));
-    shape = union(shape,cuboid({center:[(28801+40411)/2,(-84420+-69983)/2,(-13267+2211)/2], size:[Math.abs(40411 - 28801),Math.abs(-69983 - -84420),Math.abs(2211 - -13267)]}));
-    shape = union(shape,cuboid({center:[(13549+40576)/2,(-47493+-31658)/2,(-71685+-40487)/2], size:[Math.abs(40576 - 13549),Math.abs(-31658 - -47493),Math.abs(-40487 - -71685)]}));
-    shape = union(shape,cuboid({center:[(13137+24167)/2,(-66931+-49605)/2,(26517+54208)/2], size:[Math.abs(24167 - 13137),Math.abs(-49605 - -66931),Math.abs(54208 - 26517)]}));
-    shape = union(shape,cuboid({center:[(33284+48135)/2,(46431+67202)/2,(48616+59067)/2], size:[Math.abs(48135 - 33284),Math.abs(67202 - 46431),Math.abs(59067 - 48616)]}));
-    shape = union(shape,cuboid({center:[(-56715+-26618)/2,(56864+79700)/2,(-25450+-654)/2], size:[Math.abs(-26618 - -56715),Math.abs(79700 - 56864),Math.abs(-654 - -25450)]}));
-    shape = union(shape,cuboid({center:[(-54074+-25399)/2,(-52684+-36578)/2,(35631+52148)/2], size:[Math.abs(-25399 - -54074),Math.abs(-36578 - -52684),Math.abs(52148 - 35631)]}));
-    shape = union(shape,cuboid({center:[(37464+54023)/2,(-34067+-6521)/2,(-70559+-54490)/2], size:[Math.abs(54023 - 37464),Math.abs(-6521 - -34067),Math.abs(-54490 - -70559)]}));
-    shape = union(shape,cuboid({center:[(-41089+-11111)/2,(-47478+-29133)/2,(60940+74315)/2], size:[Math.abs(-11111 - -41089),Math.abs(-29133 - -47478),Math.abs(74315 - 60940)]}));
-    shape = union(shape,cuboid({center:[(-82774+-52991)/2,(-54204+-20897)/2,(23960+42825)/2], size:[Math.abs(-52991 - -82774),Math.abs(-20897 - -54204),Math.abs(42825 - 23960)]}));
-    shape = union(shape,cuboid({center:[(30749+49712)/2,(35786+69307)/2,(37491+45758)/2], size:[Math.abs(49712 - 30749),Math.abs(69307 - 35786),Math.abs(45758 - 37491)]}));
-    shape = union(shape,cuboid({center:[(-11491+14973)/2,(-93031+-58484)/2,(17353+44836)/2], size:[Math.abs(14973 - -11491),Math.abs(-58484 - -93031),Math.abs(44836 - 17353)]}));
-    shape = union(shape,cuboid({center:[(-57064+-20188)/2,(-63440+-37103)/2,(47342+70176)/2], size:[Math.abs(-20188 - -57064),Math.abs(-37103 - -63440),Math.abs(70176 - 47342)]}));
-    shape = union(shape,cuboid({center:[(-27801+-375)/2,(30934+59690)/2,(45378+71236)/2], size:[Math.abs(-375 - -27801),Math.abs(59690 - 30934),Math.abs(71236 - 45378)]}));
-    shape = union(shape,cuboid({center:[(61123+82155)/2,(-15850+-525)/2,(-53874+-32638)/2], size:[Math.abs(82155 - 61123),Math.abs(-525 - -15850),Math.abs(-32638 - -53874)]}));
-    shape = union(shape,cuboid({center:[(-16993+-2751)/2,(40182+64669)/2,(-62209+-45026)/2], size:[Math.abs(-2751 - -16993),Math.abs(64669 - 40182),Math.abs(-45026 - -62209)]}));
-    shape = union(shape,cuboid({center:[(-82058+-51602)/2,(6298+30885)/2,(-39693+-17573)/2], size:[Math.abs(-51602 - -82058),Math.abs(30885 - 6298),Math.abs(-17573 - -39693)]}));
-    shape = union(shape,cuboid({center:[(49260+58127)/2,(-59897+-48624)/2,(-30308+-16577)/2], size:[Math.abs(58127 - 49260),Math.abs(-48624 - -59897),Math.abs(-16577 - -30308)]}));
-    shape = union(shape,cuboid({center:[(-56788+-40095)/2,(-25293+-14542)/2,(-68269+-53982)/2], size:[Math.abs(-40095 - -56788),Math.abs(-14542 - -25293),Math.abs(-53982 - -68269)]}));
-    shape = union(shape,cuboid({center:[(2505+5932)/2,(-47595+-22583)/2,(64838+84486)/2], size:[Math.abs(5932 - 2505),Math.abs(-22583 - -47595),Math.abs(84486 - 64838)]}));
-    shape = union(shape,cuboid({center:[(-53828+-37906)/2,(-72105+-58994)/2,(-4913+17377)/2], size:[Math.abs(-37906 - -53828),Math.abs(-58994 - -72105),Math.abs(17377 - -4913)]}));
-    shape = union(shape,cuboid({center:[(5051+19306)/2,(77062+91570)/2,(-31347+-1735)/2], size:[Math.abs(19306 - 5051),Math.abs(91570 - 77062),Math.abs(-1735 - -31347)]}));
-    shape = union(shape,cuboid({center:[(-16847+-320)/2,(-93124+-64459)/2,(12444+33910)/2], size:[Math.abs(-320 - -16847),Math.abs(-64459 - -93124),Math.abs(33910 - 12444)]}));
-    shape = union(shape,cuboid({center:[(-45648+-18838)/2,(34175+55012)/2,(39079+55510)/2], size:[Math.abs(-18838 - -45648),Math.abs(55012 - 34175),Math.abs(55510 - 39079)]}));
-    shape = union(shape,cuboid({center:[(63218+83253)/2,(-23970+-4735)/2,(2800+11596)/2], size:[Math.abs(83253 - 63218),Math.abs(-4735 - -23970),Math.abs(11596 - 2800)]}));
-    shape = union(shape,cuboid({center:[(50244+76221)/2,(-50393+-33391)/2,(-17785+-7738)/2], size:[Math.abs(76221 - 50244),Math.abs(-33391 - -50393),Math.abs(-7738 - -17785)]}));
-    shape = union(shape,cuboid({center:[(35816+43139)/2,(-73177+-43183)/2,(-41697+-13098)/2], size:[Math.abs(43139 - 35816),Math.abs(-43183 - -73177),Math.abs(-13098 - -41697)]}));
-    shape = union(shape,cuboid({center:[(-66225+-48531)/2,(-36053+-16991)/2,(-48638+-26491)/2], size:[Math.abs(-48531 - -66225),Math.abs(-16991 - -36053),Math.abs(-26491 - -48638)]}));
-    shape = union(shape,cuboid({center:[(-20786+8663)/2,(28061+38714)/2,(-84899+-63223)/2], size:[Math.abs(8663 - -20786),Math.abs(38714 - 28061),Math.abs(-63223 - -84899)]}));
-    shape = union(shape,cuboid({center:[(59014+76501)/2,(10125+25324)/2,(-54183+-35850)/2], size:[Math.abs(76501 - 59014),Math.abs(25324 - 10125),Math.abs(-35850 - -54183)]}));
-    shape = union(shape,cuboid({center:[(-24243+-8597)/2,(-47135+-12076)/2,(62724+76012)/2], size:[Math.abs(-8597 - -24243),Math.abs(-12076 - -47135),Math.abs(76012 - 62724)]}));
-    shape = union(shape,cuboid({center:[(-23347+7901)/2,(-81218+-55820)/2,(-60425+-30059)/2], size:[Math.abs(7901 - -23347),Math.abs(-55820 - -81218),Math.abs(-30059 - -60425)]}));
-    shape = union(shape,cuboid({center:[(56319+71652)/2,(23428+36372)/2,(-51760+-40670)/2], size:[Math.abs(71652 - 56319),Math.abs(36372 - 23428),Math.abs(-40670 - -51760)]}));
-    shape = union(shape,cuboid({center:[(-13463+10312)/2,(78981+96298)/2,(-15494+17820)/2], size:[Math.abs(10312 - -13463),Math.abs(96298 - 78981),Math.abs(17820 - -15494)]}));
-    shape = union(shape,cuboid({center:[(25458+54307)/2,(-35736+-28250)/2,(48784+77696)/2], size:[Math.abs(54307 - 25458),Math.abs(-28250 - -35736),Math.abs(77696 - 48784)]}));
-    shape = union(shape,cuboid({center:[(43259+63044)/2,(15682+26592)/2,(-71035+-52596)/2], size:[Math.abs(63044 - 43259),Math.abs(26592 - 15682),Math.abs(-52596 - -71035)]}));
-    shape = union(shape,cuboid({center:[(-29348+-4953)/2,(54062+67679)/2,(39619+65019)/2], size:[Math.abs(-4953 - -29348),Math.abs(67679 - 54062),Math.abs(65019 - 39619)]}));
-    shape = union(shape,cuboid({center:[(49369+63882)/2,(-39377+-21590)/2,(-53387+-47336)/2], size:[Math.abs(63882 - 49369),Math.abs(-21590 - -39377),Math.abs(-47336 - -53387)]}));
-    shape = union(shape,cuboid({center:[(13595+25896)/2,(27751+59875)/2,(-78381+-44266)/2], size:[Math.abs(25896 - 13595),Math.abs(59875 - 27751),Math.abs(-44266 - -78381)]}));
-    shape = union(shape,cuboid({center:[(-62701+-44978)/2,(22333+30908)/2,(-54143+-42897)/2], size:[Math.abs(-44978 - -62701),Math.abs(30908 - 22333),Math.abs(-42897 - -54143)]}));
-    shape = union(shape,cuboid({center:[(7977+25840)/2,(-82123+-71218)/2,(-16092+-696)/2], size:[Math.abs(25840 - 7977),Math.abs(-71218 - -82123),Math.abs(-696 - -16092)]}));
-    shape = union(shape,cuboid({center:[(72848+80580)/2,(-3963+7995)/2,(-14735+10441)/2], size:[Math.abs(80580 - 72848),Math.abs(7995 - -3963),Math.abs(10441 - -14735)]}));
-    shape = union(shape,cuboid({center:[(69499+92382)/2,(-2662+28065)/2,(-42992+-17994)/2], size:[Math.abs(92382 - 69499),Math.abs(28065 - -2662),Math.abs(-17994 - -42992)]}));
-    shape = union(shape,cuboid({center:[(48475+68268)/2,(42740+64001)/2,(14503+39264)/2], size:[Math.abs(68268 - 48475),Math.abs(64001 - 42740),Math.abs(39264 - 14503)]}));
-    shape = union(shape,cuboid({center:[(-49063+-33385)/2,(-58610+-30409)/2,(41056+71840)/2], size:[Math.abs(-33385 - -49063),Math.abs(-30409 - -58610),Math.abs(71840 - 41056)]}));
-    shape = union(shape,cuboid({center:[(-59232+-33228)/2,(45184+76352)/2,(17766+31561)/2], size:[Math.abs(-33228 - -59232),Math.abs(76352 - 45184),Math.abs(31561 - 17766)]}));
-    shape = union(shape,cuboid({center:[(5959+26638)/2,(-9552+20815)/2,(75305+87615)/2], size:[Math.abs(26638 - 5959),Math.abs(20815 - -9552),Math.abs(87615 - 75305)]}));
-    shape = union(shape,cuboid({center:[(47753+57971)/2,(42230+61946)/2,(-12647+-3804)/2], size:[Math.abs(57971 - 47753),Math.abs(61946 - 42230),Math.abs(-3804 - -12647)]}));
-    shape = union(shape,cuboid({center:[(-81759+-73203)/2,(4440+38862)/2,(-16003+-3110)/2], size:[Math.abs(-73203 - -81759),Math.abs(38862 - 4440),Math.abs(-3110 - -16003)]}));
-    shape = union(shape,cuboid({center:[(-73980+-59456)/2,(-47097+-28017)/2,(-25117+7475)/2], size:[Math.abs(-59456 - -73980),Math.abs(-28017 - -47097),Math.abs(7475 - -25117)]}));
-    shape = union(shape,cuboid({center:[(23176+38914)/2,(50432+59832)/2,(31931+54668)/2], size:[Math.abs(38914 - 23176),Math.abs(59832 - 50432),Math.abs(54668 - 31931)]}));
-    shape = union(shape,cuboid({center:[(-71483+-48041)/2,(19572+30248)/2,(-40958+-32806)/2], size:[Math.abs(-48041 - -71483),Math.abs(30248 - 19572),Math.abs(-32806 - -40958)]}));
-    shape = union(shape,cuboid({center:[(-37783+-21743)/2,(-87276+-58240)/2,(-21390+-1919)/2], size:[Math.abs(-21743 - -37783),Math.abs(-58240 - -87276),Math.abs(-1919 - -21390)]}));
-    shape = union(shape,cuboid({center:[(-18665+960)/2,(-5907+20986)/2,(66322+81301)/2], size:[Math.abs(960 - -18665),Math.abs(20986 - -5907),Math.abs(81301 - 66322)]}));
-    shape = union(shape,cuboid({center:[(5286+37737)/2,(50107+67657)/2,(-67474+-42701)/2], size:[Math.abs(37737 - 5286),Math.abs(67657 - 50107),Math.abs(-42701 - -67474)]}));
-    shape = union(shape,cuboid({center:[(31390+48914)/2,(-70366+-54470)/2,(-46904+-23117)/2], size:[Math.abs(48914 - 31390),Math.abs(-54470 - -70366),Math.abs(-23117 - -46904)]}));
-    shape = union(shape,cuboid({center:[(-27683+-15749)/2,(-47749+-34632)/2,(-76712+-50928)/2], size:[Math.abs(-15749 - -27683),Math.abs(-34632 - -47749),Math.abs(-50928 - -76712)]}));
-    shape = union(shape,cuboid({center:[(-90781+-60103)/2,(-31150+-20145)/2,(-23382+5464)/2], size:[Math.abs(-60103 - -90781),Math.abs(-20145 - -31150),Math.abs(5464 - -23382)]}));
-    shape = union(shape,cuboid({center:[(-44373+-33411)/2,(55729+68596)/2,(-34550+-16532)/2], size:[Math.abs(-33411 - -44373),Math.abs(68596 - 55729),Math.abs(-16532 - -34550)]}));
-    shape = union(shape,cuboid({center:[(-1309+36490)/2,(-88067+-66282)/2,(-27329+-13890)/2], size:[Math.abs(36490 - -1309),Math.abs(-66282 - -88067),Math.abs(-13890 - -27329)]}));
-    shape = union(shape,cuboid({center:[(-70563+-54927)/2,(2742+28284)/2,(-59814+-41321)/2], size:[Math.abs(-54927 - -70563),Math.abs(28284 - 2742),Math.abs(-41321 - -59814)]}));
-    shape = union(shape,cuboid({center:[(36257+58977)/2,(52630+81787)/2,(-2016+28038)/2], size:[Math.abs(58977 - 36257),Math.abs(81787 - 52630),Math.abs(28038 - -2016)]}));
-    shape = union(shape,cuboid({center:[(59652+83384)/2,(-3386+9206)/2,(-40944+-13798)/2], size:[Math.abs(83384 - 59652),Math.abs(9206 - -3386),Math.abs(-13798 - -40944)]}));
-    shape = union(shape,cuboid({center:[(-27792+6186)/2,(-47017+-27949)/2,(-75807+-45725)/2], size:[Math.abs(6186 - -27792),Math.abs(-27949 - -47017),Math.abs(-45725 - -75807)]}));
-    shape = union(shape,cuboid({center:[(60095+91023)/2,(-26573+-21046)/2,(-13267+10809)/2], size:[Math.abs(91023 - 60095),Math.abs(-21046 - -26573),Math.abs(10809 - -13267)]}));
-    shape = union(shape,cuboid({center:[(-22369+-1689)/2,(-47418+-28289)/2,(-67790+-44667)/2], size:[Math.abs(-1689 - -22369),Math.abs(-28289 - -47418),Math.abs(-44667 - -67790)]}));
-    shape = union(shape,cuboid({center:[(-73998+-62782)/2,(-24350+-3753)/2,(-44689+-24202)/2], size:[Math.abs(-62782 - -73998),Math.abs(-3753 - -24350),Math.abs(-24202 - -44689)]}));
-    shape = union(shape,cuboid({center:[(-66355+-39116)/2,(26462+39518)/2,(44344+65908)/2], size:[Math.abs(-39116 - -66355),Math.abs(39518 - 26462),Math.abs(65908 - 44344)]}));
-    shape = union(shape,cuboid({center:[(-82304+-51017)/2,(17614+36432)/2,(18664+50639)/2], size:[Math.abs(-51017 - -82304),Math.abs(36432 - 17614),Math.abs(50639 - 18664)]}));
-    shape = union(shape,cuboid({center:[(-73956+-67827)/2,(18133+33852)/2,(-29108+-16920)/2], size:[Math.abs(-67827 - -73956),Math.abs(33852 - 18133),Math.abs(-16920 - -29108)]}));
-    shape = union(shape,cuboid({center:[(-79701+-67912)/2,(-30890+-20859)/2,(-11116+782)/2], size:[Math.abs(-67912 - -79701),Math.abs(-20859 - -30890),Math.abs(782 - -11116)]}));
-    shape = union(shape,cuboid({center:[(60573+90823)/2,(-12009+12435)/2,(21040+48487)/2], size:[Math.abs(90823 - 60573),Math.abs(12435 - -12009),Math.abs(48487 - 21040)]}));
-    shape = union(shape,cuboid({center:[(-42470+-30925)/2,(18977+50582)/2,(-66812+-55290)/2], size:[Math.abs(-30925 - -42470),Math.abs(50582 - 18977),Math.abs(-55290 - -66812)]}));
-    shape = union(shape,cuboid({center:[(-44675+-19948)/2,(6997+36868)/2,(-76580+-55763)/2], size:[Math.abs(-19948 - -44675),Math.abs(36868 - 6997),Math.abs(-55763 - -76580)]}));
-    shape = union(shape,cuboid({center:[(-40167+-9959)/2,(-86179+-65330)/2,(22876+50418)/2], size:[Math.abs(-9959 - -40167),Math.abs(-65330 - -86179),Math.abs(50418 - 22876)]}));
-    shape = union(shape,cuboid({center:[(-14480+4184)/2,(-82281+-61373)/2,(-43344+-6589)/2], size:[Math.abs(4184 - -14480),Math.abs(-61373 - -82281),Math.abs(-6589 - -43344)]}));
-    shape = union(shape,cuboid({center:[(49703+56170)/2,(-12257+-3969)/2,(43782+66373)/2], size:[Math.abs(56170 - 49703),Math.abs(-3969 - -12257),Math.abs(66373 - 43782)]}));
-    shape = union(shape,cuboid({center:[(37233+54010)/2,(-39264+-11480)/2,(-75787+-54270)/2], size:[Math.abs(54010 - 37233),Math.abs(-11480 - -39264),Math.abs(-54270 - -75787)]}));
-    shape = union(shape,cuboid({center:[(-63691+-41496)/2,(33366+47400)/2,(49232+66379)/2], size:[Math.abs(-41496 - -63691),Math.abs(47400 - 33366),Math.abs(66379 - 49232)]}));
-    shape = union(shape,cuboid({center:[(-70135+-56354)/2,(-1294+17045)/2,(-54353+-30318)/2], size:[Math.abs(-56354 - -70135),Math.abs(17045 - -1294),Math.abs(-30318 - -54353)]}));
-    shape = union(shape,cuboid({center:[(-55679+-39187)/2,(-55170+-20576)/2,(-45155+-43051)/2], size:[Math.abs(-39187 - -55679),Math.abs(-20576 - -55170),Math.abs(-43051 - -45155)]}));
-    shape = union(shape,cuboid({center:[(-68061+-60344)/2,(25128+55004)/2,(7484+41085)/2], size:[Math.abs(-60344 - -68061),Math.abs(55004 - 25128),Math.abs(41085 - 7484)]}));
-    shape = union(shape,cuboid({center:[(39435+74411)/2,(-36766+-16956)/2,(-53809+-45526)/2], size:[Math.abs(74411 - 39435),Math.abs(-16956 - -36766),Math.abs(-45526 - -53809)]}));
-    shape = union(shape,cuboid({center:[(-17167+20391)/2,(13154+26529)/2,(75118+79685)/2], size:[Math.abs(20391 - -17167),Math.abs(26529 - 13154),Math.abs(79685 - 75118)]}));
-    shape = union(shape,cuboid({center:[(4750+24509)/2,(-2467+5837)/2,(-91364+-68976)/2], size:[Math.abs(24509 - 4750),Math.abs(5837 - -2467),Math.abs(-68976 - -91364)]}));
-    shape = union(shape,cuboid({center:[(2296+23980)/2,(17845+29069)/2,(-78924+-67593)/2], size:[Math.abs(23980 - 2296),Math.abs(29069 - 17845),Math.abs(-67593 - -78924)]}));
-    shape = union(shape,cuboid({center:[(-56852+-50617)/2,(9111+31762)/2,(40896+66920)/2], size:[Math.abs(-50617 - -56852),Math.abs(31762 - 9111),Math.abs(66920 - 40896)]}));
-    shape = union(shape,cuboid({center:[(51868+71447)/2,(-10640+-4678)/2,(38788+67862)/2], size:[Math.abs(71447 - 51868),Math.abs(-4678 - -10640),Math.abs(67862 - 38788)]}));
-    shape = union(shape,cuboid({center:[(37269+48010)/2,(-14504+-2446)/2,(51306+77677)/2], size:[Math.abs(48010 - 37269),Math.abs(-2446 - -14504),Math.abs(77677 - 51306)]}));
-    shape = union(shape,cuboid({center:[(-78155+-61440)/2,(-2307+19061)/2,(-51692+-31851)/2], size:[Math.abs(-61440 - -78155),Math.abs(19061 - -2307),Math.abs(-31851 - -51692)]}));
-    shape = union(shape,cuboid({center:[(4082+21602)/2,(23861+44734)/2,(-72214+-55404)/2], size:[Math.abs(21602 - 4082),Math.abs(44734 - 23861),Math.abs(-55404 - -72214)]}));
-    shape = union(shape,cuboid({center:[(-13005+1196)/2,(-94918+-62594)/2,(-26105+-7647)/2], size:[Math.abs(1196 - -13005),Math.abs(-62594 - -94918),Math.abs(-7647 - -26105)]}));
-    shape = union(shape,cuboid({center:[(12636+18371)/2,(-39962+-24982)/2,(71314+86048)/2], size:[Math.abs(18371 - 12636),Math.abs(-24982 - -39962),Math.abs(86048 - 71314)]}));
-    shape = union(shape,cuboid({center:[(-59519+-38868)/2,(-32612+-26546)/2,(-52189+-29970)/2], size:[Math.abs(-38868 - -59519),Math.abs(-26546 - -32612),Math.abs(-29970 - -52189)]}));
-    shape = union(shape,cuboid({center:[(50992+58060)/2,(1867+3995)/2,(-66397+-51090)/2], size:[Math.abs(58060 - 50992),Math.abs(3995 - 1867),Math.abs(-51090 - -66397)]}));
-    shape = union(shape,cuboid({center:[(53023+64466)/2,(19765+49018)/2,(-47705+-32030)/2], size:[Math.abs(64466 - 53023),Math.abs(49018 - 19765),Math.abs(-32030 - -47705)]}));
-    shape = union(shape,cuboid({center:[(54103+89259)/2,(32208+49754)/2,(18193+26605)/2], size:[Math.abs(89259 - 54103),Math.abs(49754 - 32208),Math.abs(26605 - 18193)]}));
-    shape = union(shape,cuboid({center:[(-54934+-44890)/2,(-32323+-24672)/2,(-57334+-43264)/2], size:[Math.abs(-44890 - -54934),Math.abs(-24672 - -32323),Math.abs(-43264 - -57334)]}));
-    shape = union(shape,cuboid({center:[(21882+38565)/2,(-62552+-28774)/2,(37405+74274)/2], size:[Math.abs(38565 - 21882),Math.abs(-28774 - -62552),Math.abs(74274 - 37405)]}));
-    shape = union(shape,cuboid({center:[(-14076+4166)/2,(-62802+-35587)/2,(-85575+-46763)/2], size:[Math.abs(4166 - -14076),Math.abs(-35587 - -62802),Math.abs(-46763 - -85575)]}));
-    shape = union(shape,cuboid({center:[(71563+94673)/2,(-28357+-5555)/2,(-8340+-3008)/2], size:[Math.abs(94673 - 71563),Math.abs(-5555 - -28357),Math.abs(-3008 - -8340)]}));
-    shape = union(shape,cuboid({center:[(-77691+-68006)/2,(16368+43879)/2,(6925+34881)/2], size:[Math.abs(-68006 - -77691),Math.abs(43879 - 16368),Math.abs(34881 - 6925)]}));
-    shape = union(shape,cuboid({center:[(-62254+-44823)/2,(27169+57538)/2,(-43398+-29411)/2], size:[Math.abs(-44823 - -62254),Math.abs(57538 - 27169),Math.abs(-29411 - -43398)]}));
-    shape = union(shape,cuboid({center:[(-46115+-14147)/2,(23033+38605)/2,(-83660+-50766)/2], size:[Math.abs(-14147 - -46115),Math.abs(38605 - 23033),Math.abs(-50766 - -83660)]}));
-    shape = union(shape,cuboid({center:[(-81156+-69203)/2,(-2037+30876)/2,(-27757+-16747)/2], size:[Math.abs(-69203 - -81156),Math.abs(30876 - -2037),Math.abs(-16747 - -27757)]}));
-    shape = union(shape,cuboid({center:[(-64594+-49856)/2,(13230+41598)/2,(40946+48642)/2], size:[Math.abs(-49856 - -64594),Math.abs(41598 - 13230),Math.abs(48642 - 40946)]}));
-    shape = union(shape,cuboid({center:[(74552+85238)/2,(-35069+-1080)/2,(-10139+5411)/2], size:[Math.abs(85238 - 74552),Math.abs(-1080 - -35069),Math.abs(5411 - -10139)]}));
-    shape = union(shape,cuboid({center:[(48568+54268)/2,(15695+32917)/2,(-59194+-39272)/2], size:[Math.abs(54268 - 48568),Math.abs(32917 - 15695),Math.abs(-39272 - -59194)]}));
-    shape = union(shape,cuboid({center:[(40963+56399)/2,(-43896+-32533)/2,(42647+66233)/2], size:[Math.abs(56399 - 40963),Math.abs(-32533 - -43896),Math.abs(66233 - 42647)]}));
-    shape = union(shape,cuboid({center:[(-84712+-70637)/2,(-31823+-15214)/2,(5502+15753)/2], size:[Math.abs(-70637 - -84712),Math.abs(-15214 - -31823),Math.abs(15753 - 5502)]}));
-    shape = union(shape,cuboid({center:[(-50262+-43765)/2,(32260+44792)/2,(-56119+-43527)/2], size:[Math.abs(-43765 - -50262),Math.abs(44792 - 32260),Math.abs(-43527 - -56119)]}));
-    shape = union(shape,cuboid({center:[(-72959+-48790)/2,(-54165+-19818)/2,(21483+50707)/2], size:[Math.abs(-48790 - -72959),Math.abs(-19818 - -54165),Math.abs(50707 - 21483)]}));
-    shape = union(shape,cuboid({center:[(-75423+-57594)/2,(-44010+-34218)/2,(9567+42582)/2], size:[Math.abs(-57594 - -75423),Math.abs(-34218 - -44010),Math.abs(42582 - 9567)]}));
-    shape = union(shape,cuboid({center:[(46873+62215)/2,(-50840+-45150)/2,(3307+22080)/2], size:[Math.abs(62215 - 46873),Math.abs(-45150 - -50840),Math.abs(22080 - 3307)]}));
-    shape = union(shape,cuboid({center:[(-51898+-33291)/2,(64961+76592)/2,(-1697+24644)/2], size:[Math.abs(-33291 - -51898),Math.abs(76592 - 64961),Math.abs(24644 - -1697)]}));
-    shape = union(shape,cuboid({center:[(36342+50080)/2,(10355+34849)/2,(49771+76796)/2], size:[Math.abs(50080 - 36342),Math.abs(34849 - 10355),Math.abs(76796 - 49771)]}));
-    shape = union(shape,cuboid({center:[(-38727+-19183)/2,(22725+44395)/2,(56999+71498)/2], size:[Math.abs(-19183 - -38727),Math.abs(44395 - 22725),Math.abs(71498 - 56999)]}));
-    shape = union(shape,cuboid({center:[(36920+68835)/2,(54496+74295)/2,(-578+22955)/2], size:[Math.abs(68835 - 36920),Math.abs(74295 - 54496),Math.abs(22955 - -578)]}));
-    shape = union(shape,cuboid({center:[(-18190+-1806)/2,(79546+83150)/2,(-5596+16167)/2], size:[Math.abs(-1806 - -18190),Math.abs(83150 - 79546),Math.abs(16167 - -5596)]}));
-    shape = union(shape,cuboid({center:[(-17085+4193)/2,(38116+44568)/2,(-83776+-59420)/2], size:[Math.abs(4193 - -17085),Math.abs(44568 - 38116),Math.abs(-59420 - -83776)]}));
-    shape = union(shape,cuboid({center:[(60290+90016)/2,(-15660+4859)/2,(24+15702)/2], size:[Math.abs(90016 - 60290),Math.abs(4859 - -15660),Math.abs(15702 - 24)]}));
-    shape = union(shape,cuboid({center:[(41898+73669)/2,(-29992+-11604)/2,(-69634+-37216)/2], size:[Math.abs(73669 - 41898),Math.abs(-11604 - -29992),Math.abs(-37216 - -69634)]}));
-    shape = union(shape,cuboid({center:[(22950+35763)/2,(39591+50067)/2,(-58475+-54162)/2], size:[Math.abs(35763 - 22950),Math.abs(50067 - 39591),Math.abs(-54162 - -58475)]}));
-    shape = union(shape,cuboid({center:[(-83515+-76348)/2,(-24390+-7020)/2,(-5474+19494)/2], size:[Math.abs(-76348 - -83515),Math.abs(-7020 - -24390),Math.abs(19494 - -5474)]}));
-    shape = union(shape,cuboid({center:[(-12605+-6764)/2,(-9487+13991)/2,(-90796+-71648)/2], size:[Math.abs(-6764 - -12605),Math.abs(13991 - -9487),Math.abs(-71648 - -90796)]}));
-    shape = union(shape,cuboid({center:[(-84360+-56981)/2,(-6513+13663)/2,(10913+41809)/2], size:[Math.abs(-56981 - -84360),Math.abs(13663 - -6513),Math.abs(41809 - 10913)]}));
-    shape = union(shape,cuboid({center:[(21065+50872)/2,(-77756+-54255)/2,(-32228+-10856)/2], size:[Math.abs(50872 - 21065),Math.abs(-54255 - -77756),Math.abs(-10856 - -32228)]}));
-    shape = union(shape,cuboid({center:[(-74731+-46649)/2,(-12397+8163)/2,(-61028+-48747)/2], size:[Math.abs(-46649 - -74731),Math.abs(8163 - -12397),Math.abs(-48747 - -61028)]}));
-    shape = union(shape,cuboid({center:[(-1567+17284)/2,(-29126+-8128)/2,(-83490+-65343)/2], size:[Math.abs(17284 - -1567),Math.abs(-8128 - -29126),Math.abs(-65343 - -83490)]}));
-    shape = union(shape,cuboid({center:[(23825+51820)/2,(-77978+-69264)/2,(-30297+474)/2], size:[Math.abs(51820 - 23825),Math.abs(-69264 - -77978),Math.abs(474 - -30297)]}));
-    shape = union(shape,cuboid({center:[(-2005+18443)/2,(-43669+-25998)/2,(-72518+-63834)/2], size:[Math.abs(18443 - -2005),Math.abs(-25998 - -43669),Math.abs(-63834 - -72518)]}));
-    shape = union(shape,cuboid({center:[(58982+72502)/2,(33029+35878)/2,(25466+40615)/2], size:[Math.abs(72502 - 58982),Math.abs(35878 - 33029),Math.abs(40615 - 25466)]}));
-    shape = union(shape,cuboid({center:[(51296+78353)/2,(24960+56356)/2,(-8313+18469)/2], size:[Math.abs(78353 - 51296),Math.abs(56356 - 24960),Math.abs(18469 - -8313)]}));
-    shape = union(shape,cuboid({center:[(-71399+-57843)/2,(-44261+-26742)/2,(22822+51410)/2], size:[Math.abs(-57843 - -71399),Math.abs(-26742 - -44261),Math.abs(51410 - 22822)]}));
-    shape = union(shape,cuboid({center:[(29760+36648)/2,(-4801+-3279)/2,(-85583+-66484)/2], size:[Math.abs(36648 - 29760),Math.abs(-3279 - -4801),Math.abs(-66484 - -85583)]}));
-    shape = union(shape,cuboid({center:[(40383+52091)/2,(42283+45005)/2,(-54444+-40795)/2], size:[Math.abs(52091 - 40383),Math.abs(45005 - 42283),Math.abs(-40795 - -54444)]}));
-    shape = union(shape,cuboid({center:[(-28387+-13539)/2,(-5317+16212)/2,(-80930+-76037)/2], size:[Math.abs(-13539 - -28387),Math.abs(16212 - -5317),Math.abs(-76037 - -80930)]}));
-    shape = union(shape,cuboid({center:[(-42504+-32698)/2,(47026+63698)/2,(-43693+-30669)/2], size:[Math.abs(-32698 - -42504),Math.abs(63698 - 47026),Math.abs(-30669 - -43693)]}));
-    shape = union(shape,cuboid({center:[(-3125+32733)/2,(-61870+-39243)/2,(50456+68159)/2], size:[Math.abs(32733 - -3125),Math.abs(-39243 - -61870),Math.abs(68159 - 50456)]}));
-    shape = union(shape,cuboid({center:[(9751+39005)/2,(10331+39830)/2,(64363+87555)/2], size:[Math.abs(39005 - 9751),Math.abs(39830 - 10331),Math.abs(87555 - 64363)]}));
-    shape = union(shape,cuboid({center:[(-86870+-68141)/2,(8031+39962)/2,(6587+42477)/2], size:[Math.abs(-68141 - -86870),Math.abs(39962 - 8031),Math.abs(42477 - 6587)]}));
-    shape = union(shape,cuboid({center:[(-13099+12715)/2,(54037+72815)/2,(-53385+-32131)/2], size:[Math.abs(12715 - -13099),Math.abs(72815 - 54037),Math.abs(-32131 - -53385)]}));
-    shape = union(shape,cuboid({center:[(14021+25542)/2,(42130+71403)/2,(40910+60362)/2], size:[Math.abs(25542 - 14021),Math.abs(71403 - 42130),Math.abs(60362 - 40910)]}));
-    shape = union(shape,cuboid({center:[(-6762+15002)/2,(-86093+-53378)/2,(31258+49920)/2], size:[Math.abs(15002 - -6762),Math.abs(-53378 - -86093),Math.abs(49920 - 31258)]}));
-    shape = union(shape,cuboid({center:[(-17592+3127)/2,(-62373+-33600)/2,(53759+74959)/2], size:[Math.abs(3127 - -17592),Math.abs(-33600 - -62373),Math.abs(74959 - 53759)]}));
-    shape = union(shape,cuboid({center:[(-89137+-56125)/2,(-35016+-8809)/2,(-30776+-5398)/2], size:[Math.abs(-56125 - -89137),Math.abs(-8809 - -35016),Math.abs(-5398 - -30776)]}));
-    shape = union(shape,cuboid({center:[(44586+47260)/2,(22806+48955)/2,(-75476+-43472)/2], size:[Math.abs(47260 - 44586),Math.abs(48955 - 22806),Math.abs(-43472 - -75476)]}));
-    shape = union(shape,cuboid({center:[(-40162+-24640)/2,(-57077+-35853)/2,(54246+71218)/2], size:[Math.abs(-24640 - -40162),Math.abs(-35853 - -57077),Math.abs(71218 - 54246)]}));
-    shape = union(shape,cuboid({center:[(-54201+-46541)/2,(-34915+-14935)/2,(52466+78173)/2], size:[Math.abs(-46541 - -54201),Math.abs(-14935 - -34915),Math.abs(78173 - 52466)]}));
-    shape = union(shape,cuboid({center:[(-6679+18857)/2,(45015+83502)/2,(-53804+-46675)/2], size:[Math.abs(18857 - -6679),Math.abs(83502 - 45015),Math.abs(-46675 - -53804)]}));
-    shape = union(shape,cuboid({center:[(-62937+-53572)/2,(-35813+-29206)/2,(30508+53149)/2], size:[Math.abs(-53572 - -62937),Math.abs(-29206 - -35813),Math.abs(53149 - 30508)]}));
-    shape = union(shape,cuboid({center:[(-53689+-31763)/2,(-75022+-61400)/2,(-12035+7506)/2], size:[Math.abs(-31763 - -53689),Math.abs(-61400 - -75022),Math.abs(7506 - -12035)]}));
-    shape = union(shape,cuboid({center:[(-24770+-7480)/2,(-70530+-33052)/2,(47004+67401)/2], size:[Math.abs(-7480 - -24770),Math.abs(-33052 - -70530),Math.abs(67401 - 47004)]}));
-    shape = union(shape,cuboid({center:[(-64788+-42202)/2,(-34456+-14089)/2,(-58243+-36384)/2], size:[Math.abs(-42202 - -64788),Math.abs(-14089 - -34456),Math.abs(-36384 - -58243)]}));
-    shape = union(shape,cuboid({center:[(-41276+-16521)/2,(-57613+-37888)/2,(-69142+-40440)/2], size:[Math.abs(-16521 - -41276),Math.abs(-37888 - -57613),Math.abs(-40440 - -69142)]}));
-    shape = union(shape,cuboid({center:[(-25613+-2328)/2,(48311+67290)/2,(44223+57924)/2], size:[Math.abs(-2328 - -25613),Math.abs(67290 - 48311),Math.abs(57924 - 44223)]}));
-    shape = union(shape,cuboid({center:[(-90192+-58384)/2,(-12961+-7477)/2,(5935+23214)/2], size:[Math.abs(-58384 - -90192),Math.abs(-7477 - -12961),Math.abs(23214 - 5935)]}));
-    shape = union(shape,cuboid({center:[(16121+48809)/2,(-60926+-51273)/2,(-43839+-30861)/2], size:[Math.abs(48809 - 16121),Math.abs(-51273 - -60926),Math.abs(-30861 - -43839)]}));
-    shape = union(shape,cuboid({center:[(26638+60652)/2,(-44537+-30587)/2,(58405+71906)/2], size:[Math.abs(60652 - 26638),Math.abs(-30587 - -44537),Math.abs(71906 - 58405)]}));
-    shape = union(shape,cuboid({center:[(-66410+-36432)/2,(42454+70443)/2,(-23159+-10037)/2], size:[Math.abs(-36432 - -66410),Math.abs(70443 - 42454),Math.abs(-10037 - -23159)]}));
-    shape = union(shape,cuboid({center:[(-71864+-54435)/2,(-36243+-23995)/2,(14596+34041)/2], size:[Math.abs(-54435 - -71864),Math.abs(-23995 - -36243),Math.abs(34041 - 14596)]}));
-    shape = union(shape,cuboid({center:[(9052+28723)/2,(-77203+-70603)/2,(-31838+-18146)/2], size:[Math.abs(28723 - 9052),Math.abs(-70603 - -77203),Math.abs(-18146 - -31838)]}));
-    shape = union(shape,cuboid({center:[(-4816+25036)/2,(61688+76240)/2,(21251+46199)/2], size:[Math.abs(25036 - -4816),Math.abs(76240 - 61688),Math.abs(46199 - 21251)]}));
-    shape = union(shape,cuboid({center:[(61863+71834)/2,(-7068+7469)/2,(29122+46978)/2], size:[Math.abs(71834 - 61863),Math.abs(7469 - -7068),Math.abs(46978 - 29122)]}));
-    shape = union(shape,cuboid({center:[(-53069+-22747)/2,(-61003+-50886)/2,(-41977+-36808)/2], size:[Math.abs(-22747 - -53069),Math.abs(-50886 - -61003),Math.abs(-36808 - -41977)]}));
-    shape = union(shape,cuboid({center:[(-66306+-36754)/2,(-45013+-22032)/2,(-44535+-24946)/2], size:[Math.abs(-36754 - -66306),Math.abs(-22032 - -45013),Math.abs(-24946 - -44535)]}));
-    shape = union(shape,cuboid({center:[(62478+87269)/2,(10773+28720)/2,(22334+42400)/2], size:[Math.abs(87269 - 62478),Math.abs(28720 - 10773),Math.abs(42400 - 22334)]}));
-    shape = union(shape,cuboid({center:[(14448+43447)/2,(-90837+-63542)/2,(-24857+-11445)/2], size:[Math.abs(43447 - 14448),Math.abs(-63542 - -90837),Math.abs(-11445 - -24857)]}));
-    shape = union(shape,cuboid({center:[(-6219+24505)/2,(2176+20741)/2,(65816+91491)/2], size:[Math.abs(24505 - -6219),Math.abs(20741 - 2176),Math.abs(91491 - 65816)]}));
-    shape = union(shape,cuboid({center:[(-4504+16125)/2,(26649+38859)/2,(-75806+-66094)/2], size:[Math.abs(16125 - -4504),Math.abs(38859 - 26649),Math.abs(-66094 - -75806)]}));
-    shape = union(shape,cuboid({center:[(-7593+12762)/2,(10851+31680)/2,(75476+87589)/2], size:[Math.abs(12762 - -7593),Math.abs(31680 - 10851),Math.abs(87589 - 75476)]}));
-    shape = union(shape,cuboid({center:[(-77806+-73411)/2,(-6826+6277)/2,(-35741+-6990)/2], size:[Math.abs(-73411 - -77806),Math.abs(6277 - -6826),Math.abs(-6990 - -35741)]}));
-    shape = union(shape,cuboid({center:[(-16506+5646)/2,(-39393+-25156)/2,(-93753+-55332)/2], size:[Math.abs(5646 - -16506),Math.abs(-25156 - -39393),Math.abs(-55332 - -93753)]}));
-    shape = union(shape,cuboid({center:[(-32247+1348)/2,(72630+91477)/2,(15827+32435)/2], size:[Math.abs(1348 - -32247),Math.abs(91477 - 72630),Math.abs(32435 - 15827)]}));
-    shape = union(shape,cuboid({center:[(-19625+-6807)/2,(-67138+-42260)/2,(-72627+-49737)/2], size:[Math.abs(-6807 - -19625),Math.abs(-42260 - -67138),Math.abs(-49737 - -72627)]}));
-    shape = union(shape,cuboid({center:[(-53034+-25232)/2,(-36424+-7517)/2,(-81260+-66867)/2], size:[Math.abs(-25232 - -53034),Math.abs(-7517 - -36424),Math.abs(-66867 - -81260)]}));
-    shape = union(shape,cuboid({center:[(9597+27791)/2,(-44126+-18665)/2,(-77320+-64055)/2], size:[Math.abs(27791 - 9597),Math.abs(-18665 - -44126),Math.abs(-64055 - -77320)]}));
-    shape = union(shape,cuboid({center:[(36930+61974)/2,(-53931+-23875)/2,(-56634+-50103)/2], size:[Math.abs(61974 - 36930),Math.abs(-23875 - -53931),Math.abs(-50103 - -56634)]}));
-    shape = union(shape,cuboid({center:[(-80031+-64462)/2,(29885+46965)/2,(-25547+-6196)/2], size:[Math.abs(-64462 - -80031),Math.abs(46965 - 29885),Math.abs(-6196 - -25547)]}));
-    shape = union(shape,cuboid({center:[(-66414+-43495)/2,(36573+62850)/2,(-24776+-6505)/2], size:[Math.abs(-43495 - -66414),Math.abs(62850 - 36573),Math.abs(-6505 - -24776)]}));
-    shape = union(shape,cuboid({center:[(-25011+-9028)/2,(-69426+-56148)/2,(40533+73395)/2], size:[Math.abs(-9028 - -25011),Math.abs(-56148 - -69426),Math.abs(73395 - 40533)]}));
-    shape = union(shape,cuboid({center:[(25534+46636)/2,(46058+52691)/2,(45249+72792)/2], size:[Math.abs(46636 - 25534),Math.abs(52691 - 46058),Math.abs(72792 - 45249)]}));
-    shape = union(shape,cuboid({center:[(-7618+10902)/2,(17884+23097)/2,(66984+80601)/2], size:[Math.abs(10902 - -7618),Math.abs(23097 - 17884),Math.abs(80601 - 66984)]}));
-    shape = union(shape,cuboid({center:[(-83176+-71251)/2,(-32175+-7710)/2,(-922+21556)/2], size:[Math.abs(-71251 - -83176),Math.abs(-7710 - -32175),Math.abs(21556 - -922)]}));
-    shape = union(shape,cuboid({center:[(29449+65515)/2,(-51110+-34476)/2,(34096+63188)/2], size:[Math.abs(65515 - 29449),Math.abs(-34476 - -51110),Math.abs(63188 - 34096)]}));
-    shape = union(shape,cuboid({center:[(-3631+24310)/2,(-20299+-15069)/2,(72984+92165)/2], size:[Math.abs(24310 - -3631),Math.abs(-15069 - -20299),Math.abs(92165 - 72984)]}));
-    shape = subtract(shape,cuboid({center:[(-50424+-41375)/2,(-72654+-44771)/2,(838+16943)/2], size:[Math.abs(-41375 - -50424),Math.abs(-44771 - -72654),Math.abs(16943 - 838)]}));
-    shape = union(shape,cuboid({center:[(3025+40907)/2,(-78511+-53856)/2,(42248+53660)/2], size:[Math.abs(40907 - 3025),Math.abs(-53856 - -78511),Math.abs(53660 - 42248)]}));
-    shape = subtract(shape,cuboid({center:[(-29442+-18169)/2,(33929+64130)/2,(58394+78342)/2], size:[Math.abs(-18169 - -29442),Math.abs(64130 - 33929),Math.abs(78342 - 58394)]}));
-    shape = union(shape,cuboid({center:[(62016+93099)/2,(-36239+-22606)/2,(-10475+12016)/2], size:[Math.abs(93099 - 62016),Math.abs(-22606 - -36239),Math.abs(12016 - -10475)]}));
-    shape = subtract(shape,cuboid({center:[(-81393+-49724)/2,(10305+34270)/2,(34305+51924)/2], size:[Math.abs(-49724 - -81393),Math.abs(34270 - 10305),Math.abs(51924 - 34305)]}));
-    shape = subtract(shape,cuboid({center:[(31937+42583)/2,(14977+40524)/2,(55574+83356)/2], size:[Math.abs(42583 - 31937),Math.abs(40524 - 14977),Math.abs(83356 - 55574)]}));
-    shape = subtract(shape,cuboid({center:[(-72488+-54163)/2,(21000+44643)/2,(-45612+-27454)/2], size:[Math.abs(-54163 - -72488),Math.abs(44643 - 21000),Math.abs(-27454 - -45612)]}));
-    shape = subtract(shape,cuboid({center:[(-93753+-69438)/2,(3271+31377)/2,(-16945+2818)/2], size:[Math.abs(-69438 - -93753),Math.abs(31377 - 3271),Math.abs(2818 - -16945)]}));
-    shape = subtract(shape,cuboid({center:[(13847+37017)/2,(35958+73486)/2,(47726+60893)/2], size:[Math.abs(37017 - 13847),Math.abs(73486 - 35958),Math.abs(60893 - 47726)]}));
-    shape = union(shape,cuboid({center:[(-75263+-59456)/2,(36203+54394)/2,(-2931+20048)/2], size:[Math.abs(-59456 - -75263),Math.abs(54394 - 36203),Math.abs(20048 - -2931)]}));
-    shape = subtract(shape,cuboid({center:[(27162+44008)/2,(-59493+-34872)/2,(51686+75220)/2], size:[Math.abs(44008 - 27162),Math.abs(-34872 - -59493),Math.abs(75220 - 51686)]}));
-    shape = subtract(shape,cuboid({center:[(-73602+-38606)/2,(35904+52123)/2,(-42290+-18989)/2], size:[Math.abs(-38606 - -73602),Math.abs(52123 - 35904),Math.abs(-18989 - -42290)]}));
-    shape = subtract(shape,cuboid({center:[(-73300+-45099)/2,(-10701+14399)/2,(-59463+-39706)/2], size:[Math.abs(-45099 - -73300),Math.abs(14399 - -10701),Math.abs(-39706 - -59463)]}));
-    shape = subtract(shape,cuboid({center:[(-83528+-62414)/2,(1442+31990)/2,(39787+61495)/2], size:[Math.abs(-62414 - -83528),Math.abs(31990 - 1442),Math.abs(61495 - 39787)]}));
-    shape = union(shape,cuboid({center:[(-19227+1177)/2,(-81493+-56654)/2,(33563+39495)/2], size:[Math.abs(1177 - -19227),Math.abs(-56654 - -81493),Math.abs(39495 - 33563)]}));
-    shape = subtract(shape,cuboid({center:[(-70257+-52022)/2,(-44692+-24441)/2,(-30358+1873)/2], size:[Math.abs(-52022 - -70257),Math.abs(-24441 - -44692),Math.abs(1873 - -30358)]}));
-    shape = subtract(shape,cuboid({center:[(-94684+-63304)/2,(-18953+-12160)/2,(-1247+15579)/2], size:[Math.abs(-63304 - -94684),Math.abs(-12160 - -18953),Math.abs(15579 - -1247)]}));
-    shape = union(shape,cuboid({center:[(4516+21971)/2,(-26822+-8920)/2,(-92246+-59738)/2], size:[Math.abs(21971 - 4516),Math.abs(-8920 - -26822),Math.abs(-59738 - -92246)]}));
-    shape = union(shape,cuboid({center:[(47592+59821)/2,(28110+44046)/2,(27804+52573)/2], size:[Math.abs(59821 - 47592),Math.abs(44046 - 28110),Math.abs(52573 - 27804)]}));
-    shape = union(shape,cuboid({center:[(39539+58512)/2,(41354+52402)/2,(33137+45594)/2], size:[Math.abs(58512 - 39539),Math.abs(52402 - 41354),Math.abs(45594 - 33137)]}));
-    shape = union(shape,cuboid({center:[(41004+62753)/2,(-62983+-58912)/2,(233+14053)/2], size:[Math.abs(62753 - 41004),Math.abs(-58912 - -62983),Math.abs(14053 - 233)]}));
-    shape = union(shape,cuboid({center:[(43897+71120)/2,(2903+24584)/2,(47215+77087)/2], size:[Math.abs(71120 - 43897),Math.abs(24584 - 2903),Math.abs(77087 - 47215)]}));
-    shape = union(shape,cuboid({center:[(-62187+-30271)/2,(-53081+-44707)/2,(-46266+-28266)/2], size:[Math.abs(-30271 - -62187),Math.abs(-44707 - -53081),Math.abs(-28266 - -46266)]}));
-    shape = subtract(shape,cuboid({center:[(46434+73444)/2,(-53205+-35815)/2,(-57794+-35076)/2], size:[Math.abs(73444 - 46434),Math.abs(-35815 - -53205),Math.abs(-35076 - -57794)]}));
-    shape = union(shape,cuboid({center:[(-87521+-71461)/2,(-28669+-7399)/2,(-4329+4473)/2], size:[Math.abs(-71461 - -87521),Math.abs(-7399 - -28669),Math.abs(4473 - -4329)]}));
-    shape = subtract(shape,cuboid({center:[(14524+33155)/2,(-74653+-59465)/2,(7788+40782)/2], size:[Math.abs(33155 - 14524),Math.abs(-59465 - -74653),Math.abs(40782 - 7788)]}));
-    shape = subtract(shape,cuboid({center:[(42666+81619)/2,(17492+36905)/2,(38287+62402)/2], size:[Math.abs(81619 - 42666),Math.abs(36905 - 17492),Math.abs(62402 - 38287)]}));
-    shape = union(shape,cuboid({center:[(-8726+16759)/2,(-24348+-2024)/2,(-90211+-65111)/2], size:[Math.abs(16759 - -8726),Math.abs(-2024 - -24348),Math.abs(-65111 - -90211)]}));
-    shape = union(shape,cuboid({center:[(49994+62962)/2,(2227+24922)/2,(41992+62455)/2], size:[Math.abs(62962 - 49994),Math.abs(24922 - 2227),Math.abs(62455 - 41992)]}));
-    shape = union(shape,cuboid({center:[(30619+39110)/2,(44325+68006)/2,(29475+58157)/2], size:[Math.abs(39110 - 30619),Math.abs(68006 - 44325),Math.abs(58157 - 29475)]}));
-    shape = union(shape,cuboid({center:[(52166+86859)/2,(-16051+-2288)/2,(-35893+-16028)/2], size:[Math.abs(86859 - 52166),Math.abs(-2288 - -16051),Math.abs(-16028 - -35893)]}));
-    shape = subtract(shape,cuboid({center:[(-82950+-67164)/2,(-38616+-23530)/2,(2815+26199)/2], size:[Math.abs(-67164 - -82950),Math.abs(-23530 - -38616),Math.abs(26199 - 2815)]}));
-    shape = subtract(shape,cuboid({center:[(15592+49678)/2,(-59501+-50916)/2,(-71638+-51719)/2], size:[Math.abs(49678 - 15592),Math.abs(-50916 - -59501),Math.abs(-51719 - -71638)]}));
-    shape = union(shape,cuboid({center:[(-5599+2448)/2,(-4875+22375)/2,(63268+95230)/2], size:[Math.abs(2448 - -5599),Math.abs(22375 - -4875),Math.abs(95230 - 63268)]}));
-    shape = subtract(shape,cuboid({center:[(-26144+-7146)/2,(30378+40422)/2,(54534+80457)/2], size:[Math.abs(-7146 - -26144),Math.abs(40422 - 30378),Math.abs(80457 - 54534)]}));
-    shape = subtract(shape,cuboid({center:[(-67364+-46592)/2,(-8423+11830)/2,(-62371+-57595)/2], size:[Math.abs(-46592 - -67364),Math.abs(11830 - -8423),Math.abs(-57595 - -62371)]}));
-    shape = subtract(shape,cuboid({center:[(19562+40225)/2,(35029+49193)/2,(-72197+-56945)/2], size:[Math.abs(40225 - 19562),Math.abs(49193 - 35029),Math.abs(-56945 - -72197)]}));
-    shape = subtract(shape,cuboid({center:[(-64792+-35048)/2,(28984+33453)/2,(-64967+-42923)/2], size:[Math.abs(-35048 - -64792),Math.abs(33453 - 28984),Math.abs(-42923 - -64967)]}));
-    shape = union(shape,cuboid({center:[(2826+26378)/2,(-85400+-49030)/2,(22072+48794)/2], size:[Math.abs(26378 - 2826),Math.abs(-49030 - -85400),Math.abs(48794 - 22072)]}));
-    shape = union(shape,cuboid({center:[(-3048+15987)/2,(23466+47779)/2,(60807+88012)/2], size:[Math.abs(15987 - -3048),Math.abs(47779 - 23466),Math.abs(88012 - 60807)]}));
-    shape = subtract(shape,cuboid({center:[(-43613+-23923)/2,(-21725+13753)/2,(-74679+-71666)/2], size:[Math.abs(-23923 - -43613),Math.abs(13753 - -21725),Math.abs(-71666 - -74679)]}));
-    shape = union(shape,cuboid({center:[(57515+73257)/2,(4463+19735)/2,(-55663+-40576)/2], size:[Math.abs(73257 - 57515),Math.abs(19735 - 4463),Math.abs(-40576 - -55663)]}));
-    shape = subtract(shape,cuboid({center:[(-71509+-36371)/2,(-44288+-32500)/2,(-58805+-43879)/2], size:[Math.abs(-36371 - -71509),Math.abs(-32500 - -44288),Math.abs(-43879 - -58805)]}));
-    shape = subtract(shape,cuboid({center:[(4058+10573)/2,(-90040+-74031)/2,(-11420+15283)/2], size:[Math.abs(10573 - 4058),Math.abs(-74031 - -90040),Math.abs(15283 - -11420)]}));
-    shape = union(shape,cuboid({center:[(11578+34158)/2,(43086+64864)/2,(48987+55683)/2], size:[Math.abs(34158 - 11578),Math.abs(64864 - 43086),Math.abs(55683 - 48987)]}));
-    shape = subtract(shape,cuboid({center:[(-90937+-61197)/2,(-42619+-7059)/2,(-13526+6975)/2], size:[Math.abs(-61197 - -90937),Math.abs(-7059 - -42619),Math.abs(6975 - -13526)]}));
-    shape = union(shape,cuboid({center:[(-47775+-35341)/2,(21796+40791)/2,(-74978+-54225)/2], size:[Math.abs(-35341 - -47775),Math.abs(40791 - 21796),Math.abs(-54225 - -74978)]}));
-    shape = union(shape,cuboid({center:[(55459+86075)/2,(-33737+-10240)/2,(-38803+-31160)/2], size:[Math.abs(86075 - 55459),Math.abs(-10240 - -33737),Math.abs(-31160 - -38803)]}));
-    shape = union(shape,cuboid({center:[(66900+95307)/2,(-658+33987)/2,(2578+31976)/2], size:[Math.abs(95307 - 66900),Math.abs(33987 - -658),Math.abs(31976 - 2578)]}));
-    shape = union(shape,cuboid({center:[(51781+62459)/2,(11954+37284)/2,(-55567+-29845)/2], size:[Math.abs(62459 - 51781),Math.abs(37284 - 11954),Math.abs(-29845 - -55567)]}));
-    shape = union(shape,cuboid({center:[(7564+38303)/2,(24656+45979)/2,(58307+72979)/2], size:[Math.abs(38303 - 7564),Math.abs(45979 - 24656),Math.abs(72979 - 58307)]}));
-    shape = subtract(shape,cuboid({center:[(25925+40008)/2,(7133+29683)/2,(66022+81463)/2], size:[Math.abs(40008 - 25925),Math.abs(29683 - 7133),Math.abs(81463 - 66022)]}));
-    shape = subtract(shape,cuboid({center:[(16087+31819)/2,(-49297+-18917)/2,(49254+81722)/2], size:[Math.abs(31819 - 16087),Math.abs(-18917 - -49297),Math.abs(81722 - 49254)]}));
-    shape = union(shape,cuboid({center:[(61816+77023)/2,(32302+50207)/2,(-26122+-13342)/2], size:[Math.abs(77023 - 61816),Math.abs(50207 - 32302),Math.abs(-13342 - -26122)]}));
-    shape = union(shape,cuboid({center:[(-16944+-551)/2,(27348+36381)/2,(51222+84114)/2], size:[Math.abs(-551 - -16944),Math.abs(36381 - 27348),Math.abs(84114 - 51222)]}));
-    shape = union(shape,cuboid({center:[(-60896+-35718)/2,(-25770+-3198)/2,(-73389+-51938)/2], size:[Math.abs(-35718 - -60896),Math.abs(-3198 - -25770),Math.abs(-51938 - -73389)]}));
-    shape = union(shape,cuboid({center:[(53570+57442)/2,(-56748+-34158)/2,(28231+37748)/2], size:[Math.abs(57442 - 53570),Math.abs(-34158 - -56748),Math.abs(37748 - 28231)]}));
-    shape = subtract(shape,cuboid({center:[(12948+34050)/2,(-89722+-76481)/2,(5288+20288)/2], size:[Math.abs(34050 - 12948),Math.abs(-76481 - -89722),Math.abs(20288 - 5288)]}));
-    shape = union(shape,cuboid({center:[(4092+16941)/2,(33046+61784)/2,(62511+75003)/2], size:[Math.abs(16941 - 4092),Math.abs(61784 - 33046),Math.abs(75003 - 62511)]}));
-    shape = union(shape,cuboid({center:[(-34294+-19056)/2,(40621+66504)/2,(50350+66716)/2], size:[Math.abs(-19056 - -34294),Math.abs(66504 - 40621),Math.abs(66716 - 50350)]}));
-    shape = subtract(shape,cuboid({center:[(-60552+-37543)/2,(25044+37455)/2,(-67217+-44428)/2], size:[Math.abs(-37543 - -60552),Math.abs(37455 - 25044),Math.abs(-44428 - -67217)]}));
-    shape = union(shape,cuboid({center:[(-59672+-43404)/2,(-44998+-33041)/2,(24549+48963)/2], size:[Math.abs(-43404 - -59672),Math.abs(-33041 - -44998),Math.abs(48963 - 24549)]}));
-    shape = subtract(shape,cuboid({center:[(11363+42189)/2,(-34219+-11130)/2,(65796+73487)/2], size:[Math.abs(42189 - 11363),Math.abs(-11130 - -34219),Math.abs(73487 - 65796)]}));
-    shape = union(shape,cuboid({center:[(-5878+3795)/2,(-82227+-65797)/2,(-55000+-37476)/2], size:[Math.abs(3795 - -5878),Math.abs(-65797 - -82227),Math.abs(-37476 - -55000)]}));
-    shape = subtract(shape,cuboid({center:[(-44704+-16546)/2,(-53365+-29060)/2,(63096+82254)/2], size:[Math.abs(-16546 - -44704),Math.abs(-29060 - -53365),Math.abs(82254 - 63096)]}));
-    shape = subtract(shape,cuboid({center:[(46835+59255)/2,(42974+52180)/2,(38447+52668)/2], size:[Math.abs(59255 - 46835),Math.abs(52180 - 42974),Math.abs(52668 - 38447)]}));
-    shape = union(shape,cuboid({center:[(28649+53034)/2,(69128+86256)/2,(-27036+-4069)/2], size:[Math.abs(53034 - 28649),Math.abs(86256 - 69128),Math.abs(-4069 - -27036)]}));
-    shape = union(shape,cuboid({center:[(31797+51935)/2,(-70873+-40006)/2,(27113+55156)/2], size:[Math.abs(51935 - 31797),Math.abs(-40006 - -70873),Math.abs(55156 - 27113)]}));
-    shape = union(shape,cuboid({center:[(-16413+784)/2,(74995+86748)/2,(22251+36557)/2], size:[Math.abs(784 - -16413),Math.abs(86748 - 74995),Math.abs(36557 - 22251)]}));
-    shape = subtract(shape,cuboid({center:[(-51126+-19696)/2,(62556+79243)/2,(13535+24185)/2], size:[Math.abs(-19696 - -51126),Math.abs(79243 - 62556),Math.abs(24185 - 13535)]}));
-    shape = union(shape,cuboid({center:[(55195+69351)/2,(16387+17587)/2,(-68210+-51399)/2], size:[Math.abs(69351 - 55195),Math.abs(17587 - 16387),Math.abs(-51399 - -68210)]}));
-    shape = subtract(shape,cuboid({center:[(-12380+3805)/2,(-37523+-6086)/2,(-84246+-72810)/2], size:[Math.abs(3805 - -12380),Math.abs(-6086 - -37523),Math.abs(-72810 - -84246)]}));
-    shape = union(shape,cuboid({center:[(-7904+10345)/2,(-43424+-9185)/2,(-81538+-63642)/2], size:[Math.abs(10345 - -7904),Math.abs(-9185 - -43424),Math.abs(-63642 - -81538)]}));
-    shape = union(shape,cuboid({center:[(9595+28061)/2,(-57291+-53511)/2,(41104+58415)/2], size:[Math.abs(28061 - 9595),Math.abs(-53511 - -57291),Math.abs(58415 - 41104)]}));
-    shape = union(shape,cuboid({center:[(-22057+-8429)/2,(-74023+-50595)/2,(-53834+-25785)/2], size:[Math.abs(-8429 - -22057),Math.abs(-50595 - -74023),Math.abs(-25785 - -53834)]}));
-    shape = subtract(shape,cuboid({center:[(39543+72810)/2,(43357+57907)/2,(-4967+5825)/2], size:[Math.abs(72810 - 39543),Math.abs(57907 - 43357),Math.abs(5825 - -4967)]}));
-    shape = union(shape,cuboid({center:[(25952+46891)/2,(-59512+-39577)/2,(-66604+-42237)/2], size:[Math.abs(46891 - 25952),Math.abs(-39577 - -59512),Math.abs(-42237 - -66604)]}));
-    shape = subtract(shape,cuboid({center:[(-45845+-9503)/2,(21188+47233)/2,(-73595+-46458)/2], size:[Math.abs(-9503 - -45845),Math.abs(47233 - 21188),Math.abs(-46458 - -73595)]}));
-    shape = subtract(shape,cuboid({center:[(-58705+-40574)/2,(40410+62602)/2,(37852+56809)/2], size:[Math.abs(-40574 - -58705),Math.abs(62602 - 40410),Math.abs(56809 - 37852)]}));
-    shape = subtract(shape,cuboid({center:[(42166+60256)/2,(15546+23665)/2,(-62954+-50742)/2], size:[Math.abs(60256 - 42166),Math.abs(23665 - 15546),Math.abs(-50742 - -62954)]}));
-    shape = union(shape,cuboid({center:[(-54920+-38787)/2,(-73440+-55858)/2,(-22924+-10148)/2], size:[Math.abs(-38787 - -54920),Math.abs(-55858 - -73440),Math.abs(-10148 - -22924)]}));
-    shape = union(shape,cuboid({center:[(-21604+70)/2,(-67168+-37800)/2,(-73842+-58943)/2], size:[Math.abs(70 - -21604),Math.abs(-37800 - -67168),Math.abs(-58943 - -73842)]}));
-    shape = union(shape,cuboid({center:[(44585+52863)/2,(-47677+-38099)/2,(32512+59378)/2], size:[Math.abs(52863 - 44585),Math.abs(-38099 - -47677),Math.abs(59378 - 32512)]}));
-    shape = subtract(shape,cuboid({center:[(-68847+-37762)/2,(-79749+-45298)/2,(-31814+-6826)/2], size:[Math.abs(-37762 - -68847),Math.abs(-45298 - -79749),Math.abs(-6826 - -31814)]}));
-    shape = union(shape,cuboid({center:[(65721+82686)/2,(32570+53560)/2,(-35607+-1198)/2], size:[Math.abs(82686 - 65721),Math.abs(53560 - 32570),Math.abs(-1198 - -35607)]}));
-    shape = union(shape,cuboid({center:[(-78244+-53156)/2,(5914+35587)/2,(34459+50180)/2], size:[Math.abs(-53156 - -78244),Math.abs(35587 - 5914),Math.abs(50180 - 34459)]}));
-    shape = union(shape,cuboid({center:[(-88381+-63342)/2,(13742+41912)/2,(-47591+-12686)/2], size:[Math.abs(-63342 - -88381),Math.abs(41912 - 13742),Math.abs(-12686 - -47591)]}));
-    shape = subtract(shape,cuboid({center:[(39744+59977)/2,(38226+43544)/2,(34889+57448)/2], size:[Math.abs(59977 - 39744),Math.abs(43544 - 38226),Math.abs(57448 - 34889)]}));
-    shape = subtract(shape,cuboid({center:[(67454+97825)/2,(-3852+18383)/2,(-27139+2873)/2], size:[Math.abs(97825 - 67454),Math.abs(18383 - -3852),Math.abs(2873 - -27139)]}));
-    shape = union(shape,cuboid({center:[(-52994+-36607)/2,(-3822+8882)/2,(42832+75144)/2], size:[Math.abs(-36607 - -52994),Math.abs(8882 - -3822),Math.abs(75144 - 42832)]}));
-    shape = subtract(shape,cuboid({center:[(29703+50057)/2,(6444+44725)/2,(60091+61494)/2], size:[Math.abs(50057 - 29703),Math.abs(44725 - 6444),Math.abs(61494 - 60091)]}));
-    shape = subtract(shape,cuboid({center:[(49384+69382)/2,(23037+31241)/2,(30044+58530)/2], size:[Math.abs(69382 - 49384),Math.abs(31241 - 23037),Math.abs(58530 - 30044)]}));
-    shape = union(shape,cuboid({center:[(77544+93200)/2,(-18366+4222)/2,(-12443+9543)/2], size:[Math.abs(93200 - 77544),Math.abs(4222 - -18366),Math.abs(9543 - -12443)]}));
-    shape = union(shape,cuboid({center:[(32444+48168)/2,(-80604+-46813)/2,(23017+35539)/2], size:[Math.abs(48168 - 32444),Math.abs(-46813 - -80604),Math.abs(35539 - 23017)]}));
-    shape = union(shape,cuboid({center:[(-54080+-41598)/2,(-75034+-61527)/2,(17545+24716)/2], size:[Math.abs(-41598 - -54080),Math.abs(-61527 - -75034),Math.abs(24716 - 17545)]}));
-    shape = union(shape,cuboid({center:[(-41183+-15966)/2,(57318+88966)/2,(-13329+645)/2], size:[Math.abs(-15966 - -41183),Math.abs(88966 - 57318),Math.abs(645 - -13329)]}));
-    shape = subtract(shape,cuboid({center:[(47462+69587)/2,(41234+55751)/2,(7512+26329)/2], size:[Math.abs(69587 - 47462),Math.abs(55751 - 41234),Math.abs(26329 - 7512)]}));
-    shape = subtract(shape,cuboid({center:[(20009+45002)/2,(4144+8442)/2,(-86914+-66660)/2], size:[Math.abs(45002 - 20009),Math.abs(8442 - 4144),Math.abs(-66660 - -86914)]}));
-    shape = subtract(shape,cuboid({center:[(-73916+-62216)/2,(5685+32016)/2,(12725+39661)/2], size:[Math.abs(-62216 - -73916),Math.abs(32016 - 5685),Math.abs(39661 - 12725)]}));
-    shape = union(shape,cuboid({center:[(-14035+-6506)/2,(-83445+-75166)/2,(-1527+27655)/2], size:[Math.abs(-6506 - -14035),Math.abs(-75166 - -83445),Math.abs(27655 - -1527)]}));
-    shape = union(shape,cuboid({center:[(-30238+-19986)/2,(-24777+-2077)/2,(-77292+-64543)/2], size:[Math.abs(-19986 - -30238),Math.abs(-2077 - -24777),Math.abs(-64543 - -77292)]}));
-    shape = union(shape,cuboid({center:[(64167+87115)/2,(-14177+14758)/2,(-10742+8450)/2], size:[Math.abs(87115 - 64167),Math.abs(14758 - -14177),Math.abs(8450 - -10742)]}));
-    shape = union(shape,cuboid({center:[(25780+55516)/2,(-55330+-54111)/2,(-49841+-36268)/2], size:[Math.abs(55516 - 25780),Math.abs(-54111 - -55330),Math.abs(-36268 - -49841)]}));
-    shape = union(shape,cuboid({center:[(-52479+-29315)/2,(20462+47890)/2,(-73960+-60169)/2], size:[Math.abs(-29315 - -52479),Math.abs(47890 - 20462),Math.abs(-60169 - -73960)]}));
-    shape = subtract(shape,cuboid({center:[(-76016+-57381)/2,(19112+40178)/2,(548+19861)/2], size:[Math.abs(-57381 - -76016),Math.abs(40178 - 19112),Math.abs(19861 - 548)]}));
-    shape = subtract(shape,cuboid({center:[(-8311+28174)/2,(35103+47065)/2,(55844+85226)/2], size:[Math.abs(28174 - -8311),Math.abs(47065 - 35103),Math.abs(85226 - 55844)]}));
-    shape = union(shape,cuboid({center:[(47293+59980)/2,(-45343+-28831)/2,(-44151+-25784)/2], size:[Math.abs(59980 - 47293),Math.abs(-28831 - -45343),Math.abs(-25784 - -44151)]}));
-    shape = subtract(shape,cuboid({center:[(519+30306)/2,(62364+90147)/2,(-39751+-13511)/2], size:[Math.abs(30306 - 519),Math.abs(90147 - 62364),Math.abs(-13511 - -39751)]}));
-    shape = union(shape,cuboid({center:[(-80316+-68742)/2,(708+27017)/2,(3955+23948)/2], size:[Math.abs(-68742 - -80316),Math.abs(27017 - 708),Math.abs(23948 - 3955)]}));
-    shape = subtract(shape,cuboid({center:[(-70769+-49823)/2,(38737+57694)/2,(-7758+18891)/2], size:[Math.abs(-49823 - -70769),Math.abs(57694 - 38737),Math.abs(18891 - -7758)]}));
-    shape = union(shape,cuboid({center:[(48446+72061)/2,(33800+62229)/2,(13535+45267)/2], size:[Math.abs(72061 - 48446),Math.abs(62229 - 33800),Math.abs(45267 - 13535)]}));
-    shape = union(shape,cuboid({center:[(-16168+2997)/2,(-22975+-8077)/2,(66199+85132)/2], size:[Math.abs(2997 - -16168),Math.abs(-8077 - -22975),Math.abs(85132 - 66199)]}));
-    shape = union(shape,cuboid({center:[(-64980+-35565)/2,(-66241+-53278)/2,(-7348+-3672)/2], size:[Math.abs(-35565 - -64980),Math.abs(-53278 - -66241),Math.abs(-3672 - -7348)]}));
-    shape = union(shape,cuboid({center:[(-91717+-65980)/2,(-44249+-12365)/2,(-10984+8372)/2], size:[Math.abs(-65980 - -91717),Math.abs(-12365 - -44249),Math.abs(8372 - -10984)]}));
-    shape = subtract(shape,cuboid({center:[(35322+39858)/2,(-27123+-8496)/2,(-77757+-48994)/2], size:[Math.abs(39858 - 35322),Math.abs(-8496 - -27123),Math.abs(-48994 - -77757)]}));
-    shape = union(shape,cuboid({center:[(-3930+26786)/2,(7461+23065)/2,(72518+91768)/2], size:[Math.abs(26786 - -3930),Math.abs(23065 - 7461),Math.abs(91768 - 72518)]}));
-    shape = subtract(shape,cuboid({center:[(-10532+-7074)/2,(-11464+-3902)/2,(-89986+-72527)/2], size:[Math.abs(-7074 - -10532),Math.abs(-3902 - -11464),Math.abs(-72527 - -89986)]}));
-    shape = union(shape,cuboid({center:[(53629+81615)/2,(-60075+-45846)/2,(-12320+14928)/2], size:[Math.abs(81615 - 53629),Math.abs(-45846 - -60075),Math.abs(14928 - -12320)]}));
-    shape = subtract(shape,cuboid({center:[(-83656+-68996)/2,(-18080+13189)/2,(-29337+-11467)/2], size:[Math.abs(-68996 - -83656),Math.abs(13189 - -18080),Math.abs(-11467 - -29337)]}));
-    shape = union(shape,cuboid({center:[(-46774+-28700)/2,(-23827+-6270)/2,(54246+76853)/2], size:[Math.abs(-28700 - -46774),Math.abs(-6270 - -23827),Math.abs(76853 - 54246)]}));
-    shape = union(shape,cuboid({center:[(-41689+-29588)/2,(-38149+-13551)/2,(64995+75004)/2], size:[Math.abs(-29588 - -41689),Math.abs(-13551 - -38149),Math.abs(75004 - 64995)]}));
-    shape = union(shape,cuboid({center:[(15365+46478)/2,(-84175+-57499)/2,(-26982+-18015)/2], size:[Math.abs(46478 - 15365),Math.abs(-57499 - -84175),Math.abs(-18015 - -26982)]}));
-    shape = union(shape,cuboid({center:[(8773+29446)/2,(4874+31204)/2,(-76125+-63650)/2], size:[Math.abs(29446 - 8773),Math.abs(31204 - 4874),Math.abs(-63650 - -76125)]}));
-    shape = subtract(shape,cuboid({center:[(60322+94998)/2,(-27912+-3665)/2,(11178+26231)/2], size:[Math.abs(94998 - 60322),Math.abs(-3665 - -27912),Math.abs(26231 - 11178)]}));
-    shape = union(shape,cuboid({center:[(19730+29512)/2,(64835+89598)/2,(-15849+-1111)/2], size:[Math.abs(29512 - 19730),Math.abs(89598 - 64835),Math.abs(-1111 - -15849)]}));
-    shape = subtract(shape,cuboid({center:[(63457+87596)/2,(-8272+9336)/2,(-8510+14156)/2], size:[Math.abs(87596 - 63457),Math.abs(9336 - -8272),Math.abs(14156 - -8510)]}));
-    shape = union(shape,cuboid({center:[(36965+68511)/2,(-65996+-38254)/2,(-37353+-20861)/2], size:[Math.abs(68511 - 36965),Math.abs(-38254 - -65996),Math.abs(-20861 - -37353)]}));
-    shape = subtract(shape,cuboid({center:[(2138+11555)/2,(5930+21645)/2,(76602+92006)/2], size:[Math.abs(11555 - 2138),Math.abs(21645 - 5930),Math.abs(92006 - 76602)]}));
-    shape = subtract(shape,cuboid({center:[(69350+83044)/2,(-1970+18069)/2,(-34741+-436)/2], size:[Math.abs(83044 - 69350),Math.abs(18069 - -1970),Math.abs(-436 - -34741)]}));
-    shape = union(shape,cuboid({center:[(-25153+-8758)/2,(-26143+-17681)/2,(67900+79657)/2], size:[Math.abs(-8758 - -25153),Math.abs(-17681 - -26143),Math.abs(79657 - 67900)]}));
-    shape = subtract(shape,cuboid({center:[(53321+63311)/2,(55770+63844)/2,(-6768+8042)/2], size:[Math.abs(63311 - 53321),Math.abs(63844 - 55770),Math.abs(8042 - -6768)]}));
-    shape = subtract(shape,cuboid({center:[(51015+78137)/2,(-33031+-8895)/2,(-61391+-32324)/2], size:[Math.abs(78137 - 51015),Math.abs(-8895 - -33031),Math.abs(-32324 - -61391)]}));
-    shape = union(shape,cuboid({center:[(-79490+-58269)/2,(31453+57687)/2,(-11468+21464)/2], size:[Math.abs(-58269 - -79490),Math.abs(57687 - 31453),Math.abs(21464 - -11468)]}));
-    shape = union(shape,cuboid({center:[(-3275+13773)/2,(-60815+-44132)/2,(-65158+-49441)/2], size:[Math.abs(13773 - -3275),Math.abs(-44132 - -60815),Math.abs(-49441 - -65158)]}));
-    shape = union(shape,cuboid({center:[(-68779+-46445)/2,(34511+50996)/2,(11030+50059)/2], size:[Math.abs(-46445 - -68779),Math.abs(50996 - 34511),Math.abs(50059 - 11030)]}));
-    shape = subtract(shape,cuboid({center:[(-8177+9317)/2,(-24563+-19731)/2,(-90510+-57472)/2], size:[Math.abs(9317 - -8177),Math.abs(-19731 - -24563),Math.abs(-57472 - -90510)]}));
-    shape = subtract(shape,cuboid({center:[(48390+66333)/2,(9511+33396)/2,(-64098+-38743)/2], size:[Math.abs(66333 - 48390),Math.abs(33396 - 9511),Math.abs(-38743 - -64098)]}));
-    shape = union(shape,cuboid({center:[(26868+41962)/2,(-25709+-9549)/2,(-81852+-64083)/2], size:[Math.abs(41962 - 26868),Math.abs(-9549 - -25709),Math.abs(-64083 - -81852)]}));
-    shape = subtract(shape,cuboid({center:[(40254+56776)/2,(3315+23418)/2,(44927+57319)/2], size:[Math.abs(56776 - 40254),Math.abs(23418 - 3315),Math.abs(57319 - 44927)]}));
-    shape = subtract(shape,cuboid({center:[(-38532+-18812)/2,(-34537+-3999)/2,(67871+72424)/2], size:[Math.abs(-18812 - -38532),Math.abs(-3999 - -34537),Math.abs(72424 - 67871)]}));
-    shape = union(shape,cuboid({center:[(-80451+-54109)/2,(8141+28630)/2,(40649+48488)/2], size:[Math.abs(-54109 - -80451),Math.abs(28630 - 8141),Math.abs(48488 - 40649)]}));
-    shape = subtract(shape,cuboid({center:[(-41866+-33082)/2,(48481+67972)/2,(34669+38558)/2], size:[Math.abs(-33082 - -41866),Math.abs(67972 - 48481),Math.abs(38558 - 34669)]}));
-    shape = union(shape,cuboid({center:[(1985+11485)/2,(-5625+16920)/2,(-83211+-61053)/2], size:[Math.abs(11485 - 1985),Math.abs(16920 - -5625),Math.abs(-61053 - -83211)]}));
-    shape = union(shape,cuboid({center:[(-50296+-25997)/2,(-50861+-39499)/2,(-65512+-50437)/2], size:[Math.abs(-25997 - -50296),Math.abs(-39499 - -50861),Math.abs(-50437 - -65512)]}));
-    shape = union(shape,cuboid({center:[(-76530+-46217)/2,(36628+58187)/2,(14709+31320)/2], size:[Math.abs(-46217 - -76530),Math.abs(58187 - 36628),Math.abs(31320 - 14709)]}));
-    shape = subtract(shape,cuboid({center:[(-36064+-11086)/2,(61197+84224)/2,(-23954+8344)/2], size:[Math.abs(-11086 - -36064),Math.abs(84224 - 61197),Math.abs(8344 - -23954)]}));
-    shape = union(shape,cuboid({center:[(-20066+-13478)/2,(62687+90046)/2,(-44287+-15529)/2], size:[Math.abs(-13478 - -20066),Math.abs(90046 - 62687),Math.abs(-15529 - -44287)]}));
-    shape = union(shape,cuboid({center:[(-37373+-11863)/2,(-76819+-55289)/2,(12018+28023)/2], size:[Math.abs(-11863 - -37373),Math.abs(-55289 - -76819),Math.abs(28023 - 12018)]}));
-    shape = subtract(shape,cuboid({center:[(54893+70941)/2,(6313+31555)/2,(42682+63276)/2], size:[Math.abs(70941 - 54893),Math.abs(31555 - 6313),Math.abs(63276 - 42682)]}));
-    shape = subtract(shape,cuboid({center:[(71444+90185)/2,(-19742+-5636)/2,(-48222+-17689)/2], size:[Math.abs(90185 - 71444),Math.abs(-5636 - -19742),Math.abs(-17689 - -48222)]}));
-    shape = subtract(shape,cuboid({center:[(-14573+7088)/2,(73450+80278)/2,(-26894+-20381)/2], size:[Math.abs(7088 - -14573),Math.abs(80278 - 73450),Math.abs(-20381 - -26894)]}));
-    shape = union(shape,cuboid({center:[(-63000+-52387)/2,(33041+69197)/2,(-25867+-1432)/2], size:[Math.abs(-52387 - -63000),Math.abs(69197 - 33041),Math.abs(-1432 - -25867)]}));
-    shape = subtract(shape,cuboid({center:[(-27022+-20859)/2,(69040+75320)/2,(-17231+5175)/2], size:[Math.abs(-20859 - -27022),Math.abs(75320 - 69040),Math.abs(5175 - -17231)]}));
-    shape = union(shape,cuboid({center:[(-19675+-10057)/2,(6582+22912)/2,(-94740+-73605)/2], size:[Math.abs(-10057 - -19675),Math.abs(22912 - 6582),Math.abs(-73605 - -94740)]}));
-    shape = union(shape,cuboid({center:[(-60861+-29005)/2,(-54918+-22947)/2,(47523+63863)/2], size:[Math.abs(-29005 - -60861),Math.abs(-22947 - -54918),Math.abs(63863 - 47523)]}));
-    shape = union(shape,cuboid({center:[(39472+51894)/2,(45318+61684)/2,(6788+38771)/2], size:[Math.abs(51894 - 39472),Math.abs(61684 - 45318),Math.abs(38771 - 6788)]}));
-    shape = subtract(shape,cuboid({center:[(-55953+-40048)/2,(-59964+-45678)/2,(17400+37433)/2], size:[Math.abs(-40048 - -55953),Math.abs(-45678 - -59964),Math.abs(37433 - 17400)]}));
-    shape = subtract(shape,cuboid({center:[(-73856+-61903)/2,(29214+41492)/2,(-4021+14451)/2], size:[Math.abs(-61903 - -73856),Math.abs(41492 - 29214),Math.abs(14451 - -4021)]}));
-    shape = union(shape,cuboid({center:[(-5749+21764)/2,(70076+88432)/2,(15120+37797)/2], size:[Math.abs(21764 - -5749),Math.abs(88432 - 70076),Math.abs(37797 - 15120)]}));
-    shape = subtract(shape,cuboid({center:[(-77673+-56604)/2,(-68356+-48827)/2,(-15377+-3043)/2], size:[Math.abs(-56604 - -77673),Math.abs(-48827 - -68356),Math.abs(-3043 - -15377)]}));
-    shape = subtract(shape,cuboid({center:[(50082+86960)/2,(10169+33250)/2,(-44586+-26970)/2], size:[Math.abs(86960 - 50082),Math.abs(33250 - 10169),Math.abs(-26970 - -44586)]}));
-    shape = subtract(shape,cuboid({center:[(44499+52189)/2,(-19697+-760)/2,(52574+68835)/2], size:[Math.abs(52189 - 44499),Math.abs(-760 - -19697),Math.abs(68835 - 52574)]}));
-    shape = union(shape,cuboid({center:[(10922+32585)/2,(-72130+-55088)/2,(-44965+-19204)/2], size:[Math.abs(32585 - 10922),Math.abs(-55088 - -72130),Math.abs(-19204 - -44965)]}));
-    shape = subtract(shape,cuboid({center:[(-9238+16630)/2,(57174+87938)/2,(-50830+-23199)/2], size:[Math.abs(16630 - -9238),Math.abs(87938 - 57174),Math.abs(-23199 - -50830)]}));
-    shape = subtract(shape,cuboid({center:[(19787+51570)/2,(30181+54089)/2,(53955+68032)/2], size:[Math.abs(51570 - 19787),Math.abs(54089 - 30181),Math.abs(68032 - 53955)]}));
-    shape = union(shape,cuboid({center:[(-85972+-64552)/2,(-26460+-7515)/2,(-2073+20090)/2], size:[Math.abs(-64552 - -85972),Math.abs(-7515 - -26460),Math.abs(20090 - -2073)]}));
-    shape = union(shape,cuboid({center:[(2449+30075)/2,(50071+72688)/2,(-46982+-43059)/2], size:[Math.abs(30075 - 2449),Math.abs(72688 - 50071),Math.abs(-43059 - -46982)]}));
-    shape = subtract(shape,cuboid({center:[(-52224+-35101)/2,(12040+27039)/2,(57095+68801)/2], size:[Math.abs(-35101 - -52224),Math.abs(27039 - 12040),Math.abs(68801 - 57095)]}));
-    shape = union(shape,cuboid({center:[(-52590+-20949)/2,(63328+67968)/2,(20767+40966)/2], size:[Math.abs(-20949 - -52590),Math.abs(67968 - 63328),Math.abs(40966 - 20767)]}));
-    shape = subtract(shape,cuboid({center:[(-7170+16103)/2,(-45147+-39116)/2,(54536+68891)/2], size:[Math.abs(16103 - -7170),Math.abs(-39116 - -45147),Math.abs(68891 - 54536)]}));
-    shape = union(shape,cuboid({center:[(-43865+-21841)/2,(16142+32004)/2,(-79917+-62289)/2], size:[Math.abs(-21841 - -43865),Math.abs(32004 - 16142),Math.abs(-62289 - -79917)]}));
-    shape = union(shape,cuboid({center:[(-33415+-17146)/2,(11743+48210)/2,(52933+77317)/2], size:[Math.abs(-17146 - -33415),Math.abs(48210 - 11743),Math.abs(77317 - 52933)]}));
-    shape = subtract(shape,cuboid({center:[(26648+53644)/2,(9918+29253)/2,(-84770+-63255)/2], size:[Math.abs(53644 - 26648),Math.abs(29253 - 9918),Math.abs(-63255 - -84770)]}));
-    shape = subtract(shape,cuboid({center:[(-25080+-17950)/2,(-46679+-19928)/2,(60760+87410)/2], size:[Math.abs(-17950 - -25080),Math.abs(-19928 - -46679),Math.abs(87410 - 60760)]}));
-    shape = union(shape,cuboid({center:[(28049+53541)/2,(32306+58979)/2,(32761+48445)/2], size:[Math.abs(53541 - 28049),Math.abs(58979 - 32306),Math.abs(48445 - 32761)]}));
-    shape = union(shape,cuboid({center:[(-15099+19253)/2,(-51961+-27400)/2,(-78713+-62878)/2], size:[Math.abs(19253 - -15099),Math.abs(-27400 - -51961),Math.abs(-62878 - -78713)]}));
-    shape = subtract(shape,cuboid({center:[(5435+29239)/2,(-82008+-74434)/2,(-25893+-5850)/2], size:[Math.abs(29239 - 5435),Math.abs(-74434 - -82008),Math.abs(-5850 - -25893)]}));
-    shape = union(shape,cuboid({center:[(-84963+-58158)/2,(31674+43258)/2,(-20003+886)/2], size:[Math.abs(-58158 - -84963),Math.abs(43258 - 31674),Math.abs(886 - -20003)]}));
-    shape = subtract(shape,cuboid({center:[(-56694+-44118)/2,(22049+31804)/2,(48676+56434)/2], size:[Math.abs(-44118 - -56694),Math.abs(31804 - 22049),Math.abs(56434 - 48676)]}));
-    shape = union(shape,cuboid({center:[(59174+61663)/2,(-61770+-27812)/2,(10113+42440)/2], size:[Math.abs(61663 - 59174),Math.abs(-27812 - -61770),Math.abs(42440 - 10113)]}));
-    shape = subtract(shape,cuboid({center:[(34585+61402)/2,(34615+61628)/2,(-34172+-13772)/2], size:[Math.abs(61402 - 34585),Math.abs(61628 - 34615),Math.abs(-13772 - -34172)]}));
-    shape = subtract(shape,cuboid({center:[(-81862+-53602)/2,(45469+58334)/2,(-25538+1498)/2], size:[Math.abs(-53602 - -81862),Math.abs(58334 - 45469),Math.abs(1498 - -25538)]}));
-    shape = union(shape,cuboid({center:[(-34692+-20244)/2,(-35779+-11661)/2,(-78349+-57042)/2], size:[Math.abs(-20244 - -34692),Math.abs(-11661 - -35779),Math.abs(-57042 - -78349)]}));
-    shape = union(shape,cuboid({center:[(-67354+-46237)/2,(15178+48955)/2,(-64336+-47149)/2], size:[Math.abs(-46237 - -67354),Math.abs(48955 - 15178),Math.abs(-47149 - -64336)]}));
-    shape = subtract(shape,cuboid({center:[(9659+35954)/2,(-14803+1942)/2,(-92105+-70797)/2], size:[Math.abs(35954 - 9659),Math.abs(1942 - -14803),Math.abs(-70797 - -92105)]}));
-    shape = union(shape,cuboid({center:[(-50655+-24121)/2,(52828+57401)/2,(40182+48460)/2], size:[Math.abs(-24121 - -50655),Math.abs(57401 - 52828),Math.abs(48460 - 40182)]}));
-    shape = subtract(shape,cuboid({center:[(51557+75536)/2,(-50906+-42455)/2,(-1724+17091)/2], size:[Math.abs(75536 - 51557),Math.abs(-42455 - -50906),Math.abs(17091 - -1724)]}));
-    shape = subtract(shape,cuboid({center:[(-21560+5780)/2,(56640+95726)/2,(10768+39375)/2], size:[Math.abs(5780 - -21560),Math.abs(95726 - 56640),Math.abs(39375 - 10768)]}));
-    shape = subtract(shape,cuboid({center:[(6098+35818)/2,(-68926+-41836)/2,(38622+61618)/2], size:[Math.abs(35818 - 6098),Math.abs(-41836 - -68926),Math.abs(61618 - 38622)]}));
-    shape = union(shape,cuboid({center:[(-11245+8010)/2,(54297+85302)/2,(18748+48445)/2], size:[Math.abs(8010 - -11245),Math.abs(85302 - 54297),Math.abs(48445 - 18748)]}));
-    shape = union(shape,cuboid({center:[(48474+77047)/2,(17887+37948)/2,(33470+46973)/2], size:[Math.abs(77047 - 48474),Math.abs(37948 - 17887),Math.abs(46973 - 33470)]}));
-    shape = subtract(shape,cuboid({center:[(66358+89307)/2,(-141+8414)/2,(-46824+-19030)/2], size:[Math.abs(89307 - 66358),Math.abs(8414 - -141),Math.abs(-19030 - -46824)]}));
-    shape = union(shape,cuboid({center:[(-516+19961)/2,(60846+83692)/2,(7191+24993)/2], size:[Math.abs(19961 - -516),Math.abs(83692 - 60846),Math.abs(24993 - 7191)]}));
-    shape = subtract(shape,cuboid({center:[(-40080+-11830)/2,(-6526+24432)/2,(56923+92614)/2], size:[Math.abs(-11830 - -40080),Math.abs(24432 - -6526),Math.abs(92614 - 56923)]}));
-    shape = union(shape,cuboid({center:[(-71762+-54288)/2,(-30785+-3150)/2,(29701+47370)/2], size:[Math.abs(-54288 - -71762),Math.abs(-3150 - -30785),Math.abs(47370 - 29701)]}));
-    shape = subtract(shape,cuboid({center:[(-82694+-66540)/2,(-33056+-10908)/2,(-42820+-19656)/2], size:[Math.abs(-66540 - -82694),Math.abs(-10908 - -33056),Math.abs(-19656 - -42820)]}));
-    shape = union(shape,cuboid({center:[(27229+53914)/2,(44050+57314)/2,(44689+70835)/2], size:[Math.abs(53914 - 27229),Math.abs(57314 - 44050),Math.abs(70835 - 44689)]}));
-    shape = union(shape,cuboid({center:[(4204+33386)/2,(59417+88203)/2,(18434+23931)/2], size:[Math.abs(33386 - 4204),Math.abs(88203 - 59417),Math.abs(23931 - 18434)]}));
-    */
-  return intersect(shape, translateX(x,cuboid({size:[w,100,100]})));
-}
+const xEvents = _.sortBy(orders.flatMap(order => {
+  return [
+    { active: true, order, x: order.xmin },
+    { active: false, order, x: order.xmax+1 },
+  ];
+}), 'x');
 
-module.exports = { main, getParameterDefinitions }
+let totalCount = 0;
 
+// z-sweep
+let startZ = -100000;
+zEvents.forEach(zEvent => {
+  if(zEvent.z != startZ ) {
+    const endZ = zEvent.z - 1;
 
+    // process slab
+    console.log('*', '*', `${startZ}..${endZ}`);
 
+    // y-sweep
+    let startY = -100000;
+    yEvents.forEach(yEvent => {
+      if(!(yEvent.order.activity)) return;
+      if(yEvent.y !== startY) {
+        const endY = yEvent.y - 1;
+
+        // process band
+        console.log('*', `${startY}..${endY}`, `${startZ}..${endZ}`);
+
+        // x-sweep
+        let startX = -100000;
+        xEvents.forEach(xEvent => {
+          if(!(xEvent.order.activity >= 2)) return;
+          if(xEvent.x !== startX) {
+            const endX = xEvent.x - 1;
+
+            // process segment
+            console.log(`${startX}..${endX}`, `${startY}..${endY}`, `${startZ}..${endZ}`);
+            const segmentActiveOrder = _.findLast(orders, o => o.activity >= 3);
+            if(segmentActiveOrder?.onoff) {
+              const area = (endZ - startZ + 1) * (endY - startY + 1) * (endX - startX + 1);
+              console.log('+', area);
+              totalCount += area;
+            };
+
+            // start new segment
+            startX = xEvent.x;
+          }
+
+          xEvent.order.activity += xEvent.active?1:-1;
+        });
+
+        // start new band
+        startY = yEvent.y;
+      }
+
+      yEvent.order.activity += yEvent.active?1:-1;
+    });
+
+    // start new slab
+    startZ = zEvent.z;
+  }
+  zEvent.order.activity += zEvent.active?1:-1;
+});
+
+console.log('total', totalCount);

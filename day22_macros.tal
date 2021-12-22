@@ -1,0 +1,19 @@
+%STEP.on     {            }
+%STEP.active { #0001 ADD2 }
+%STEP.xmin   { #0002 ADD2 }
+%STEP.xmax   { #000a ADD2 }
+%STEP.ymin   { #0012 ADD2 }
+%STEP.ymax   { #001a ADD2 }
+%STEP.zmin   { #0022 ADD2 }
+%STEP.zmax   { #002a ADD2 }
+
+%STEPSIZE  { #0032 } %STEPPAD  { $32 }
+%MATSIZE   { #3000 } %MATPAD   { $3000 }
+%EVENTSIZE { #0005 } %EVENTPAD { $5 }
+
+%EVENT.x*     {            }
+%EVENT.step*  { #0002 ADD2 }
+%EVENT.active { #0004 ADD2 }
+
+%TERMINATOR { #ff }
+%TERMINATOR2 { #ffff }

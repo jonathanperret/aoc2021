@@ -19,3 +19,138 @@ Took me longer than expected, but I got the expected answer. On to part 2…
 
 # Part 2
 
+Argh, this is going to require more thinking, of course.
+
+All coordinates are between -99999 and 99999. Obviously, I'm not going to use a
+dense voxel matrix.
+
+How about running all the steps for each slice, as I did for part 1? This would
+require 200,000 passes over the step list, not impossible but it could take a while.
+
+And of course, that leaves the problem of drawing into a 200,000 x 200,000 matrix.
+
+If I had access to all of my computer's memory, I guess I could use a 5GB bitset
+for each layer. But that seems wasteful.
+
+How about a span list?
+
+Maybe I should just bite the bullet and split the volume into cuboids using
+boolean operations.
+
+The first "on" cuboid becomes the initial volume. Fortunately, the input starts
+with an "on" cuboid, so we don't have to ignore anything.
+
+Then, if we get an other "on" cuboid, the simplest implementation would be to
+simply add this to our cuboid list. Although that would make counting cubes in
+the end quite complicated. So instead, if the new cube intersects the existing
+volume but is not entirely contained within it — both trivial cases — we should
+split the new cube into up to three new cuboids (that's when they intersect on
+a corner), such that the new list of cuboids adds up to the current volume and
+they are all disjoint volumes.
+
+(by the way, my input contains 323 "on" cuboids and 97 "off cuboids")
+
+So, after two "on" cuboids we'd have up to 4 cuboids to represent our current
+volumes.
+
+Adding another one, in theory each existing cuboid could generate three more?
+Ah, this is even more complicated, as every new cuboid needs to be checked
+against all the others to keep them disjoint.
+
+How does existing CSG libraries do it? Let's look at
+https://github.com/jscad/csg.js for example.
+
+Ah, of course: "Holds a binary space partition tree representing a 3D solid."
+
+Am I up for implementing a BSP in UXNTAL? I have a headache just thinking
+about it…
+
+Something more regular, like an octree, could be more accessible maybe? But
+I have to balance this with the need to fit the result in memory…
+
+As an intermediate, a kd-tree may take less space than an octree but be
+simpler than a full-on BSP, I think.
+
+Maybe related: https://en.wikipedia.org/wiki/Klee%27s_measure_problem
+
+> When generalized to the d-dimensional case, Bentley's algorithm has a running
+> time of O(n^{d-1} \log n). This turns out not to be optimal, because it only
+> decomposes the d-dimensional problem into n (d-1)-dimensional problems, and
+> does not further decompose those subproblems.
+
+Sweeping a plane through the cuboids (inspired by Bentley's algorithm)… I can
+see that it would not be too hard to split the area along the Z axis into
+"slabs" — the set of cuboids or "anti-cuboids" to consider only changes
+when Z matches one of the "zmin" or "zmax" values.
+
+In the worst case, all of those values would be distinct and we'd get
+2*N (±1 maybe?) slabs.
+
+A quick bit of awk tells me that out of the 840 zmin/zmax values in my input,
+we have 826 distinct values. We have a similar statistic on X and Y, so
+there is no preferred axis to split on.
+
+So, I can reduce the problem to computing the area occupied by a subset of
+the cuboids, around 850 times.
+
+(I couldn't find an explanation for Bentley's algorithm generalized to n
+dimensions, but I wouldn't be surprised if that was exactly how that is
+done)
+
+So, we have up to 420 rectangles and anti-rectangles, how do we compute
+the occupied area?
+
+Bentley's algorithm uses a segment tree, which would take some time
+implementing. Can I cheat and do something more basic?
+
+Funny, while researching these algorithms I keep seeing references to
+a very nice book that happens to be sitting on my bookshelf:
+"Computational Geometry — Algorithms and Applications" by de Berg et al.
+Maybe I should get up and crack it open?
+
+So, if I sweep my rectangle list in Y order, I can again subdivide
+the plane into "bands" where I the cuboid subset is reduced again,
+and I only need to consider the xmin..xmax for these.
+Maybe at this point I can just draw them to a 200,000 bit array? That
+would require 25000 bytes.
+
+Note that I'm already using 20580 bytes to store the cuboid list. I could
+reduce that by storing only 3 bytes per coordinate instead of 8, which would
+reduce the storage space to around 8000 bytes.
+
+On the other hand, I could keep doing like I did for the other axes, and
+scan the remaining cuboid list in the right order to split the line
+into positive and negative segments.
+
+I could preprocess the list to order it on (zmin, ymin, xmin). Ah, this
+doesn't work, of course: sorting on zmin will very probably break the
+sorting on the other axes.
+
+Hmm, does this mean I need to do a new sort at each step? No, I can pre-sort
+the initial list three times to get it sorted on each axis separately. I
+wouldn't need to copy the list, just store indices (or pointers) in the right
+order.
+
+Further, can I convert the cuboid list into an event list? I.e. each event
+being either an "enter" event that increases the area being sweeped, and
+an "exit" event that decreases it of course.
+
+So the range list [ [2,5], [4,10] ] would turn into the following event list:
+  - 2, enter;
+  - 4, enter;
+  - 5, exit;
+  - 10, exit.
+
+I only now realized that the cuboid/anti-cuboid list is non-commutative, which
+makes this problem definitely more complex than the "rectangle areas" one for
+which Bentley's algorithm was created. When sweeping, it is not enough to
+note that a new rectangle is active over an interval, you also have to look
+where in the original list it appears. For example, a rectangle becoming
+active when y reaches 50 for example, has absolutely no effect if it is
+occluded by an anti-rectangle coming from further down the original list.
+It is not even enough to count how many rectangles operate on a particular
+interval! This reminds me a bit of the order-independent transparency problem
+in rendering…
+
+
+

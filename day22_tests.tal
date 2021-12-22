@@ -1,5 +1,6 @@
 ~library/macros.tal
 ~library/devices.tal
+~day22_macros.tal
 
 ( variables )
 
@@ -11,14 +12,29 @@
   S< >S ;test-step-parse JSR2
   ( EXPECT eof )
   S< "on 20 "x=-20..26,y=-36..17,z=-47..7 0a >S ;test-step-parse JSR2
-  ( EXPECT 0x01 -20 26 -36 17 -47 7 )
+  ( EXPECT [ # -20..26 -36..17 -47..7 ] )
 
   T< "steps-parse: >T
   S<
     "on 20 "x=-20..26,y=-36..17,z=-47..7 0a
     "off 20 "x=-44..5,y=-19..31,z=-15..33 0a >S ;test-steps-parse JSR2
-  ( EXPECT 0x01 -20 26 -36 17 -47 7 )
-  ( EXPECT 0x00 -44 5 -19 31 -15 33 )
+  ( EXPECT [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT [ . -44..5 -19..31 -15..33 ] )
+  ( EXPECT x: )
+  ( EXPECT < -44 [ . -44..5 -19..31 -15..33 ] )
+  ( EXPECT < -20 [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT > 5 [ . -44..5 -19..31 -15..33 ] )
+  ( EXPECT > 26 [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT y: )
+  ( EXPECT < -36 [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT < -19 [ . -44..5 -19..31 -15..33 ] )
+  ( EXPECT > 17 [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT > 31 [ . -44..5 -19..31 -15..33 ] )
+  ( EXPECT z: )
+  ( EXPECT < -47 [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT < -15 [ . -44..5 -19..31 -15..33 ] )
+  ( EXPECT > 7 [ # -20..26 -36..17 -47..7 ] )
+  ( EXPECT > 33 [ . -44..5 -19..31 -15..33 ] )
 
   T< "draw-slice: >T
   S<
@@ -38,18 +54,43 @@
   ( EXPECT .......... )
   ( EXPECT 9 )
 
+  T< "event-list/init: >T
+  ;t/elist1 ;eventlist/init JSR2
+  ;t/elist1 ;eventlist/dump JSR2
+
+  T< "event-list/insert: >T
+  S< "on 20 "x=-20..26,y=-36..17,z=3..7 0a >S ;make-get-byte JSR2 ;t/step1 ;step/parse JSR2 POP
+  ;t/elist1 #01 [ ;t/step1 STEP.zmin ] ;t/step1 ;eventlist/insert JSR2
+  ;t/elist1 ;eventlist/dump JSR2
+  ( EXPECT < 3 [ # -20..26 -36..17 3..7 ] )
+
+  T< "event-list/insert2: >T
+  ;t/elist1 #00 [ ;t/step1 STEP.zmax ] ;t/step1 ;eventlist/insert JSR2
+  ;t/elist1 ;eventlist/dump JSR2
+  ( EXPECT < 3 [ # -20..26 -36..17 3..7 ] )
+  ( EXPECT > 7 [ # -20..26 -36..17 3..7 ] )
+
+  T< "event-list/insert3: >T
+  S< "on 20 "x=-10..16,y=-26..-5,z=5..9 0a >S ;make-get-byte JSR2 ;t/step2 ;step/parse JSR2 POP
+  ;t/elist1 #01 [ ;t/step2 STEP.zmin ] ;t/step2 ;eventlist/insert JSR2
+  ;t/elist1 ;eventlist/dump JSR2
+  ( EXPECT < 3 [ # -20..26 -36..17 3..7 ] )
+  ( EXPECT < 5 [ # -10..16 -26..-5 5..9 ] )
+  ( EXPECT > 7 [ # -20..26 -36..17 3..7 ] )
+
+
   T< "👍 >T
   BRK !
 
 ( s* -- )
 @test-step-parse
-  ;make-get-byte JSR2 ;testvar/step ;step/parse JSR2
+  ;make-get-byte JSR2 ;t/step1 ;step/parse JSR2
   ,&not-eof JCN
     P< "eof >P LF
     RTN
   &not-eof
 
-  ;testvar/step ;step/dump JSR2
+  ;t/step1 ;step/dump JSR2 LF
   RTN
 
 ( s* -- )
@@ -96,8 +137,8 @@
 
 @input $2
 
-@testvar
-  [ &step $40 ]
+@t
+  [ &step1 STEPPAD &step2 STEPPAD &elist1 $100 &x $8 ]
 
 ~library/test.tal
 ~day22_lib.tal

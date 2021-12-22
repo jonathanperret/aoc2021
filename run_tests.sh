@@ -23,6 +23,7 @@ for testfile in $testlist; do
     /\( EXPECT/ { sub(".*\\( EXPECT ",""); sub(" \\)$",""); print; }
     / T</ { sub(".*T< \"",""); sub(" >T.*",""); print("🥞"); print; }
     /^[^%].*STKCHK/ { print("🥞"); }
+    / BRK/ { exit }
   ' > ${testfile%.tal}.expected.out
 
   set +e

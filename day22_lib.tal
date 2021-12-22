@@ -2,19 +2,6 @@
 ~library/string.tal
 ~library/math.tal
 
-%STEP.on   {            }
-%STEP.xmin { #0001 ADD2 }
-%STEP.xmax { #0009 ADD2 }
-%STEP.ymin { #0011 ADD2 }
-%STEP.ymax { #0019 ADD2 }
-%STEP.zmin { #0021 ADD2 }
-%STEP.zmax { #0029 ADD2 }
-
-%STEPSIZE { #0031 } %STEPPAD { $31 }
-%MATSIZE { #3000 } %MATPAD { $3000 }
-
-%TERMINATOR { #ff }
-
 @step
   ( get-byte step* -- )
   &parse
@@ -28,15 +15,14 @@
       RTN
       &not-eof
 
-    DUP2 #01 ROT ROT STA
+    DUP2 STEP.on #01 ROT ROT STA
     ;&parse/get-byte JSR2 LIT 'n EQU ,&parse/on JCN
-      DUP2 #00 ROT ROT STA
+      DUP2 STEP.on #00 ROT ROT STA
       ( eat second 'f' )
       ;&parse/get-byte JSR2 POP
     &parse/on
 
     ( step* )
-    INC2
 
     ( eat space x = )
     ;&parse/get-byte JSR2 POP
@@ -44,45 +30,39 @@
     ;&parse/get-byte JSR2 POP
 
     ( parse xmin )
-    DUP2 ;&parse/number JSR2
-    #0008 ADD2
+    DUP2 STEP.xmin ;&parse/number JSR2
 
     ( eat dot )
     ;&parse/get-byte JSR2 POP
 
     ( parse xmax )
-    DUP2 ;&parse/number JSR2
-    #0008 ADD2
+    DUP2 STEP.xmax ;&parse/number JSR2
 
     ( eat y = )
     ;&parse/get-byte JSR2 POP
     ;&parse/get-byte JSR2 POP
 
     ( parse ymin )
-    DUP2 ;&parse/number JSR2
-    #0008 ADD2
+    DUP2 STEP.ymin ;&parse/number JSR2
 
     ( eat dot )
     ;&parse/get-byte JSR2 POP
 
     ( parse ymax )
-    DUP2 ;&parse/number JSR2
-    #0008 ADD2
+    DUP2 STEP.ymax ;&parse/number JSR2
 
     ( eat z = )
     ;&parse/get-byte JSR2 POP
     ;&parse/get-byte JSR2 POP
 
     ( parse zmin )
-    DUP2 ;&parse/number JSR2
-    #0008 ADD2
+    DUP2 STEP.zmin ;&parse/number JSR2
 
     ( eat dot )
     ;&parse/get-byte JSR2 POP
 
     ( parse zmax )
-    DUP2 ;&parse/number JSR2
-    #0008 ADD2
+    DUP2 STEP.zmax ;&parse/number JSR2
 
     ( step* )
     POP2
@@ -127,15 +107,18 @@
 
   ( step* -- )
   &dump
-    DUP2 LDA DBGBYTEn SP POP
-    DUP2 STEP.xmin ;print64/no-pad JSR2 SP
+    LIT '[ EMIT SP
+    DUP2 LDA #01 EOR #0b MUL LIT '# ADD EMIT SP
+    DUP2 STEP.xmin ;print64/no-pad JSR2
+    LIT '. EMIT LIT '. EMIT
     DUP2 STEP.xmax ;print64/no-pad JSR2 SP
-    DUP2 STEP.ymin ;print64/no-pad JSR2 SP
+    DUP2 STEP.ymin ;print64/no-pad JSR2
+    LIT '. EMIT LIT '. EMIT
     DUP2 STEP.ymax ;print64/no-pad JSR2 SP
-    DUP2 STEP.zmin ;print64/no-pad JSR2 SP
-    DUP2 STEP.zmax ;print64/no-pad JSR2
-    POP2
-    LF
+    DUP2 STEP.zmin ;print64/no-pad JSR2
+    LIT '. EMIT LIT '. EMIT
+         STEP.zmax ;print64/no-pad JSR2 SP
+    LIT '] EMIT
     RTN
 
 @steps
@@ -143,24 +126,50 @@
   &parse
     [ ;&parse/get-byte STA2 ]
 
+    ;&xevents ;eventlist/init JSR2
+    ;&yevents ;eventlist/init JSR2
+    ;&zevents ;eventlist/init JSR2
+
     ;&steps ( steps* )
     &parse/more
-      LIT2 [ &parse/get-byte $2 ] OVR2 ;step/parse JSR2 STH
+      LIT2 [ &parse/get-byte $2 ] OVR2 ;step/parse JSR2 NOT ,&parse/done JCN
+
+      ( steps* )
+
+      STH2k ( steps* : steps* )
+      ( el* active x* step* -- )
+      ;&xevents #01 [ STH2rk STEP.xmin ] STH2rk ;eventlist/insert JSR2
+      ;&xevents #00 [ STH2rk STEP.xmax ] STH2rk ;eventlist/insert JSR2
+      ;&yevents #01 [ STH2rk STEP.ymin ] STH2rk ;eventlist/insert JSR2
+      ;&yevents #00 [ STH2rk STEP.ymax ] STH2rk ;eventlist/insert JSR2
+      ;&zevents #01 [ STH2rk STEP.zmin ] STH2rk ;eventlist/insert JSR2
+      ;&zevents #00 [ STH2rk STEP.zmax ] STH2rk ;eventlist/insert JSR2
+      POP2r
+
       STEPSIZE ADD2
-      STHr ,&parse/more JCN
+      ,&parse/more JMP
+
+    &parse/done
 
     ( terminate list )
-    STEPSIZE SUB2
     TERMINATOR ROT ROT STA
     RTN
 
   ( -- )
   &dump
-    ;&dump/one ;&foreach JMP2
+    ;&dump/one ;&foreach JSR2
+    P< "x: 0a >P
+    ;&xevents ;eventlist/dump JSR2
+    P< "y: 0a >P
+    ;&yevents ;eventlist/dump JSR2
+    P< "z: 0a >P
+    ;&zevents ;eventlist/dump JSR2
+    RTN
 
     ( step* -- )
     &dump/one
-      ;step/dump JMP2
+      ;step/dump JSR2 LF
+      RTN
 
   ( [ step* -- ] -- )
   &foreach
@@ -177,7 +186,7 @@
     POP2
     RTN
 
-  [ &steps $6000 ]
+  [ &steps $6000 &xevents $1200 &yevents $1200 &zevents $1200 ]
 
   ( xmin* xmax* ymin* ymax* z* -- )
   &draw
@@ -273,6 +282,7 @@
 
   ( -- cnt )
   &count
+
     #0000 [ ;&total STA2 ]
     #0000 [ ;&h LDA2 ] DO
       #0000 [ ;&w LDA2 ] DO
@@ -285,3 +295,117 @@
     [ &total $2 ]
 
   [ &mat MATPAD &w $2 &h $2 ]
+
+@eventlist
+  ( el* -- )
+  &init
+    TERMINATOR2 SWP2 STA2
+    RTN
+
+  ( el* -- )
+  &dump
+    ;&dump/one ;&foreach JSR2
+    RTN
+
+    ( active x* step* -- )
+    &dump/one
+      STH2 STH2 ( active : x* step* )
+      2* LIT '> SWP SUB EMIT SP
+      STH2r ;print64/no-pad JSR2 SP
+      STH2r ;step/dump JSR2 LF
+      RTN
+
+  ( el* [ active x* step* -- ] -- )
+  &foreach
+    STH2 ( el* : fn )
+    &foreach/loop
+      LDA2k TERMINATOR2 EQU2 ,&foreach/done JCN
+      ( el* : fn )
+      STH2k ( el* : el* fn )
+      STH2rk [ EVENT.active LDA ]
+      STH2rk [ EVENT.x* LDA2 ]
+      STH2r  [ EVENT.step* LDA2 ]
+      ( el* active x* step* : fn )
+      STH2rk JSR2
+      EVENTSIZE ADD2
+      ,&foreach/loop JMP
+    &foreach/done
+    ( el* )
+    POP2
+    POP2r
+    RTN
+
+  ( el* active x* step* -- )
+  &insert
+    STH2 STH2k ( el* active x* : x* step* )
+    [ ,&insert/x* STR2 ] ( el* active : x* step* )
+    STH ( el* : active x* step* )
+
+    &insert/loop
+      LDA2k TERMINATOR2 EQU2 ,&insert/at-end JCN
+      LDA2k ( event-x* )
+      LIT2 [ &insert/x* $2 ] ( event-x* x* )
+      ;greaterthan64 JSR2 ( event-x>x? ) ,&insert/found JCN
+
+      EVENTSIZE ADD2
+      ,&insert/loop JMP
+    &insert/at-end
+    STHr STH2r STH2r ;&_write JSR2
+    EVENTSIZE ADD2
+    TERMINATOR2 SWP2 STA2
+    ( el* )
+    RTN
+
+    &insert/found
+    ( el* )
+    ( shift right )
+    DUP2 ;&_shift-right JSR2
+    STHr STH2r STH2r ;&_write JSR2
+    ( el* )
+    POP2
+    RTN
+
+  ( el* -- )
+  &_shift-right
+    ( scan to end )
+    DUP2
+    ( el* el-end* )
+    &_shift-right/scan-loop
+      LDA2k ( el* el-end* word )
+      TERMINATOR2 EQU2 ,&_shift-right/at-end JCN
+      EVENTSIZE ADD2
+      ,&_shift-right/scan-loop JMP
+
+    &_shift-right/at-end
+    ( el* el-end* )
+    ( grow list here )
+    EVENTSIZE ADD2
+    TERMINATOR2 OVR2 STA2
+
+    ( now copy backwards until el-end = el )
+    SWP2 STH2
+    ( el-end* : el* )
+    &_shift-right/copy-loop
+      EVENTSIZE SUB2
+      EQU2k ,&_shift-right/copy-done JCN
+      ( copy left into right )
+      DUP2 DUP2 EVENTSIZE SUB2
+      ( el-end* el-end* [el-end - SIZE]* )
+      SWP2 EVENTSIZE ;memcpy JSR2
+      ,&_shift-right/copy-loop JMP
+
+    &_shift-right/copy-done
+    ( el-end* : el* )
+    POP2r
+    POP2
+    RTN
+
+  ( el* active x* step* -- el* )
+  &_write
+    STH2 STH2 STH ( el* : active x* step* )
+    DUP2 EVENT.active STHr ROT ROT STA
+    DUP2 EVENT.x* STH2r SWP2 STA2
+    DUP2 EVENT.step* STH2r SWP2 STA2
+    RTN
+
+@axes "xyz

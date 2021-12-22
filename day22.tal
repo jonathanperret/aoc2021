@@ -1,5 +1,6 @@
 ~library/macros.tal
 ~library/devices.tal
+~day22_macros.tal
 
 ( variables )
 
