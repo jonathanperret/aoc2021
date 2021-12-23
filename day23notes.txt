@@ -1,0 +1,279 @@
+# Part 1
+
+Uuuh, this does not look like an easy one.
+
+Let's review the possible moves and game states. The game looks small enough
+that an exhaustive exploration might not be out of the question.
+
+    #############
+    #...........#
+    ###B#C#B#D###
+      #A#D#C#A#
+      #########
+
+How many initial states are there? Well, the first Amber amphipod A can be in one
+of eight spaces, the second has seven options, and so on, so 8! = 40320 looks like
+a good candidate; however, amphipods of a same type are not distinguishable in any
+way, so we have to divide that number by two for each pair of amphipods. So I count
+8! / 8 = 7! = 5040 initial states. That is small indeed. How big does it get from
+here?
+
+From this state, when an amphipod starts moving from its room, here are the spots 
+it can stop into:
+
+    #############
+    #**.*.*.*.**#
+    ###B#C#B#D###
+      #A#D#C#A#
+      #########
+
+7 places, then. Those extra spaces at the end of the hallway aren't there for show
+I think. Even though the sample does not use them, the rules certainly allow such
+a situation:
+
+    #############
+    #AA.........#
+    ###.#.#C#D###
+      #B#B#C#D#
+      #########
+
+Right now however, I struggle to think of an initial state where that position
+would be on the path to an optimal solution… This one maybe? With an alternative
+solve that does not use the leftmost space but seems to have the exact same cost:
+
+    #############    #############
+    #...........#    #...........#
+    ###B#A#C#D###    ###B#A#C#D###
+      #B#A#C#D#        #B#A#C#D#
+      #########        #########
+                 
+    #############    #############
+    #A..........#    #......A....#
+    ###B#.#C#D###    ###B#.#C#D###
+      #B#A#C#D#        #B#A#C#D#
+      #########        #########
+                 
+    #############    #############
+    #AA.........#    #.....AA....#
+    ###B#.#C#D###    ###B#.#C#D###
+      #B#.#C#D#        #B#.#C#D#
+      #########        #########
+                 
+    #############    #############
+    #AA.........#    #.....AA....#
+    ###.#.#C#D###    ###.#.#C#D###
+      #B#B#C#D#        #B#B#C#D#
+      #########        #########
+                 
+    #############    #############
+    #AA.........#    #.....AA....#
+    ###.#B#C#D###    ###.#B#C#D###
+      #.#B#C#D#        #.#B#C#D#
+      #########        #########
+                 
+    #############    #############
+    #A..........#    #.....A.....#
+    ###.#B#C#D###    ###.#B#C#D###
+      #A#B#C#D#        #A#B#C#D#
+      #########        #########
+                 
+    #############    #############
+    #...........#    #...........#
+    ###A#B#C#D###    ###A#B#C#D###
+      #A#B#C#D#        #A#B#C#D#
+      #########        #########
+
+Oh well, we can't rule these spots out for certain, but it shouldn't matter much.
+
+Anyway, we have 5040 initial states — but our input gives us a single one
+of those. And in addition to the 8 starting/ending spots, there are 7 "parking"
+spots.
+
+I think an amphipod can never move from one parking spot to another ("Once an
+amphipod stops moving in the hallway, it will stay in that spot until it can
+move into a room."). So, in a legal solution path, any single amphipod will do
+either 0 moves (if it starts at the bottom of its target room, which by the way
+occurs once in the sample, but does not occur in my input), 1 move (directly
+to its target room) or 2 moves (stopping on a parking spot).
+
+The longest a solution can be is therefore 2 moves per amphipod or 16 moves
+in total.
+
+An upper bound for the number of possible moves from a given state, is given by
+the number of free spots which is always 7 — even though many of those are
+bound to be unreachable or illegal. But this does give us an absolute upper
+bound for the search space: 7^16, or 33,232,930,569,601 states. Which is a big
+number of course, but not that scary.
+
+The absolute number of possible states on the other hand should be bounded by
+15!/(15-8)!/8 : 15 possibilities for the first amphipod, 14 for the second and
+so on, then divide this by 8 to account for the fungibility of amphipods. This
+comes out to 32,432,400 which is much smaller than the previous number. I
+shouldn't be surprised, maybe: playing 16 random moves is bound to visit the
+same state twice or more, which is obviously non-optimal.
+
+Anyway, it looks like a Dijkstra's/ECS search for the cheapest path to victory
+should do the trick. I can't store 32 million costs in memory, though. I'd
+like to know how big the frontier and the visited set need to grow before
+embarking on an UXN implementation.
+
+The past few days, I've ended up writing a quick JavaScript implementation to
+find out those kinds of bounds. I think today I'm going to start with that.
+
+Thinking of state encoding: I can either store the contents of every spot, e.g.
+'ABDCCBAD.......', or the position (0-14) of each amphipod e.g. '06153427'.
+
+I need 3 bits to store "amphipod type or blank", so the first option would
+need a 45-bit number. The other one uses 4 bits for each position, so it would
+neatly fit in a 32-bit number.
+
+I'm still going with the first one for my JS prototype, as it is more readable
+and shouldn't make a big difference.
+
+Let's label the spots:
+
+    #############
+    #89.a.b.c.de#
+    ###1#3#5#7###
+      #0#2#4#6#
+      #########
+
+We can precompute the (shortest, but there really aren't any other options)
+paths from any spot to another, e.g.
+
+  - from 0 to 1: []
+  - from 0 to c: [ 1 a b ]
+  - from 0 to e: [ 1 a b c d ]
+
+Ah, this is like a mini-graph search within the larger graph search. I'm
+tempted to write the 15*14 = 210 entries by hand.
+
+  0 1 : 1
+  0 2 : 1 a 3 2
+  0 3 : 1 a 3
+  0 4 : 1 a b 5 4
+  0 5 : 1 a b 5
+  0 6 : 1 a b c 7 6
+  0 7 : 1 a b c 7
+  0 8 : 1 9 8
+  0 9 : 1 9
+  0 a : 1 a
+  0 b : 1 a b
+  0 c : 1 a b c
+  0 d : 1 a b c d
+  0 e : 1 a b c d e
+
+In JavaScript though, doing a mini-Dijkstra on the map is easy. I can also
+filter out the paths that go from a hallway spot to another hallway spot.
+
+OK, writing the function that enumerates the possible states from a
+given state was not too complicated in JavaScript — I shudder though to
+think of porting it to UXN.
+
+The state graph exploration seems to work — as long as I remember not to process
+the highest cost path first, which is an easy mistake to do when sorting the
+frontier.
+
+It does not look like it is going to reach the goal anytime soon, though.
+After a few minutes running on the sample, it is still exploring paths
+with a cost of around 1500, when the expected minimum cost is 12521.
+
+Could this be the day where I finally have to use A*?
+
+OK, so I went and got a random JavaScript A* implementation. It took a bit of
+work to convince it that I wasn't working on a 2D grid, but it worked fine
+enough… as long as I returned 0 from my heuristic function, degrading A* into
+just Dijkstra's. My heuristic, which I intended to return the cost to move all
+amphipods from their current position to their destination while ignoring any
+other amphipods that might be in the way — which is clearly a lower bound of
+the actual cost of the best solution — was faulty. I think I wrote it to
+compute the cost to move every amphipod to the bottom of its target room,
+which overestimates the true cost.
+
+But I thought a bit more about which game states were interesting, and reworked
+my whole game state representation based on the following observations:
+  - amphipods that start at the bottom of their correct room (which happens
+    only in the sample) will never move so they can be eliminated from the
+    game.
+  - apart from those, every amphipod will eventually pass through the entrance
+    of the room it starts in. So, I can consider that all the amphipods start
+    at the door of their starting rooms instead of tracking positions within
+    rooms, as long as I add a fixed cost to the result that corresponds to the
+    cost of moving each amphipod to that entrance. Note that I do have to
+    remember in which order they are in a room.
+  - likewise, when an amphipod enters its destination room, it has really no
+    other option than going as deep into it as it can. Since I've already
+    removed amphipods that started at their correct positions, this means
+    that there is a fixed cost of e.g. 1+2+3 to fill the "A" room, in
+    addition to whatever costs are incurred moving the "A" amphipods to the
+    entrance of that room. So again, I can consider only the room's entrance
+    as the target for amphipods.
+
+These allowed me to simplify the game board so that it had only 7+4 nodes:
+
+         ┌───────────┐
+         │01 2 3 4 56│
+         └──a─b─c─d──┘
+
+I computed manually the distances between each pair of these nodes and stored
+them in a two-dimensional array. I also manually determined which nodes were
+on the path of which room-hallway pairs, e.g. going from "a" to "4" requires
+that "2" and "3" be clear.
+
+More observations simplified the state graph further:
+
+  - since amphipods never exit their room once entered, I can just remove
+    them from the game as soon as they reach their room entrance. This does
+    not reduce the graph as much as compress the state representation.
+
+  - every amphipod that has an unobstructed path to its target room, if that
+    room has been emptied of wrong amphipods (which means its altogether empty,
+    because of the previous point), should immediately move there (i.e. be
+    removed from the game) from wherever it currently is. It's easy to see that
+    such a move must be part of any optimal solution starting from this state.
+
+  - if applying the preceding rule makes more amphipods able to reach
+    their target unobstructed, they should also immediately do so (be removed),
+    until no such forced move remains.
+
+Identifying and implementing these forced moves in my "find next states" function
+was relatively simple. Compared to my initial version that could pick any amphipod
+and try to move it to any free spot, the new one was much more straightforward.
+
+Here's how I enumerate possible moves from any game state:
+  - pick a room;
+  - pick one of the 7 hallways spots;
+  - move the amphipod that is at the top of the room to the hallway spot,
+    if the spot and the path leading to it are clear.
+
+Notice how I don't have to consider moving amphipods that may currently be in the
+hallway. Those will eventually move, but this doesn't require a decision
+by the player, i.e. an edge in the state graph, because they can only move
+when their room becomes available and then they will immediately disappear.
+
+Even though they don't appear in the state graph, I do have to implement these
+forced moves, of course. Back to the state-enumerating function; once it has
+picked a room and a target hallway spot, it builds the state corresponding to
+the game after that move, then "reduces" the state by applying any forced move
+until none remain available. That "reduced" state, where it is guaranteed that
+no other move is possible except one of those enumerated above (i.e. move an
+amphipod from a room into the hallway), is the one that is returned to the
+optimizer.
+
+As I hoped, this made the optimizer, A* or otherwise, very happy. In fact, both
+A* with a null heuristic and my own Dijkstra/UCS-like implementation explore
+only about 16,500 states for part 1 on my input, and a meager 90,000 states for
+part 2 even though the problem seems to have enormously grown in size at first
+blush.
+
+I eventually fixed the heuristic for A*, and it did significantly reduce the
+explored nodes to around 1200 (a more than 90% reduction!) for part 1, but
+suprisingly, it saved practically nothing on the part 2 problem. A* once again
+proving overkill for AoC problems? 🤷
+
+Anyway, if I had any energy left, I think I could make something work on UXN.
+The problem is now streamlined and understood enough that it wouldn't require
+that much code (certainly less than the last few day's problems required!) and
+with careful storage design, the best path search could probably fit in 64K.
+
+But that won't be done today, sorry.
