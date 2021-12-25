@@ -1,0 +1,345 @@
+# Part 1
+
+A virtual CPU implementation problem? Hmm, it may look like it at the start, but
+the question asked makes things more complicated, and that's only part 1…
+
+Oh, and there's not even a real sample!
+
+14 decimal nines fit into a 48-bit number.
+
+"it will indicate that the model number was valid by leaving a 0 in variable z" —
+should we analyze the program from the end and track what happened to z?
+
+(just thought of an alternative plan to try if this one fails: maybe the whole
+program reduces to a bounded-length expression like a polynomial of some sort,
+that we could then solve?)
+
+Let's see. To "execute" the program backwards, we'd initialize z to 0 of course,
+then… the first instruction we'd see would be:
+
+  add z y
+
+This means:
+
+  Add the value of z to the value of y, then store the result in variable z
+
+So, in normal execution order, this reads z and y and writes z. In reverse
+execution order, it… stores (z' - y) in z? Let's see, if z is known to be 14
+after this "add" in normal execution, it means that the computation of (z + y)
+resulted in 14. Here are a few sets of values for y and z that would work:
+
+    y    z   z'=y+z
+    0   14       14
+   14    0       14
+  100  -86       14
+  -86  100       14
+
+If z' is meant to be 0, as is the case here:
+
+    y    z   z'=y+z
+    0    0        0
+   14  -14        0
+  100 -100        0
+ -100  100        0
+
+OK, so reverse-executing `add z y` with z'=0 does not give us complete information
+on y, it only tells us that before that instruction, `y = -z` held.
+
+                    z'   y'
+                    0
+  add z y          -y   -z
+
+Let's move on the next, er previous, instruction:
+
+  mul y x
+
+This should give us some constraint on x and/or y. If y' = x*y, it follows that
+x and y both divide y', i.e. there are some integers j, k such that y' = x*j and
+y' = y*k. Of course, j=y and k=x… am I going in circles here? Let's try and find
+some examples with random values:
+
+                x     y     z
+              123   100    45
+   mul y x        12300    45
+   add z y              12345
+
+Clearly, the set (x=123, y=100, z=45) doesn't lead to z=0. What is one set that does?
+
+                x     y     z
+              123    -1   123
+   mul y x         -123   123
+   add z y                  0
+
+Can we generalize this?
+
+                x     y     z
+                A    -1     A
+   mul y x           -A     A
+   add z y                  0
+
+Further?
+
+                x      y        z
+               x0     y0       z0
+   mul y x         x0*y0       z0
+   add z y               x0*y0+z0
+
+x0*y0+z0=0 means z0 = -x0*y0, or x0 = -z0/y0 if y0 is != 0.
+
+This is quickly getting complex. What about the alternative, of building an
+expression for the program? We already know the last two instructions are equivalent
+to `z = x0*y0+z0`, let's add another one on top:
+
+   add y 11
+   mul y x
+   add z y
+
+Is equivalent to :
+
+  z = (y0+11)*x0+z0
+
+What if we go back to the last `inp` instruction:
+
+                     w                       x                            y                                  z
+                   (w0)                     x0                          (y0)                                z0
+  inp w
+  mul x 0        input                       0
+  add x z                                   z0
+  mod x 26                               z0%26
+  div z 26                                                                                               z0/26
+  add x -13                           z0%26-13
+  eql x w                    (z0%26-13)==input
+  eql x 0                    (z0%26-13)!=input
+                       input != (z0 % 26 - 13) [x1]
+  mul y 0                                                                 0
+  add y 25                                                               25
+  mul y x                                                             25*x1
+  add y 1                                                         1 + 25*x1 [y1]
+  mul z y                                                                                             y1*z0/26
+  mul y 0                                                                 0
+  add y w                                                             input
+  add y 11                                                         11+input
+  mul y x                                                     (11+input)*x1
+                                                          (input + 11) * x1
+  add z y                                                                    (input + 11) * x1 + y1 * z0 / 26
+                                                                  (input + 11) * x1 + (1 + 25 * x1) * z0 / 26
+
+Gotta love these `mul _ 0` instructions, they are great at simplifying the
+result. They occur 42 times in my input (out of 252 instructions). Oh, and
+they are always followed by an `add _ _ ` targeting the same register! I can
+rewrite every
+
+  mul R 0
+  add R X
+
+into
+
+  mov R X
+
+This turns my 252-instruction program into a 210-instruction program. Progress?
+
+In a similar vein, `eql R 0` can be understood as `not R`. That doesn't reduce
+the number of instructions, though. Any other magical pairs that could help?
+
+Ah, those `not` always follow an `equ` so let's introduce `neq`. This gets us down
+to 196 instructions, and removes all `equ` instructions! This program appears quite
+constrained in fact…
+
+One other observation: all `inp` instructions are `inp w` instructions. And no
+other instruction ever targets `w`. Oh but in fact, the program looks like 14
+repetitions of a similar basic sequence:
+
+     inp w
+     mov x z
+     mod x 26
+     div z 1
+     add x 10
+     neq x w
+     mov y 25
+     mul y x
+     add y 1
+     mul z y
+     mov y w
+     add y 10
+     mul y x
+     add z y
+
+
+With a bit of awk, I can paste those side-by-side:
+
+  $ < day24-reworked.txt|awk '{n=(NR-1)%15; p=substr($0"         ",1,10); l[n]=l[n] p}END{for(i=0;i<15;i++)print l[i]}'
+
+  inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w     inp w
+  mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z   mov x z
+  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26  mod x 26
+  div z 1   div z 1   div z 1   div z 26  div z 1   div z 26  div z 1   div z 26  div z 1   div z 1   div z 26  div z 26  div z 26  div z 26
+  add x 10  add x 13  add x 15  add x -12 add x 14  add x -2  add x 13  add x -12 add x 15  add x 11  add x -3  add x -13 add x -12 add x -13
+  neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w   neq x w
+  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25  mov y 25
+  mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x
+  add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1   add y 1
+  mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y   mul z y
+  mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w   mov y w
+  add y 10  add y 5   add y 12  add y 12  add y 6   add y 4   add y 15  add y 3   add y 7   add y 11  add y 2   add y 12  add y 4   add y 11
+  mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x   mul y x
+  add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y   add z y
+
+Keeping only the varying values:
+
+  inp w
+  mov x z
+  mod x 26
+  div z       1    1    1    26    1     26    1    26    1    1    26    26    26    26
+  add x      10   13   15   -12   14     -2   13   -12   15   11    -3   -13   -12   -13
+  neq x w
+  mov y 25
+  mul y x
+  add y 1
+  mul z y
+  mov y w
+  add y      10    5   12    12    6      4   15     3    7   11     2    12     4    11
+  mul y x
+  add z y
+
+OK, but what does this block do? We determined above that it was computing (barring any mistakes on my part):
+
+  x1 = input != (z0 % 26 - 13)
+  z1 = (input + 11) * x1 + z0 * (1 + 25 * x1) / 26
+
+x1 is always either 0 or 1. Let's use this:
+
+  if (input != (z0 % 26 - 13)) {
+    return (input + 11) * 1 + z0 * (1 + 25 * 1) / 26
+  } else {
+    return (input + 11) * 0 + z0 * (1 + 25 * 0) / 26
+  }
+
+Simplifying:
+
+  if (input == (z0 % 26 - 13)) {
+    return z0 / 26
+  } else {
+    return input + 11 + z0
+  }
+
+I think we're getting somewhere!
+
+At the start, when z0=0, the program further reduces to:
+
+  if (i0 == -13) {
+    return 0
+  } else {
+    return i0 + 11
+  }
+
+If we could input only -13 values, we'd keep z at 0 all along and have success.
+However, input values are constrained to be within 1..9.
+
+So, after the first block runs, we have z=i0+11, which is within 12..21.
+
+The next block runs:
+
+  if (i1 == ((i0 + 11) % 26 - 13)) {
+    return (i0 + 11) / 26
+  } else {
+    return input + 11 + (i0 + 11)
+  }
+
+Given the range of i0 (1..9), ((i0 + 11) % 26 - 13) reduces to (i0 - 2):
+
+  if (i1 == (i0 - 2))
+    return (i0 + 11) / 26
+  } else {
+    return i1 + i0 + 22
+  }
+
+Since i0 is within [1..9], (i0+11)/26 is always 0:
+
+  if (i1 == (i0 - 2))
+    return 0
+  } else {
+    return i1 + i0 + 22
+  }
+
+Do we have a pattern appearing?
+
+Damn, I knew I was missing something. Three constants are different for each block! The
+expression I constructed was valid only for the last block…
+
+Let's analyze the block again, substituting letters for those constants:
+
+                     w                       x                            y                                  z
+                   (w0)                     x0                          (y0)                                z0
+  inp w
+  mul x 0        input                       0
+  add x z                                   z0
+  mod x 26                               z0%26
+  div z a                                                                                                 z0/a
+  add x b                            z0%26 + b
+  eql x w                   (z0%26 + b)==input
+  eql x 0                   (z0%26 + b)!=input
+                        input != (z0 % 26 + b) [x1]
+  mul y 0                                                                 0
+  add y 25                                                               25
+  mul y x                                                             25*x1
+  add y 1                                                         1 + 25*x1 [y1]
+  mul z y                                                                                              y1*z0/a
+  mul y 0                                                                 0
+  add y w                                                             input
+  add y c                                                           c+input
+  mul y x                                                      (c+input)*x1
+                                                           (input + c) * x1
+  add z y                                                                       (input + c) * x1 + y1 * z0 / a
+                                                                     (input + c) * x1 + (1 + 25 * x1) * z0 / a
+
+This should be equivalent to:
+
+  x1 = input != (z0 % 26 + b)
+  z1 = (input + c) * x1 + z0 * (1 + 25 * x1) / a
+
+x1 is always either 0 or 1. Let's use this:
+
+  if (input != (z0 % 26 + b)) {
+    return (input + c) * 1 + z0 * (1 + 25 * 1) / a
+  } else {
+    return (input + c) * 0 + z0 * (1 + 25 * 0) / a
+  }
+
+Simplifies to:
+
+  if (input == (z0 % 26 + b)) {
+    return z0 / a
+  } else {
+    return (input + c) * 1 + z0 * 26 / a
+  }
+
+a is only ever 26 or 1, so this is equivalent to:
+
+  if (input == (z0 % 26 + b)) {
+    return a==26 ? z0 / 26 : z0
+  } else {
+    return input + c + z0 * (a==26 ? 1 : 26)
+  }
+
+For the first block, z0=0, a=1, b=10, c=10:
+
+  if (i0 == 10) {
+    return 0
+  } else {
+    return i0 + 10;
+  }
+
+The test is always false since i0 is within [1..9].
+
+Second block, z1=i0+10, a=1, b=13, c=5:
+
+  if (i1 == ((i0 + 10) % 26 + b)) {
+    return (i0 + 10)
+  } else {
+    // return i1 + 5 + (i0 + 10) * 26
+    return 26 * i0 + i1 + 265
+  }
+
+Still can't get into the first branch of the if.
+
+…

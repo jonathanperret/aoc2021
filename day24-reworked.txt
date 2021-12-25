@@ -1,0 +1,210 @@
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 10
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 10
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 13
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 5
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 15
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 12
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -12
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 12
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 14
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 6
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -2
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 4
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 13
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 15
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -12
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 3
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 15
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 7
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 1
+add x 11
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 11
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -3
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 2
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -13
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 12
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -12
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 4
+mul y x
+add z y
+
+inp w
+mov x z
+mod x 26
+div z 26
+add x -13
+neq x w
+mov y 25
+mul y x
+add y 1
+mul z y
+mov y w
+add y 11
+mul y x
+add z y
