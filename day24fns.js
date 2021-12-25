@@ -1,4 +1,4 @@
-exports.f0 = function (z, w) {
+exports.f0 = function f0(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -26,7 +26,7 @@ exports.f0.a = 1;
 exports.f0.b = 10;
 exports.f0.c = 10;
 
-exports.f1 = function (z, w) {
+exports.f1 = function f1(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -54,7 +54,7 @@ exports.f1.a = 1;
 exports.f1.b = 13;
 exports.f1.c = 5;
 
-exports.f2 = function (z, w) {
+exports.f2 = function f2(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -82,7 +82,7 @@ exports.f2.a = 1;
 exports.f2.b = 15;
 exports.f2.c = 12;
 
-exports.f3 = function (z, w) {
+exports.f3 = function f3(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -110,7 +110,7 @@ exports.f3.a = 26;
 exports.f3.b = -12;
 exports.f3.c = 12;
 
-exports.f4 = function (z, w) {
+exports.f4 = function f4(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -138,7 +138,7 @@ exports.f4.a = 1;
 exports.f4.b = 14;
 exports.f4.c = 6;
 
-exports.f5 = function (z, w) {
+exports.f5 = function f5(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -166,7 +166,7 @@ exports.f5.a = 26;
 exports.f5.b = -2;
 exports.f5.c = 4;
 
-exports.f6 = function (z, w) {
+exports.f6 = function f6(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -194,7 +194,7 @@ exports.f6.a = 1;
 exports.f6.b = 13;
 exports.f6.c = 15;
 
-exports.f7 = function (z, w) {
+exports.f7 = function f7(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -222,7 +222,7 @@ exports.f7.a = 26;
 exports.f7.b = -12;
 exports.f7.c = 3;
 
-exports.f8 = function (z, w) {
+exports.f8 = function f8(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -250,7 +250,7 @@ exports.f8.a = 1;
 exports.f8.b = 15;
 exports.f8.c = 7;
 
-exports.f9 = function (z, w) {
+exports.f9 = function f9(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -278,7 +278,7 @@ exports.f9.a = 1;
 exports.f9.b = 11;
 exports.f9.c = 11;
 
-exports.f10 = function (z, w) {
+exports.f10 = function f10(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -306,7 +306,7 @@ exports.f10.a = 26;
 exports.f10.b = -3;
 exports.f10.c = 2;
 
-exports.f11 = function (z, w) {
+exports.f11 = function f11(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -334,7 +334,7 @@ exports.f11.a = 26;
 exports.f11.b = -13;
 exports.f11.c = 12;
 
-exports.f12 = function (z, w) {
+exports.f12 = function f12(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;
@@ -362,7 +362,7 @@ exports.f12.a = 26;
 exports.f12.b = -12;
 exports.f12.c = 4;
 
-exports.f13 = function (z, w) {
+exports.f13 = function f13(z, w) {
   if (w > 9 || w < 1) throw new Error('bad input');
   let x = 0, y = 0;
   x = x * 0;

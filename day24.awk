@@ -15,7 +15,7 @@ function endfn() {
 /inp/ { if (NR>1) endfn()
         a = 0; b = 0; c = 0;
         fname = "f"(NR-1)/18
-        print "exports."fname" = function (z, w) {"
+        print "exports."fname" = function "fname"(z, w) {"
         print "  if (w > 9 || w < 1) throw new Error('bad input');"
         print "  let x = 0, y = 0;" }
 /mul/ { assign($2, $2 " * " $3) }
