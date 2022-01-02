@@ -18,6 +18,8 @@
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │D│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
 
@@ -31,6 +33,8 @@
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │D│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
 
@@ -39,12 +43,16 @@
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐@│@│@│@┌─┘ )
   ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
 
   ( EXPECT 2: 0 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │D│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
 
@@ -55,6 +63,8 @@
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │D│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
 
@@ -72,64 +82,83 @@
   ( EXPECT 0: 1100 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@C.@.@.@.@@│ )
-  ( EXPECT └─┐B│D│B│D┌─┘ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│B│B│A│   )
+  ( EXPECT   │D│D│A│C│   )
   ( EXPECT   │@│@│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 1: 1300 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │C@.@.@.@.@@│ )
-  ( EXPECT └─┐B│D│B│D┌─┘ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│B│B│A│   )
+  ( EXPECT   │D│D│A│C│   )
   ( EXPECT   │@│@│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 2: 260 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@B│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 3: 240 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.B@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 4: 200 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.B.@@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 5: 160 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.B.@.@@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 6: 140 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.B.@.@.@@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 7: 160 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@B.@.@.@.@@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 8: 180 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │B@.@.@.@.@@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
-
   T< "player/process-exits: >T
   ;t/mid-state ;state/dump JSR2
   ( EXPECT 16 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │B@.@.D.A.DD│ )
   ( EXPECT └─┐D│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
   ;statestack/init JSR2
@@ -143,14 +172,18 @@
   ( EXPECT │@@.@.D.A.@@│ )
   ( EXPECT └─┐D│@│@│@┌─┘ )
   ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
 
-  T< "player: >T
+  T< "player/next: >T
   ;t/mid-state ;state/dump JSR2
   ( EXPECT 16 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │B@.@.D.A.DD│ )
   ( EXPECT └─┐D│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
   ;statestack/init JSR2
@@ -163,17 +196,23 @@
   ( EXPECT │@@.D.D.A.@@│ )
   ( EXPECT └─┐@│@│@│@┌─┘ )
   ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 1: 10016 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@D.@.D.A.@@│ )
   ( EXPECT └─┐@│@│@│@┌─┘ )
   ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 2: 12016 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │D@.@.D.A.@@│ )
   ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
 
@@ -183,6 +222,8 @@
   ( EXPECT ┌───────────┐ )
   ( EXPECT │A@.@.@.@.@@│ )
   ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   │@│@│@│@│   )
   ( EXPECT   │@│@│@│@│   )
   ( EXPECT   └───────┘   )
   ;statestack/init JSR2
@@ -200,6 +241,8 @@
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │D│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ;t/state1 ;statestack/push JSR2
@@ -210,23 +253,29 @@
   ( EXPECT 0: 140 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.B.@.@@│ )
-  ( EXPECT └─┐B│C│@│D┌─┘ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│A│A│   )
+  ( EXPECT   │D│B│@│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
   ( EXPECT 1: 140 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.B.@.@.@@│ )
-  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT └─┐D│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │@│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
 
   T< "state/fixed-cost: >T
   ;t/state1 ;state/compute-fixed-cost JSR2
   ;t/state1 ;state/dump JSR2
-  ( EXPECT 2011 )
+  ( EXPECT 12699 )
   ( EXPECT ┌───────────┐ )
   ( EXPECT │@@.@.@.@.@@│ )
   ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │D│C│B│A│   )
+  ( EXPECT   │D│B│A│C│   )
   ( EXPECT   │@│D│@│A│   )
   ( EXPECT   └───────┘   )
 
@@ -255,17 +304,17 @@
 @t
   [ &input $2 &state1 STATEPAD &state2 STATEPAD 
     &mid-state
-      04 00
-      00 00
-      00 00
-      00 00
+      04 00 00 00
+      00 00 00 00
+      00 00 00 00
+      00 00 00 00
       02 00 00 04 01 04 04
       0010
     &end-state
-      00 00
-      00 00
-      00 00
-      00 00
+      00 00 00 00
+      00 00 00 00
+      00 00 00 00
+      00 00 00 00
       01 00 00 00 00 00 00
       03e8
     ]

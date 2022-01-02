@@ -35,7 +35,37 @@
 
     ;&parse/skip-line JSR2
 
-    POP2r INC2rk ( : state+1* state* )
+    POP2r INC2rk DUP2r ( : state+1* state+1* state* )
+
+    ( insert fixed amphipods for line 2 )
+    #04 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    #03 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    #02 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    #01 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    POP2r INC2r DUP2r ( : state+2* state+2* state* )
+
+    ( insert fixed amphipods for line 3 )
+    #04 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    #02 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    #01 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    #03 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+
+    POP2r INC2r DUP2r ( : state+3* state+3* state* )
 
     ;&parse/skip-byte JSR2
     ;&parse/skip-byte JSR2
@@ -66,6 +96,12 @@
     STH2rk STA
     ROOMSIZE STH2 ADD2r
     ;&parse/skip-byte JSR2
+
+    ( : state+3+…* state+3* state* )
+
+    POP2r
+
+    ( : state+n* state* )
 
     POP2r STH2r
     ( state* )
@@ -128,6 +164,8 @@
     POP2
 
     INC2
+
+    DUP2
     P< 20 20 "│ >P
     LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
     P< "│ >P
@@ -137,6 +175,35 @@
     P< "│ >P
     LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
     P< "│ 20 20 >P LF
+    POP2
+
+    INC2
+
+    DUP2
+    P< 20 20 "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ 20 20 >P LF
+    POP2
+
+    INC2
+
+    DUP2
+    P< 20 20 "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ 20 20 >P LF
+    POP2
 
     P< 20 20 "└───────┘ 20 20 >P LF
     POP2

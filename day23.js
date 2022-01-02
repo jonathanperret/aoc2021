@@ -452,6 +452,7 @@ function DFS() {
     }
 
     iterCount++;
+    if((iterCount & 0xffff) === 0) process.stdout.write('.');
 
     if (from.state === goalState) {
       //console.log(`*** found goal at depth ${from.depth} with cost ${from.cost}! ***`);

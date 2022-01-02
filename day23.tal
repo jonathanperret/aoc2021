@@ -41,17 +41,25 @@
   ;&initial-state ;statestack/push JSR2
 
   ;player/init JSR2
+  #0000 [ ;&itercount STA2 ]
 
   &loop
     ( ;statestack/size JSR2 ;print-short-decimal JSR2 LF )
     ;player/next JSR2
+
+    [ ;&itercount LDA2 ] INC2
+    DUP2 #0000 NEQ2 ,&no-progress JCN
+      LIT '. EMIT
+    &no-progress
+    [ ;&itercount STA2 ]
+
     ;statestack/size JSR2 #0000 GTH2 ,&loop JCN
 
   P< "🎉 0a >P
 
   BRK
 
-  [ &initial-state STATEPAD ]
+  [ &initial-state STATEPAD &itercount $2 ]
 
 @open-file
   ;argv .File/name DEO2
