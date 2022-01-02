@@ -1,0 +1,274 @@
+~library/macros.tal
+~library/devices.tal
+~day23_macros.tal
+
+( variables )
+
+|0000
+
+|0100 @program
+
+  T< "parse: >T
+  S<     "############# 0a
+         "#...........# 0a
+         "###B#C#B#D### 0a
+     20 20 "#A#D#C#A# 0a
+     20 20 "######### 0a >S ;test-parse JSR2
+  ( EXPECT 0 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  T< "stack/push: >T
+  ;statestack/init JSR2
+  ;t/state1 ;statestack/push JSR2
+  ;t/state2 ;statestack/push JSR2
+  ;t/state1 ;statestack/push JSR2
+  ;statestack/dump JSR2
+  ( EXPECT 0: 0 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  ( EXPECT 1: 0 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+
+  ( EXPECT 2: 0 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  T< "stack/pop: >T
+  ;t/state2 ;statestack/pop JSR2
+  ;t/state2 ;state/dump JSR2
+  ( EXPECT 0 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  T< "player/process-moves: >T
+  ;statestack/init JSR2
+  #0064 ;t/state1 STATE>cost STA2
+  ;t/state1 ;statestack/push JSR2
+  ;player/init JSR2
+  ;player/load-top-state JSR2
+  ;player/process-moves JSR2
+  ;statestack/size JSR2 ;print-short-decimal JSR2 LF
+  ( EXPECT 28 )
+  #0000 #0013 DO ;t/state2 ;statestack/pop JSR2 LOOP
+  ;statestack/dump JSR2
+  ( EXPECT 0: 1100 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@C.@.@.@.@@│ )
+  ( EXPECT └─┐B│D│B│D┌─┘ )
+  ( EXPECT   │@│@│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 1: 1300 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │C@.@.@.@.@@│ )
+  ( EXPECT └─┐B│D│B│D┌─┘ )
+  ( EXPECT   │@│@│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 2: 260 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@B│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 3: 240 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.B@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 4: 200 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.B.@@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 5: 160 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.B.@.@@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 6: 140 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.B.@.@.@@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 7: 160 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@B.@.@.@.@@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 8: 180 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │B@.@.@.@.@@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  T< "player/process-exits: >T
+  ;t/mid-state ;state/dump JSR2
+  ( EXPECT 16 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │B@.@.D.A.DD│ )
+  ( EXPECT └─┐D│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+  ;statestack/init JSR2
+  ;t/mid-state ;statestack/push JSR2
+  ;player/init JSR2
+  ;player/load-top-state JSR2
+  ;player/process-exits JSR2
+  ;player/srcstate ;state/dump JSR2
+  ( EXPECT 16 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.D.A.@@│ )
+  ( EXPECT └─┐D│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+
+  T< "player: >T
+  ;t/mid-state ;state/dump JSR2
+  ( EXPECT 16 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │B@.@.D.A.DD│ )
+  ( EXPECT └─┐D│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+  ;statestack/init JSR2
+  ;t/mid-state ;statestack/push JSR2
+  ;player/init JSR2
+  ;player/next JSR2
+  ;statestack/dump JSR2
+  ( EXPECT 0: 8016 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.D.D.A.@@│ )
+  ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 1: 10016 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@D.@.D.A.@@│ )
+  ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 2: 12016 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │D@.@.D.A.@@│ )
+  ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+
+  T< "player/check-goal: >T
+  ;t/end-state ;state/dump JSR2
+  ( EXPECT 1000 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │A@.@.@.@.@@│ )
+  ( EXPECT └─┐@│@│@│@┌─┘ )
+  ( EXPECT   │@│@│@│@│   )
+  ( EXPECT   └───────┘   )
+  ;statestack/init JSR2
+  ;t/end-state ;statestack/push JSR2
+  ;player/next JSR2
+  ( EXPECT goal: 1000 )
+  [ ;player/cost-limit LDA2 ] ;print-short-decimal JSR2 LF
+  ( EXPECT 1000 )
+
+  T< "player/cost-limit: >T
+  ;statestack/init JSR2
+  #0064 ;t/state1 STATE>cost STA2
+  ;t/state1 ;state/dump JSR2
+  ( EXPECT 100 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ;t/state1 ;statestack/push JSR2
+  #009f [ ;player/cost-limit STA2 ]
+  ;player/load-top-state JSR2
+  ;player/process-moves JSR2
+  ;statestack/dump JSR2
+  ( EXPECT 0: 140 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.B.@.@@│ )
+  ( EXPECT └─┐B│C│@│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+  ( EXPECT 1: 140 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.B.@.@.@@│ )
+  ( EXPECT └─┐@│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  T< "state/fixed-cost: >T
+  ;t/state1 ;state/compute-fixed-cost JSR2
+  ;t/state1 ;state/dump JSR2
+  ( EXPECT 2011 )
+  ( EXPECT ┌───────────┐ )
+  ( EXPECT │@@.@.@.@.@@│ )
+  ( EXPECT └─┐B│C│B│D┌─┘ )
+  ( EXPECT   │@│D│@│A│   )
+  ( EXPECT   └───────┘   )
+
+  T< "👍 >T
+  BRK !
+
+( s* -- )
+@test-parse
+  ;make-get-byte JSR2 ;t/state1 ;state/parse JSR2
+  ;t/state1 ;state/dump JSR2
+  RTN
+
+( s* -- get-byte )
+@make-get-byte
+  ;t/input STA2
+  ;get-byte-from-input
+  RTN
+
+( -- b )
+@get-byte-from-input
+  [ ;t/input LDA2 ] LDA STH
+  [ ;t/input *INC2 ]
+  STHr
+  RTN
+
+@t
+  [ &input $2 &state1 STATEPAD &state2 STATEPAD 
+    &mid-state
+      04 00
+      00 00
+      00 00
+      00 00
+      02 00 00 04 01 04 04
+      0010
+    &end-state
+      00 00
+      00 00
+      00 00
+      00 00
+      01 00 00 00 00 00 00
+      03e8
+    ]
+
+~library/test.tal
+~day23_lib.tal

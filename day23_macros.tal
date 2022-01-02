@@ -1,0 +1,8 @@
+%ROOMSIZE { #0002 } %ROOMPAD { $2 }
+%HALLWAYSIZE { #0007 } %HALLWAYPAD { $7 }
+%STATE.hallway { #0008 }
+%STATE>hallway { STATE.hallway ADD2 }
+
+%STATE>cost { STATE>hallway HALLWAYSIZE ADD2 }
+
+%STATESIZE { #0011 } %STATEPAD { $0011 }

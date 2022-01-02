@@ -1,0 +1,485 @@
+~library/console.lib.tal
+~library/string.tal
+~library/math.tal
+
+@state
+  ( get-byte state* -- )
+  &parse
+    SWP2
+    [ ;&parse/get-byte-addr STA2 ]
+    STH2
+    DUP2r ( : state* state* )
+
+    ;&parse/skip-line JSR2
+    ;&parse/skip-line JSR2
+
+    ;&parse/skip-byte JSR2
+    ;&parse/skip-byte JSR2
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2 STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/skip-line JSR2
+
+    POP2r INC2rk ( : state+1* state* )
+
+    ;&parse/skip-byte JSR2
+    ;&parse/skip-byte JSR2
+    ;&parse/skip-byte JSR2
+
+    ( last line: ignore amphipods already at home )
+
+    ;&parse/get-amphipod JSR2
+    DUP #01 NEQ ,&keep-A JCN POP #00 &keep-A
+    STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2
+    DUP #02 NEQ ,&keep-B JCN POP #00 &keep-B
+    STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2
+    DUP #03 NEQ ,&keep-C JCN POP #00 &keep-C
+    STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    ;&parse/get-amphipod JSR2
+    DUP #04 NEQ ,&keep-D JCN POP #00 &keep-D
+    STH2rk STA
+    ROOMSIZE STH2 ADD2r
+    ;&parse/skip-byte JSR2
+
+    POP2r STH2r
+    ( state* )
+    STATE>cost
+    #0000 SWP2 STA2
+
+    RTN
+
+    ( -- b )
+    &parse/get-byte
+      LIT2 [ &parse/get-byte-addr $2 ] JMP2
+
+    ( -- n )
+    &parse/get-amphipod
+      ;&parse/get-byte JSR2 LIT '@ SUB
+      RTN
+
+    ( -- )
+    &parse/skip-byte
+      ;&parse/get-byte JSR2 POP
+      RTN
+
+    &parse/skip-line
+      ;&parse/get-byte JSR2
+      #0a NEQ ,&parse/skip-line JCN
+      RTN
+
+  ( state* -- )
+  &dump
+    DUP2 STATE>cost LDA2 ;print-short-decimal JSR2 LF
+
+    P< "┌───────────┐ >P LF
+    P< "│ >P
+
+    DUP2 STATE>hallway
+    LDAk LIT '@ ADD EMIT INC2
+    LDAk LIT '@ ADD EMIT INC2
+    LIT '. EMIT
+    LDAk LIT '@ ADD EMIT INC2
+    LIT '. EMIT
+    LDAk LIT '@ ADD EMIT INC2
+    LIT '. EMIT
+    LDAk LIT '@ ADD EMIT INC2
+    LIT '. EMIT
+    LDAk LIT '@ ADD EMIT INC2
+    LDAk LIT '@ ADD EMIT INC2
+    P< "│ >P LF
+    POP2
+
+    DUP2
+    P< "└─┐ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "┌─┘ >P LF
+    POP2
+
+    INC2
+    P< 20 20 "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ >P
+    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    P< "│ 20 20 >P LF
+
+    P< 20 20 "└───────┘ 20 20 >P LF
+    POP2
+    RTN
+
+  ( src* dest* -- )
+  &copy
+    STATESIZE ;memcpy JSR2
+    RTN
+
+  ( state* -- )
+  &compute-fixed-cost
+    #0000 [ ;&fixed-cost STA2 ]
+    #00 #0005 ;&population ;memset JSR2
+    ( state* )
+
+    ( cost to extract amphipods from rooms: depth*move-cost )
+    #0000 #0004 DO
+      ( state* room-index )
+      DUP4 ROOMSIZE MUL2 ADD2
+      ( state* room-index room* )
+      #0000 ROOMSIZE DO
+        ( state* room-index room* depth )
+        DUP4 ADD2 LDA ( … depth amphipod )
+
+        DUP #00 SWP ;&population ADD2 *INC
+
+        ;player/get-amphipod-move-cost JSR2
+        ( … depth move-cost )
+        OVR2 MUL2
+
+        [ ;&fixed-cost LDA2 ] ADD2 [ ;&fixed-cost STA2 ]
+      LOOP
+      POP2
+    LOOP
+
+    ( cost to push amphipods down their target room: 0+1+…+(pop-1) = pop*(pop-1)/2 )
+    #0001 #0005 DO
+      ( amphipod )
+      DUP ;player/get-amphipod-move-cost JSR2
+      ( amphipod move-cost )
+      OVR2 ;&population ADD2 LDA
+      DUP DEC MUL 2/ #00 SWP ( pop*(pop-1)/2 )
+      MUL2
+      [ ;&fixed-cost LDA2 ] ADD2 [ ;&fixed-cost STA2 ]
+    LOOP
+
+    STATE>cost [ ;&fixed-cost LDA2 ] SWP2 STA2
+    RTN
+    [ &fixed-cost $2 &population $5 ]
+
+%STACKSIZE { #2000 } %STACKPAD { $2000 }
+
+@statestack
+  &init
+    #00 STACKSIZE ;&stack-start ;memset JSR2
+    ;&stack-start [ ;&stack-ptr STA2 ]
+    RTN
+
+  ( state* -- )
+  &push
+    [ ;&stack-ptr LDA2 ] ;state/copy JSR2
+    [ ;&stack-ptr LDA2 ] STATESIZE ADD2
+    DUP2 ;&stack-end GEQ2 ,&overflow JCN
+    [ ;&stack-ptr STA2 ]
+    RTN
+
+    &overflow
+      P< "stack_overflow >P
+      !
+
+  ( state* -- )
+  &pop
+    [ ;&stack-ptr LDA2 ] STATESIZE SUB2
+    DUP2 ;&stack-start LTH2 ,&underflow JCN
+    [ ;&stack-ptr STA2 ]
+    [ ;&stack-ptr LDA2 ] SWP2 ;state/copy JSR2
+    RTN
+
+    &underflow
+      P< "stack_underflow >P
+      !
+
+  ( -- )
+  &dump
+    [ ;&stack-ptr LDA2 ]
+    LITr 00
+    &dump/next
+    STATESIZE SUB2
+    DUP2 ;&stack-start LTH2 ,&dump/done JCN
+    STHrk DBGBYTEDECn POP LIT ': EMIT SP
+    DUP2 ;state/dump JSR2
+    INCr
+    ,&dump/next JMP
+    &dump/done
+    POP2
+    POPr
+    RTN
+
+  ( -- size )
+  &size
+    [ ;&stack-ptr LDA2 ] ;&stack-start SUB2 STATESIZE DIV2
+    RTN
+
+  [ &stack-ptr $2 &stack-start STACKPAD &stack-end ]
+
+( -- )
+@player
+  ( -- )
+  &next
+    ;&load-top-state JSR2
+
+    [ ;&srcstate/cost LDA2 ] [ ;&cost-limit LDA2 ] GEQ2 ,&state-done JCN
+    ;&process-exits JSR2
+    ;&check-goal JSR2 ,&state-done JCN
+    ;&process-moves JSR2
+    &state-done
+    RTN
+
+  ( -- )
+  &init
+    #ffff [ ;&cost-limit STA2 ]
+    RTN
+
+  ( -- found )
+  &check-goal
+    ( is everything zero? )
+    ;&srcstate DUP2 ROOMSIZE 4** ADD2 HALLWAYSIZE ADD2 DO
+      ( ptr )
+      LDAk ,&check-goal/not-zero JCN
+    LOOP
+
+    ( all zero, goal found )
+    P< "goal: 20 >P
+    [ ;&srcstate/cost LDA2 ] ;print-short-decimal JSR2 LF
+    [ ;&srcstate/cost LDA2 ] [ ;&cost-limit STA2 ]
+    #01
+    RTN
+
+    &check-goal/not-zero
+      UNLOOP
+      #00
+      RTN
+
+  &process-exits
+    ( look for exiting amphipods )
+    #0000 #0007 DO
+      ( spot )
+
+      ( spot )
+      DUP2 ;&srcstate/hallway ADD2 LDA
+      ( spot amphipod )
+      #00 EQU ,&exit-done JCN
+
+      ( spot )
+      DUP2 ;&srcstate/hallway ADD2 LDA
+      ( spot amphipod )
+      STHk
+
+      DEC #00 SWP
+      ( spot target-room-index : amphipod )
+
+      ( is target room free? )
+      DUP2 ROOMSIZE MUL2 ;&srcstate/rooms ADD2 LDA #00 NEQ ,&no-exit JCN
+
+      ( is path free? )
+
+      ( spot target-room-index : amphipod )
+      DUP4 SWP2 ;&check-room-to-spot JSR2 ,&no-exit JCN
+
+        ( amphipod exits now )
+        OVR2 ;&srcstate/hallway ADD2 #00 ROT ROT STA
+        ;&compute-occupancy JSR2
+
+        ( immediately restart search for exiting amphipods )
+        POP2
+        POPr
+        UNLOOP
+        ;&process-exits JMP2
+
+      &no-exit
+      ( spot target-room-index : amphipod )
+      POP2
+      POPr
+
+      &exit-done
+      ( spot )
+    LOOP
+    RTN
+
+  ( room-index spot -- distance )
+  &get-room-to-spot-distance
+    SWP2 HALLWAYSIZE MUL2 ADD2 ;&room-to-spot-distances ADD2 LDA
+    #00 SWP
+    RTN
+    [ &room-to-spot-distances
+        (      to  0  1  2  3  4  5  6 )
+        ( from a ) 03 02 02 04 06 08 09
+        ( from b ) 05 04 02 02 04 06 07
+        ( from c ) 07 06 04 02 02 04 05
+        ( from d ) 09 08 06 04 02 02 03
+    ]
+
+  ( amphipod -- cost )
+  &get-amphipod-move-cost
+    2* #00 SWP ;&amphipod-costs ADD2 LDA2
+    RTN
+    [ &amphipod-costs 0000 0001 000a 0064 03e8 ]
+
+  &process-moves
+    ( enumerate moves out of rooms )
+    #0000 #0004 DO
+      ( room-index )
+
+      DUP2 ROOMSIZE MUL2 ;&srcstate/rooms ADD2 LDA ( amphipod )
+
+      #00 EQU ;&empty-room JCN2
+
+        #0000 #0007 DO
+          ( room-index spot )
+          ( is spot free? )
+          DUP2 ;&srcstate/hallway ADD2 LDA #00 NEQ ,&workstate/hallway-done JCN
+
+          ( room-index spot )
+          ( is path free? )
+          DUP4 ;&check-room-to-spot JSR2 ,&workstate/hallway-done JCN
+
+          ( path and spot are free, move and push new state )
+
+          ;&srcstate ;&workstate ;state/copy JSR2
+          ( room-index spot )
+
+          OVR2 ;&pop-room JSR2 STH ( room-index spot : amphipod )
+          DUP2 ;&workstate/hallway ADD2 STHrk ROT ROT STA
+
+          ( room-index spot : amphipod )
+          DUP4 ;&get-room-to-spot-distance JSR2
+          ( room-index spot room-to-spot-distance : amphipod )
+
+          OVR2 STHrk DEC #00 SWP SWP2
+          ( room-index spot room-to-spot-distance target-room spot : amphipod )
+          ;&get-room-to-spot-distance JSR2
+          ( room-index spot room-to-spot-distance spot-to-target-room-distance : amphipod )
+          ADD2
+          ( room-index spot total-distance : amphipod )
+          STHr ;&get-amphipod-move-cost JSR2
+          MUL2
+
+          ( room-index spot total-move-cost )
+
+          [ ;&workstate/cost LDA2 ] ADD2
+
+          DUP2 [ ;&cost-limit LDA2 ] GEQ2 ,&cost-limit-breached JCN
+            DUP2 [ ;&workstate/cost STA2 ]
+            ;&workstate ;statestack/push JSR2
+            &cost-limit-breached
+
+          ( room-index spot total-move-cost )
+          POP2
+
+          &workstate/hallway-done
+        LOOP
+
+      &empty-room
+    LOOP
+
+    RTN
+
+  &load-top-state
+    ;&srcstate ;statestack/pop JSR2
+
+    ;&compute-occupancy JSR2
+    RTN
+
+  ( room-index spot -- blocked? )
+  &check-room-to-spot
+    ;&load-stepmask JSR2 [ ;&occupancy LDA ] AND
+    RTN
+
+  ( room-index spot )
+  &load-stepmask
+    SWP2 HALLWAYSIZE MUL2 ADD2 ;&steps-data ADD2 LDA
+    RTN
+
+  [ &steps-data
+      (      to  0  1  2  3  4  5  6 )
+      ( from a ) 20 00 00 10 18 1c 1e
+      ( from b ) 30 10 00 00 08 0c 0e
+      ( from c ) 38 18 08 00 00 04 06
+      ( from d ) 3c 1c 0c 04 00 00 02
+  ]
+
+  &compute-occupancy
+    #00 #40 ( result bit )
+    ;&srcstate/hallway ;&srcstate/hallway HALLWAYSIZE ADD2 DO
+      ( result bit spot* )
+      STH2
+      ( result bit : spot* )
+      LDArk STHr
+      ( result bit spotbyte : spot* )
+      #00 EQU ,&occ/not-set JCN
+        ( result bit )
+        DUP2 ORA ( result bit result|bit )
+        ROT POP SWP
+      &occ/not-set
+      #01 SFT
+      STH2r
+    LOOP
+    ( result bit )
+    POP
+    ( result )
+    [ ;&occupancy STA ]
+    RTN
+
+  ( room-index -- top )
+  &pop-room
+    ROOMSIZE MUL2 ;&workstate/rooms ADD2 ( room* )
+
+    LDAk STH ( room* : top )
+
+    DUP2 ( room* room* : top )
+    DUP2 INC2 SWP2 ROOMSIZE DEC2 ;memcpy JSR2
+
+    ( room* )
+    ROOMSIZE ADD2 DEC2 #00 ROT ROT STA
+
+    STHr
+    ( top )
+    RTN
+
+  [
+    &srcstate
+      &srcstate/rooms ROOMPAD ROOMPAD ROOMPAD ROOMPAD
+      &srcstate/hallway HALLWAYPAD
+      &srcstate/cost $2
+
+    &workstate
+      &workstate/rooms ROOMPAD ROOMPAD ROOMPAD ROOMPAD
+      &workstate/hallway HALLWAYPAD
+      &workstate/cost $2
+
+    &occupancy $1
+    &stepmask $1
+
+    &cost-limit $2
+  ]

@@ -1,0 +1,68 @@
+~library/macros.tal
+~library/devices.tal
+~day23_macros.tal
+
+( variables )
+
+|0000
+
+( init )
+
+|0100 @program
+  ;on-arg-char .Console/vector DEO2
+  BRK !
+
+@on-arg-char
+  .Console/read DEI ( char )
+  DUP #0a EQU ,&complete JCN
+  ;argv #00 ,&argptr LDR ADD2 STA
+  ,&argptr LDR INC ,&argptr STR
+  BRK !
+
+  &complete
+  POP
+
+  ;arg-received JMP2
+
+  &argptr $1
+
+@argv        $20
+
+( arg is in @argv )
+@arg-received
+  ;open-file JSR2
+
+  ;read-byte ;&initial-state ;state/parse JSR2
+
+  ;&initial-state ;state/compute-fixed-cost JSR2
+  ;&initial-state ;state/dump JSR2
+
+  ;statestack/init JSR2
+  ;&initial-state ;statestack/push JSR2
+
+  ;player/init JSR2
+
+  &loop
+    ( ;statestack/size JSR2 ;print-short-decimal JSR2 LF )
+    ;player/next JSR2
+    ;statestack/size JSR2 #0000 GTH2 ,&loop JCN
+
+  P< "🎉 0a >P
+
+  BRK
+
+  [ &initial-state STATEPAD ]
+
+@open-file
+  ;argv .File/name DEO2
+  #0001 .File/length DEO2
+  RTN
+
+( -- next-byte )
+@read-byte
+  #00 ;&byte STA ( clear byte so that EOF reads as zero )
+  ;&byte .File/read DEO2
+  LIT &byte 00 ( <- this byte is patched by the two previous instructions! )
+  RTN
+
+~day23_lib.tal
