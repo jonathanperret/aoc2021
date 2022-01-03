@@ -105,8 +105,9 @@
 
     POP2r STH2r
     ( state* )
-    STATE>cost
-    #0000 SWP2 STA2
+    DUP2 STATE>cost #0000 SWP2 STA2
+    ( state* )
+    STATE>done #00 ROT ROT STA
 
     RTN
 
@@ -131,82 +132,62 @@
 
   ( state* -- )
   &dump
-    DUP2 STATE>cost LDA2 ;print-short-decimal JSR2 LF
+    DUP2 STATE>cost LDA2 ;print-short-decimal JSR2
+
+    DUP2 STATE>done LDA NOT ,&dump/not-done JCN
+      SP LIT '* EMIT
+      &dump/not-done
+    LF
+
+    %AMPHIPOD-EMIT { DUP LIT '@ ADD SWP #03 JCN POP LIT '. EMIT }
 
     P< "┌───────────┐ >P LF
     P< "│ >P
 
     DUP2 STATE>hallway
-    LDAk LIT '@ ADD EMIT INC2
-    LDAk LIT '@ ADD EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
     LIT '. EMIT
-    LDAk LIT '@ ADD EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
     LIT '. EMIT
-    LDAk LIT '@ ADD EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
     LIT '. EMIT
-    LDAk LIT '@ ADD EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
     LIT '. EMIT
-    LDAk LIT '@ ADD EMIT INC2
-    LDAk LIT '@ ADD EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
+    LDAk AMPHIPOD-EMIT INC2
     P< "│ >P LF
     POP2
 
     DUP2
     P< "└─┐ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
     P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
     P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
     P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
+    LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
     P< "┌─┘ >P LF
     POP2
 
     INC2
 
-    DUP2
-    P< 20 20 "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ 20 20 >P LF
-    POP2
-
-    INC2
-
-    DUP2
-    P< 20 20 "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ 20 20 >P LF
-    POP2
-
-    INC2
-
-    DUP2
-    P< 20 20 "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ >P
-    LDAk LIT '@ ADD EMIT ROOMSIZE ADD2
-    P< "│ 20 20 >P LF
-    POP2
+    DUP2 #0003 ADD2 DO
+      DUP2
+      P< 20 20 "│ >P
+      LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
+      P< "│ >P
+      LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
+      P< "│ >P
+      LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
+      P< "│ >P
+      LDAk AMPHIPOD-EMIT ROOMSIZE ADD2
+      P< "│ 20 20 >P LF
+      POP2
+    LOOP
 
     P< 20 20 "└───────┘ 20 20 >P LF
-    POP2
     RTN
 
   ( src* dest* -- )
@@ -289,18 +270,17 @@
 
   ( -- )
   &dump
-    [ ;&stack-ptr LDA2 ]
+    ;&stack-start [ ;&stack-ptr LDA2 ]
     LITr 00
     &dump/next
     STATESIZE SUB2
-    DUP2 ;&stack-start LTH2 ,&dump/done JCN
+    GTH2k ,&dump/done JCN
     STHrk DBGBYTEDECn POP LIT ': EMIT SP
     DUP2 ;state/dump JSR2
     INCr
     ,&dump/next JMP
     &dump/done
-    POP2
-    POPr
+    POP2 POP2 POPr
     RTN
 
   ( -- size )
@@ -308,13 +288,41 @@
     [ ;&stack-ptr LDA2 ] ;&stack-start SUB2 STATESIZE DIV2
     RTN
 
+  ( prints all "done" states, i.e. parents of the current top )
+  ( -- )
+  &print-path
+    [ ;&stack-ptr LDA2 ] ;&stack-start ( stack-top* ptr* )
+    LITr 00
+    &print-path/next
+    ( stack-top* ptr* : counter )
+    DUP2 STATE>done LDA NOT ,&print-path/not-done JCN
+      STHrk DBGBYTEDECn POP LIT ': EMIT SP
+      DUP2 ;state/dump JSR2
+      INCr
+      &print-path/not-done
+    STATESIZE ADD2 ( stack-top* ptr* )
+    GTH2k ,&print-path/next JCN
+    ( stack-top* ptr* : counter )
+    POP2 POP2 POPr
+    RTN
+
   [ &stack-ptr $2 &stack-start STACKPAD &stack-end ]
+
 
 ( -- )
 @player
   ( -- )
   &next
     ;&load-top-state JSR2
+
+    [ ;&srcstate/done LDA ] ,&state-done JCN
+
+    ( push state back, flagged as "done" )
+    #01 [ ;&srcstate/done STA ]
+    ;&srcstate ;statestack/push JSR2
+
+    ( clear "done" flag, to be copied to child states )
+    #00 [ ;&srcstate/done STA ]
 
     [ ;&srcstate/cost LDA2 ] [ ;&cost-limit LDA2 ] GEQ2 ,&state-done JCN
     ;&process-exits JSR2
@@ -340,6 +348,7 @@
     P< "goal: 20 >P
     [ ;&srcstate/cost LDA2 ] ;print-short-decimal JSR2 LF
     [ ;&srcstate/cost LDA2 ] [ ;&cost-limit STA2 ]
+    ;statestack/print-path JSR2
     #01
     RTN
 
@@ -539,11 +548,13 @@
       &srcstate/rooms ROOMPAD ROOMPAD ROOMPAD ROOMPAD
       &srcstate/hallway HALLWAYPAD
       &srcstate/cost $2
+      &srcstate/done $1
 
     &workstate
       &workstate/rooms ROOMPAD ROOMPAD ROOMPAD ROOMPAD
       &workstate/hallway HALLWAYPAD
       &workstate/cost $2
+      &workstate/done $1
 
     &occupancy $1
     &stepmask $1

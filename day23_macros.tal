@@ -4,5 +4,6 @@
 %STATE>hallway { STATE.hallway ADD2 }
 
 %STATE>cost { STATE>hallway HALLWAYSIZE ADD2 }
+%STATE>done { STATE>cost #0002 ADD2 }
 
-%STATESIZE { #0019 } %STATEPAD { $0019 }
+%STATESIZE { #001a } %STATEPAD { $001a }
